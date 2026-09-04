@@ -1,10 +1,40 @@
 <div class="chess-lobby-container">
+  <% if @my_open_match %>
+    <div class="open-match-banner">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 1.5rem;">⚠️</span>
+        <div>
+          <strong style="color: #f59e0b;">Már van egy nyitott <%= @my_open_match.pending? ? "várakozó kihívásod" : "aktív játszmád" %>!</strong>
+          <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 2px;">
+            Szoba azonosító: <code>#<%= @my_open_match.uuid.split('-').first %></code> &bull; Állapot: <strong style="color: #38bdf8;"><%= @my_open_match.status.upcase %></strong>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <%= link_to "Belépés a Szobába →", match_path(@my_open_match.uuid), class: "btn-join" %>
+        <% if @my_open_match.pending? %>
+          <%= button_to "Kihívás Visszavonása", cancel_match_path(@my_open_match.uuid), method: :post, class: "btn-cancel", data: { turbo_confirm: "Biztosan vissza szeretnéd vonni ezt a kihívást?" } %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
   <div class="header">
-    <h1>Sakk Lobbi</h1>
-    <%= form_with url: matches_path, method: :post, local: true, class: "new-match-form" do |f| %>
-      <%= f.select :time_control, [["Végtelen", ""], ["5 perc", 300], ["10 perc", 600]], {}, class: "time-select" %>
-      <%= f.select :side, [["Véletlen", "random"], ["Világos", "white"], ["Sötét", "black"]], {}, class: "side-select" %>
-      <%= f.submit "Új Kihívás Indítása", class: "btn-primary" %>
+    <div>
+      <h1>Sakk Lobbi</h1>
+      <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 4px;">Indíts új kihívást vagy csatlakozz egy várakozó ellenfélhez!</p>
+    </div>
+
+    <% if @my_open_match.nil? %>
+      <%= form_with url: matches_path, method: :post, local: true, class: "new-match-form" do |f| %>
+        <%= f.select :time_control, (@settings ? @settings.time_control_options : [["Végtelen", ""], ["5 perc", 300], ["10 perc", 600]]), {}, class: "time-select" %>
+        <%= f.select :side, [["Véletlen oldal", "random"], ["Világos (Fehér)", "white"], ["Sötét (Fekete)", "black"]], {}, class: "side-select" %>
+        <%= f.submit "Új Kihívás Indítása", class: "btn-primary" %>
+      <% end %>
+    <% else %>
+      <div style="color: #f59e0b; font-size: 0.88rem; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 8px 14px; border-radius: 6px;">
+        Új kihívás indítása előtt fejezd be vagy vond vissza a meglévő szobádat!
+      </div>
     <% end %>
   </div>
 
@@ -15,11 +45,21 @@
         <ul class="match-list">
           <% @pending_matches.each do |match| %>
             <li class="match-card">
-              <span class="match-id">Match #<%= match.uuid.split('-').first %></span>
-              <span class="match-time"><%= match.time_control ? "#{match.time_control / 60} perc" : "Végtelen" %></span>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span class="match-id">Match #<%= match.uuid.split('-').first %></span>
+                <span class="match-time" style="font-size: 0.82rem; color: #94a3b8;">
+                  ⏱ <%= match.time_control ? "#{match.time_control / 60} perc" : "Végtelen" %>
+                  &bull; Oldal: <%= match.white_user_id || match.white_guest_id ? "Világos" : "Sötét" %>
+                </span>
+              </div>
               <div class="card-actions">
-                <%= link_to "Csatlakozás", match_path(match.uuid, join: true), class: "btn-join" %>
-                <%= link_to "Néző", match_path(match.uuid), class: "btn-spectate" %>
+                <% if match.creator?(current_user, session[:guest_id]) %>
+                  <%= button_to "Visszavonás", cancel_match_path(match.uuid), method: :post, class: "btn-cancel", data: { turbo_confirm: "Biztosan visszavonod a kihívást?" } %>
+                  <%= link_to "Szobám", match_path(match.uuid), class: "btn-view" %>
+                <% else %>
+                  <%= link_to "Csatlakozás", match_path(match.uuid, join: true), class: "btn-join" %>
+                  <%= link_to "Néző", match_path(match.uuid), class: "btn-spectate" %>
+                <% end %>
               </div>
             </li>
           <% end %>
@@ -80,6 +120,31 @@
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
+  }
+  .open-match-banner {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+  .btn-cancel {
+    background: rgba(244, 63, 94, 0.2);
+    color: #fb7185;
+    border: 1px solid rgba(244, 63, 94, 0.4);
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-cancel:hover {
+    background: #f43f5e;
+    color: white;
   }
   .btn-join, .btn-view {
     background: #1a243b;

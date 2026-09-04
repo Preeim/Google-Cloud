@@ -1,0 +1,80 @@
+﻿<div style=\"display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;\">
+  <div>
+    <h1 style=\"font-size: 1.6rem; font-weight: 700; color: var(--text-main);\">Sakk Játszmák & Adatbázis</h1>
+    <p style=\"color: var(--text-muted); font-size: 0.95rem; margin-top: 4px;\">Minden mérkőzés felügyelete, keresése és manuális karbantartása</p>
+  </div>
+  <div>
+    <%= button_to \"🧹 Elavult Szobák Takarítása\", cleanup_pending_admin_matches_path, method: :post, class: \"btn btn-secondary\", style: \"border-color: var(--warning); color: var(--warning);\", data: { turbo_confirm: \"Biztosan törölni szeretnéd az összes #{Setting.current.auto_abort_minutes} percnél régebbi, gazdátlan várakozó kihívást?\" } %>
+  </div>
+</div>
+
+<div class=\"card\" style=\"padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;\">
+  <div style=\"display: flex; gap: 8px; flex-wrap: wrap;\">
+    <%= link_to \"Összes\", admin_matches_path, class: \"btn #{params[:status].blank? ? 'btn-primary' : 'btn-secondary'}\", style: \"padding: 6px 12px; font-size: 0.85rem;\" %>
+    <%= link_to \"Várakozó (Pending)\", admin_matches_path(status: 'pending'), class: \"btn #{params[:status] == 'pending' ? 'btn-primary' : 'btn-secondary'}\", style: \"padding: 6px 12px; font-size: 0.85rem;\" %>
+    <%= link_to \"Aktív (Active)\", admin_matches_path(status: 'active'), class: \"btn #{params[:status] == 'active' ? 'btn-primary' : 'btn-secondary'}\", style: \"padding: 6px 12px; font-size: 0.85rem;\" %>
+    <%= link_to \"Befejezett\", admin_matches_path(status: 'completed'), class: \"btn #{params[:status] == 'completed' ? 'btn-primary' : 'btn-secondary'}\", style: \"padding: 6px 12px; font-size: 0.85rem;\" %>
+    <%= link_to \"Megszakított\", admin_matches_path(status: 'aborted'), class: \"btn #{params[:status] == 'aborted' ? 'btn-primary' : 'btn-secondary'}\", style: \"padding: 6px 12px; font-size: 0.85rem;\" %>
+  </div>
+
+  <%= form_with url: admin_matches_path, method: :get, local: true, style: \"display: flex; gap: 8px;\" do |f| %>
+    <%= f.hidden_field :status, value: params[:status] if params[:status].present? %>
+    <%= f.text_field :q, value: params[:q], placeholder: \"Keresés UUID alapján...\", class: \"form-control\", style: \"width: 220px; padding: 6px 10px; font-size: 0.88rem;\" %>
+    <%= f.submit \"Keresés\", class: \"btn btn-secondary\", style: \"padding: 6px 12px; font-size: 0.85rem;\" %>
+  <% end %>
+</div>
+
+<div class=\"card\">
+  <% if @matches.any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Azonosító</th>
+          <th>Világos</th>
+          <th>Sötét</th>
+          <th>Státusz</th>
+          <th>Eredmény / Ok</th>
+          <th>Idő</th>
+          <th>Létrehozva</th>
+          <th style=\"text-align: right;\">Műveletek</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @matches.each do |match| %>
+          <tr>
+            <td>
+              <code>#<%= match.uuid.split('-').first %></code>
+            </td>
+            <td><%= match.white_player_name %></td>
+            <td><%= match.black_player_name %></td>
+            <td>
+              <span class=\"tag tag-<%= match.status %>\"><%= match.status.upcase %></span>
+            </td>
+            <td>
+              <% if match.winner.present? %>
+                <strong><%= match.winner.capitalize %> nyert</strong>
+                <small style=\"color: var(--text-muted);\">(<%= match.termination_reason || 'N/A' %>)</small>
+              <% elsif match.aborted? %>
+                <span style=\"color: var(--danger);\">Megszakítva</span>
+              <% else %>
+                <span style=\"color: var(--text-muted);\">-</span>
+              <% end %>
+            </td>
+            <td><%= match.time_control ? \"#{match.time_control / 60} perc\" : \"Végtelen\" %></td>
+            <td><%= match.created_at.strftime(\"%Y-%m-%d %H:%M\") %></td>
+            <td style=\"text-align: right; display: flex; justify-content: flex-end; gap: 6px;\">
+              <%= link_to \"Diagnosztika\", admin_match_path(match.uuid), class: \"btn btn-secondary\", style: \"padding: 4px 8px; font-size: 0.8rem;\" %>
+              <%= link_to \"Szoba\", match_path(match.uuid), class: \"btn btn-secondary\", style: \"padding: 4px 8px; font-size: 0.8rem;\", target: \"_blank\" %>
+              <% if match.active? || match.pending? %>
+                <%= button_to \"Leállítás\", abort_admin_match_path(match.uuid), method: :post, class: \"btn btn-danger\", style: \"padding: 4px 8px; font-size: 0.8rem;\", data: { turbo_confirm: \"Biztosan leállítod a meccset?\" } %>
+              <% end %>
+              <%= button_to \"Törlés\", admin_match_path(match.uuid), method: :delete, class: \"btn btn-danger\", style: \"padding: 4px 8px; font-size: 0.8rem;\", data: { turbo_confirm: \"Biztosan véglegesen törlöd ezt a meccset az adatbázisból?\" } %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p style=\"color: var(--text-muted); font-style: italic;\">Nincs a szűrésnek megfelelő mérkőzés az adatbázisban.</p>
+  <% end %>
+</div>

@@ -49,6 +49,9 @@
                 <span>🟢 Bekapcsolás</span>
               <% end %>
             <% end %>
+            <% if app.slug == "chess" %>
+              <a href="/chess/admin" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem; border-color: var(--admin-accent); color: var(--admin-accent);">⚙️ Sakk Admin</a>
+            <% end %>
             <a href="/bank-admin/apps/<%= app.id %>/edit" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Beállítások</a>
           </td>
         </tr>

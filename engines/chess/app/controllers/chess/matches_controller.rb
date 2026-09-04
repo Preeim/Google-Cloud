@@ -1,11 +1,14 @@
 module Chess
   class MatchesController < ApplicationController
+    before_action :load_settings
+
     def index
       @pending_matches = Match.where(status: "pending").order(created_at: :desc)
       @user_matches = Match.where(
         "white_user_id = :uid OR black_user_id = :uid OR white_guest_id = :gid OR black_guest_id = :gid",
         uid: current_user&.id, gid: session[:guest_id]
       ).order(created_at: :desc).limit(10)
+      @my_open_match = Match.open_match_for(current_user, session[:guest_id])
     end
 
     def show
@@ -31,16 +34,31 @@ module Chess
     end
 
     def create
-      # Create a new match room
+      # 1. Vendégjáték engedélyezésének ellenőrzése
+      if !logged_in? && !@settings.allow_guests?
+        flash[:alert] = "A Sakk modulban a vendégjáték jelenleg tiltva van a beállítások alapján. Kérjük, jelentkezz be!"
+        redirect_to app_login_path and return
+      end
+
+      # 2. Egyidejű nyitott kihívás korlát ellenőrzése
+      if @settings.single_challenge_limit?
+        existing = Match.open_match_for(current_user, session[:guest_id])
+        if existing
+          flash[:alert] = "Már van egy nyitott vagy folyamatban lévő kihívásod! Fejezd be vagy vond vissza, mielőtt újat indítanál."
+          redirect_to match_path(existing.uuid) and return
+        end
+      end
+
+      # 3. Új meccs létrehozása
       match = Match.new
 
-      if params[:time_control].present?
+      if params[:time_control].present? && params[:time_control].to_i > 0
         match.time_control = params[:time_control].to_i
         match.white_time_left = match.time_control * 1000
         match.black_time_left = match.time_control * 1000
       end
 
-      # Assign creator to a side
+      # Oldal kiosztása
       side = %w[white black].sample
       side = params[:side] if %w[white black].include?(params[:side])
 
@@ -55,7 +73,35 @@ module Chess
       redirect_to match_path(match.uuid)
     end
 
+    def cancel
+      @match = Match.find_by!(uuid: params[:id])
+
+      unless @match.creator?(current_user, session[:guest_id]) || admin?
+        flash[:alert] = "Nincs jogosultságod visszavonni ezt a kihívást!"
+        redirect_to match_path(@match.uuid) and return
+      end
+
+      if @match.pending?
+        # Értesítjük a szobában esetlegesen tartózkodókat
+        Chess::MatchChannel.broadcast_to(@match, { action: "challenge_cancelled" })
+        @match.destroy
+        flash[:notice] = "A sakk kihívást sikeresen visszavontad."
+      else
+        flash[:alert] = "A játszma már aktív vagy befejeződött, így nem vonható vissza."
+      end
+
+      redirect_to matches_path
+    end
+
+    def destroy
+      cancel
+    end
+
     private
+
+    def load_settings
+      @settings = Setting.current
+    end
 
     def join_pending_match!
       @match.with_lock do

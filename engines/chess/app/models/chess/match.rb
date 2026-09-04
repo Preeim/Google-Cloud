@@ -32,6 +32,32 @@ module Chess
       end
     end
 
+    # Ellenőrzi, hogy az adott felhasználó/vendég a szoba létrehozója-e
+    def creator?(user = nil, guest_id = nil)
+      if user.present?
+        (white_user_id.present? && white_user_id == user.id) || (black_user_id.present? && black_user_id == user.id)
+      elsif guest_id.present?
+        (white_guest_id.present? && white_guest_id.to_s == guest_id.to_s) || (black_guest_id.present? && black_guest_id.to_s == guest_id.to_s)
+      else
+        false
+      end
+    end
+
+    # Ellenőrzi, hogy a felhasználó vagy vendég résztvevő-e a meccsben
+    def participant?(user = nil, guest_id = nil)
+      creator?(user, guest_id)
+    end
+
+    # Megkeresi a felhasználó vagy vendég jelenleg nyitott/aktív játszmáját
+    def self.open_match_for(user = nil, guest_id = nil)
+      return nil if user.nil? && guest_id.nil?
+
+      where(status: ["pending", "active"]).where(
+        "white_user_id = :uid OR black_user_id = :uid OR white_guest_id = :gid OR black_guest_id = :gid",
+        uid: user&.id, gid: guest_id
+      ).order(created_at: :desc).first
+    end
+
     private
 
     def generate_uuid

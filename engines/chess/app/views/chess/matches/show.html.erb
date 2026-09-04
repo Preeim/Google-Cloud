@@ -107,6 +107,9 @@
           <input type="text" id="share-link-input" readonly value="<%= match_url(@match.uuid, join: true) %>" class="share-input">
           <button type="button" id="btn-copy-link" class="btn btn-primary btn-sm">Link Másolása</button>
         </div>
+        <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
+          <%= button_to "❌ Kihívás Visszavonása", cancel_match_path(@match.uuid), method: :post, class: "btn btn-danger btn-sm", data: { turbo_confirm: "Biztosan vissza szeretnéd vonni a kihívást?" } %>
+        </div>
       </div>
     <% end %>
 
@@ -153,11 +156,16 @@
       <%= status_badge_text %>
     </div>
     
+    <% chess_settings = Chess::Setting.current rescue nil %>
     <div id="active-actions-container" style="<%= @match.active? && !is_spectator ? '' : 'display: none;' %>">
       <div class="actions">
         <button type="button" id="btn-resign" class="btn btn-danger">Feladás</button>
-        <button type="button" id="btn-draw" class="btn btn-warning">Döntetlen Ajánlat</button>
-        <button type="button" id="btn-takeback" class="btn btn-info">Visszalépés Kérése</button>
+        <% if chess_settings.nil? || chess_settings.allow_draw_offer? %>
+          <button type="button" id="btn-draw" class="btn btn-warning">Döntetlen Ajánlat</button>
+        <% end %>
+        <% if chess_settings.nil? || chess_settings.allow_takeback? %>
+          <button type="button" id="btn-takeback" class="btn btn-info">Visszalépés Kérése</button>
+        <% end %>
       </div>
     </div>
 
@@ -908,7 +916,9 @@ document.addEventListener("DOMContentLoaded", function() {
       } else if (data.action === "draw_declined") {
         if (isSpectator || data.color === myColor) return;
         resetButtonCooldown('#btn-draw', 'Döntetlen Ajánlat');
-        alert("Az ellenfél elutasította a döntetlen ajánlatot.");
+      } else if (data.action === "challenge_cancelled") {
+        alert("A szoba készítője visszavonta a kihívást.");
+        window.location.href = "/chess";
       } else if (data.action === "game_over") {
         isCompleted = true;
         container.dataset.status = "completed";

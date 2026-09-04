@@ -80,6 +80,11 @@
         </span>
         <a href="/login" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.82rem;">Bejelentkezés</a>
       <% end %>
+      <% if admin? %>
+        <a href="/chess/admin" class="btn btn-secondary" style="border-color: var(--chess-gold); color: var(--chess-gold); padding: 6px 12px; font-size: 0.82rem;">
+          ⚙️ Modul Admin
+        </a>
+      <% end %>
       <a href="/" class="btn btn-secondary">← Vissza a Főoldalra</a>
     </div>
   </header>
