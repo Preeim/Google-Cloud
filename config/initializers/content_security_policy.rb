@@ -3,49 +3,44 @@
 # ==============================================================================
 # Ez a fájl határozza meg a böngészők által betölthető erőforrások (scriptek,
 # stílusok, képek, WebSocket kapcsolatok) biztonsági szabályait.
-# Segít megelőzni az XSS (Cross-Site Scripting) és adatbefecskendezéses támadásokat.
 # ==============================================================================
 
 Rails.application.configure do
   config.content_security_policy do |policy|
-    # Alapértelmezés: csak a saját domainről tölthető be bármilyen erőforrás
+    # Alapértelmezés: saját forrás
     policy.default_src :self
 
-    # Betűtípusok: saját forrás és standard webes betűk
+    # Betűtípusok és ikonok
     policy.font_src    :self, :data
 
-    # Képek: saját képek, SVG data URI-k, és avatarok/ikonok
+    # Képek és avatarok
     policy.img_src     :self, :data
 
-    # Objektumok: beágyazott Flash/Java appletek teljes tiltása
+    # Flash és más objektumok tiltása
     policy.object_src  :none
 
-    # Scriptek: saját domain és importmap scriptek engedélyezése
-    policy.script_src  :self
+    # Scriptek
+    policy.script_src  :self, :unsafe_inline
 
-    # Stílusok: saját stíluslapok és inline stílusok a dinamikus UI elemekhez
+    # Stílusok
     policy.style_src   :self, :unsafe_inline
 
-    # Hálózati kapcsolatok: Fetch, XHR és Action Cable WebSocket csatorna
-    # Támogatja a helyi fejlesztést (ws://) és az éles bankrepo.hu wss:// kapcsolatokat
-    if Rails.env.development?
-      policy.connect_src :self, "ws://localhost:3000", "ws://127.0.0.1:3000"
-    else
-      policy.connect_src :self, "wss://bankrepo.hu", "https://bankrepo.hu"
-    end
+    # Hálózati kapcsolatok: Fetch, XHR és Action Cable WebSocket csatornák
+    # Teljes körűen engedélyezi a ws:// és wss:// kapcsolatokat a domainhez
+    policy.connect_src :self, :blob,
+                       "wss://bankrepo.hu", "ws://bankrepo.hu",
+                       "wss://www.bankrepo.hu", "ws://www.bankrepo.hu",
+                       "wss:", "ws:",
+                       "https://bankrepo.hu", "http://bankrepo.hu",
+                       "ws://localhost:3000", "ws://127.0.0.1:3000"
 
-    # Beágyazás megelőzése: csak saját domained ágyazhatja be az oldalt (Clickjacking védelem)
+    # Clickjacking védelem
     policy.frame_ancestors :self
 
-    # Űrlapok célállomása: kizárólag a saját domainre küldhetnek POST kérést
+    # Űrlap célállomás
     policy.form_action :self
 
-    # Alap URI védelem
+    # Alap URI
     policy.base_uri :self
   end
-
-  # Nonce generálás a dinamikusan injektált scriptekhez (szükség esetén)
-  config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
-  config.content_security_policy_nonce_directives = %w(script-src)
 end
-

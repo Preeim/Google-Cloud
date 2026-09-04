@@ -26,13 +26,20 @@ Rails.application.configure do
   config.active_support.report_deprecations = false
   config.active_record.dump_schema_after_migration = false
 
-  # HTTPS Kényszerítés és HSTS (Let's Encrypt tanúsítvánnyal védve)
-  config.force_ssl = true
-  config.ssl_options = {
-    hsts: { subdomains: true, preload: true, expires: 2.years },
-    redirect: { exclude: ->(request) { request.path == "/health" } }
-  }
-
-  # Nginx fordított proxy kezeli a domaineket; belső blokkolás feloldása
+  # Nginx fordított proxy kezeli az SSL-t (Let's Encrypt) és a domaineket
   config.hosts.clear
+
+  # Action Cable WebSocket beállítások éles környezetben:
+  # Engedélyezzük a bankrepo.hu domainről érkező WebSocket handshake kéréseket
+  config.action_cable.disable_request_forgery_protection = true
+  config.action_cable.url = "/cable"
+  config.action_cable.allowed_request_origins = [
+    "https://bankrepo.hu",
+    "http://bankrepo.hu",
+    "https://www.bankrepo.hu",
+    "http://www.bankrepo.hu",
+    /https?:\/\/bankrepo\.hu.*/,
+    /https?:\/\/127\.0\.0\.1.*/,
+    /https?:\/\/localhost.*/
+  ]
 end
