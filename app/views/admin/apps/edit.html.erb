@@ -5,7 +5,7 @@
   </div>
 
   <div class="card">
-    <%= form_with model: [:admin, @app], local: true do |f| %>
+    <%= form_with model: @app, url: admin_app_path(@app), method: :patch, local: true do |f| %>
       <div class="form-group">
         <label for="app_definition_name">Alkalmazás Megjelenített Neve</label>
         <%= f.text_field :name, class: "form-control" %>
