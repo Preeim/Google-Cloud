@@ -1,7 +1,7 @@
 module Casino
   class TableChannel < ApplicationCable::Channel
     def subscribed
-      @table = Casino::Table.find_by(id: params[:table_id])
+      @table = Casino::Table.find_by(slug: params[:table_id]) || Casino::Table.find_by(id: params[:table_id])
       if @table
         stream_for @table
         # Értesítés az asztalnak, hogy új játékos lépett be

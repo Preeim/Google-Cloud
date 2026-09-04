@@ -24,7 +24,8 @@ module Casino
       private
 
       def set_table
-        @table = Casino::Table.find(params[:id])
+        @table = Casino::Table.find_by(slug: params[:id]) || Casino::Table.find_by(id: params[:id])
+        raise ActiveRecord::RecordNotFound, "Nem található asztal (#{params[:id]})." unless @table
       end
     end
   end

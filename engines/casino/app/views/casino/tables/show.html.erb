@@ -380,10 +380,14 @@
       });
     });
 
-    // 4. Visszaszámláló óra
-    let secondsLeft = <%= @table.seconds_remaining %>;
-    if (secondsLeft > 0) {
-      const interval = setInterval(() => {
+    // 4. Visszaszámláló óra kezelő
+    let countdownInterval = null;
+    function startTimer(seconds) {
+      if (countdownInterval) clearInterval(countdownInterval);
+      let secondsLeft = seconds;
+      if (secondsLeft <= 0) return;
+
+      countdownInterval = setInterval(() => {
         secondsLeft--;
         if (secondsLeft > 0) {
           timerElem.textContent = secondsLeft + " mp";
@@ -391,10 +395,40 @@
         } else {
           timerElem.textContent = "Kör elbírálása...";
           timerElem.style.color = 'var(--casino-gold)';
-          clearInterval(interval);
+          clearInterval(countdownInterval);
         }
       }, 1000);
     }
+
+    startTimer(<%= @table.seconds_remaining %>);
+
+    // 5. ActionCable WebSocket Csatlakozás
+    if (window.ActionCable) {
+      const consumer = window.ActionCable.createConsumer('/cable');
+      consumer.subscriptions.create({ channel: "Casino::TableChannel", table_id: tableSlug }, {
+        received(data) {
+          if (data.type === 'bet_placed') {
+            const feedList = document.getElementById('live-feed-list');
+            const noFeedMsg = document.getElementById('no-feed-msg');
+            if (noFeedMsg) noFeedMsg.remove();
+
+            const row = document.createElement('div');
+            row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-elevated); border-radius: 6px; font-size: 0.85rem; border-left: 3px solid var(--accent);";
+            row.innerHTML = `<div><strong style="color: var(--accent);">${data.user_name}</strong> <span style="color: var(--text-muted);">tétet tett:</span> <strong style="color: var(--text-main);">${data.bet_type.toUpperCase()}</strong></div><div style="font-weight: 700; color: #fef08a;">🪙 ${Number(data.amount).toLocaleString()}</div>`;
+            feedList.prepend(row);
+
+            if (data.seconds_remaining && data.seconds_remaining > 0) {
+              startTimer(data.seconds_remaining);
+            }
+          } else if (data.type === 'round_resolved') {
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
+          }
+        }
+      });
+    }
   })();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@rails/actioncable@7.1.3/app/assets/javascripts/actioncable.js"></script>
 

@@ -11,6 +11,10 @@ module Casino
     scope :blackjack_tables, -> { where(game_type: "blackjack") }
     scope :active, -> { where.not(state: "maintenance") }
 
+    def to_param
+      slug
+    end
+
     def current_state_data
       return {} if state_data.blank?
       JSON.parse(state_data) rescue {}

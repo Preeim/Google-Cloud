@@ -17,7 +17,7 @@ module Casino
       respond_to do |format|
         format.json do
           if res[:success]
-            render json: { success: true, chips: current_casino_profile.reload.chips, bet: res[:bet] }
+            render json: { success: true, chips: current_casino_profile.reload.chips, bet: res[:bet], seconds_remaining: res[:seconds_remaining] }
           else
             render json: { success: false, error: res[:error] }, status: :unprocessable_entity
           end
@@ -41,7 +41,23 @@ module Casino
         end
         format.html do
           if res[:success]
-            redirect_to table_path(@table), notice: "A kör lezárult! Eredmény: #{res[:outcome]}"
+            outcome_text = case @table.game_type
+                           when "roulette"
+                             num = res[:outcome][:winning_number]
+                             col = res[:outcome][:color] == 'red' ? 'Piros' : (res[:outcome][:color] == 'black' ? 'Fekete' : 'Zöld (0)')
+                             "Nyertes szám: #{num} (#{col})"
+                           when "baccarat"
+                             outcome = res[:outcome][:result].to_s.upcase
+                             p_score = res[:outcome][:player_score]
+                             b_score = res[:outcome][:banker_score]
+                             "Eredmény: #{outcome} (Játékos: #{p_score} | Bankár: #{b_score})"
+                           when "blackjack"
+                             d_score = res[:outcome][:dealer_score]
+                             "Osztó pontszáma: #{d_score}"
+                           else
+                             res[:outcome].to_s
+                           end
+            redirect_to table_path(@table), notice: "A kör sikeresen lezárult! #{outcome_text}"
           else
             redirect_to table_path(@table), alert: res[:error]
           end
@@ -52,7 +68,8 @@ module Casino
     private
 
     def set_table
-      @table = Casino::Table.find_by!(slug: params[:id])
+      @table = Casino::Table.find_by(slug: params[:id]) || Casino::Table.find_by(id: params[:id])
+      raise ActiveRecord::RecordNotFound, "Nem található kaszinó asztal a megadott azonosítóval (#{params[:id]})." unless @table
     end
   end
 end
