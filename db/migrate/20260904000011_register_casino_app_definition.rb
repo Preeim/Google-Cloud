@@ -43,3 +43,4 @@ class RegisterCasinoAppDefinition < ActiveRecord::Migration[7.1]
     AppDefinition.find_by(slug: "casino")&.destroy
   end
 end
+
