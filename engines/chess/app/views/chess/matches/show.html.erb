@@ -239,14 +239,21 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.95rem;
+    min-width: 0;
+    overflow: hidden;
   }
   .role-label {
     color: #94a3b8;
     font-size: 0.85rem;
+    flex-shrink: 0;
   }
   .name-highlight {
     font-weight: 600;
     color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
   }
   .player-clock {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -407,9 +414,11 @@
   .share-link-group {
     display: flex;
     gap: 0.4rem;
+    flex-wrap: wrap;
   }
   .share-input {
     flex: 1;
+    min-width: 0;
     background: #11192e;
     color: #38bdf8;
     border: 1px solid #1a243b;
@@ -482,6 +491,8 @@
     border-radius: 4px;
     box-sizing: border-box;
     margin-top: 0.4rem;
+    word-break: break-all;
+    overflow-x: hidden;
   }
   .match-meta-box {
     background: #0a0f1d;
@@ -513,6 +524,18 @@
       padding: 0.4rem 0.6rem;
       margin: 0.25rem 0;
       font-size: 0.88rem;
+    }
+    .name-highlight {
+      max-width: 120px;
+    }
+    .share-link-group {
+      flex-direction: column;
+    }
+    .share-link-group .share-input {
+      width: 100%;
+    }
+    .share-link-group button {
+      width: 100%;
     }
     .player-clock {
       font-size: 1rem;

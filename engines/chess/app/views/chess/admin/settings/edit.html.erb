@@ -1,7 +1,64 @@
-﻿<div style="max-width: 700px; margin: 0 auto;">
-  <div style="margin-bottom: 24px;">
-    <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text-main);">Sakk Modul Beállításai</h1>
-    <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 4px;">Időkorlátok, játékszabályok és modul-jogosultságok finomhangolása</p>
+<style>
+  .setting-toggle-card {
+    background: var(--bg-canvas);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    transition: border-color 0.15s;
+  }
+  .setting-toggle-card:hover {
+    border-color: var(--border-hover);
+  }
+  .setting-checkbox {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    cursor: pointer;
+    accent-color: var(--admin-accent);
+  }
+  .setting-label {
+    display: block !important;
+    font-size: 0.92rem !important;
+    font-weight: 600 !important;
+    color: var(--text-main) !important;
+    margin-bottom: 3px !important;
+    cursor: pointer;
+    line-height: 1.35;
+  }
+  .setting-desc {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.4;
+    display: block;
+  }
+  .settings-btn-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  @media (max-width: 600px) {
+    .settings-btn-group {
+      flex-direction: column;
+      gap: 10px;
+    }
+    .settings-btn-group .btn {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+      padding: 11px;
+    }
+  }
+</style>
+
+<div style="max-width: 700px; margin: 0 auto; width: 100%;">
+  <div style="margin-bottom: 20px;">
+    <h1 style="font-size: clamp(1.3rem, 4vw, 1.6rem); font-weight: 700; color: var(--text-main);">Sakk Modul Beállításai</h1>
+    <p style="color: var(--text-muted); font-size: 0.92rem; margin-top: 4px;">Időkorlátok, játékszabályok és modul-jogosultságok finomhangolása</p>
   </div>
 
   <div class="card">
@@ -31,57 +88,57 @@
         </small>
       </div>
 
-      <div style="border-top: 1px solid var(--border-subtle); margin: 24px 0;"></div>
+      <div style="border-top: 1px solid var(--border-subtle); margin: 20px 0;"></div>
 
-      <div class="form-group" style="display: flex; align-items: flex-start; gap: 12px;">
-        <%= f.check_box :single_challenge_limit, id: "single_challenge_limit", style: "width: 18px; height: 18px; margin-top: 2px;" %>
-        <div>
-          <label for="single_challenge_limit" style="margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);">
+      <div class="setting-toggle-card">
+        <%= f.check_box :single_challenge_limit, id: "single_challenge_limit", class: "setting-checkbox" %>
+        <div style="flex: 1; min-width: 0;">
+          <label for="single_challenge_limit" class="setting-label">
             Egyidejű nyitott kihívás korlát (1 játékos = max 1 nyitott szoba)
           </label>
-          <small style="color: var(--text-muted); display: block;">
+          <span class="setting-desc">
             Megakadályozza, hogy egy játékos egyszerre több várakozó vagy aktív játszmát indítson.
-          </small>
+          </span>
         </div>
       </div>
 
-      <div class="form-group" style="display: flex; align-items: flex-start; gap: 12px;">
-        <%= f.check_box :allow_guests, id: "allow_guests", style: "width: 18px; height: 18px; margin-top: 2px;" %>
-        <div>
-          <label for="allow_guests" style="margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);">
+      <div class="setting-toggle-card">
+        <%= f.check_box :allow_guests, id: "allow_guests", class: "setting-checkbox" %>
+        <div style="flex: 1; min-width: 0;">
+          <label for="allow_guests" class="setting-label">
             Vendég játékosok engedélyezése a Sakkban
           </label>
-          <small style="color: var(--text-muted); display: block;">
+          <span class="setting-desc">
             Ha be van kapcsolva, a be nem jelentkezett látogatók is indíthatnak és csatlakozhatnak játékokhoz.
-          </small>
+          </span>
         </div>
       </div>
 
-      <div class="form-group" style="display: flex; align-items: flex-start; gap: 12px;">
-        <%= f.check_box :allow_takeback, id: "allow_takeback", style: "width: 18px; height: 18px; margin-top: 2px;" %>
-        <div>
-          <label for="allow_takeback" style="margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);">
+      <div class="setting-toggle-card">
+        <%= f.check_box :allow_takeback, id: "allow_takeback", class: "setting-checkbox" %>
+        <div style="flex: 1; min-width: 0;">
+          <label for="allow_takeback" class="setting-label">
             Visszalépési kérelem engedélyezése (Takeback)
           </label>
-          <small style="color: var(--text-muted); display: block;">
+          <span class="setting-desc">
             Engedélyezi a játékosoknak, hogy az ellenfél jóváhagyásával visszavonják az elhibázott lépést.
-          </small>
+          </span>
         </div>
       </div>
 
-      <div class="form-group" style="display: flex; align-items: flex-start; gap: 12px;">
-        <%= f.check_box :allow_draw_offer, id: "allow_draw_offer", style: "width: 18px; height: 18px; margin-top: 2px;" %>
-        <div>
-          <label for="allow_draw_offer" style="margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);">
+      <div class="setting-toggle-card">
+        <%= f.check_box :allow_draw_offer, id: "allow_draw_offer", class: "setting-checkbox" %>
+        <div style="flex: 1; min-width: 0;">
+          <label for="allow_draw_offer" class="setting-label">
             Döntetlen ajánlat engedélyezése (Draw offer)
           </label>
-          <small style="color: var(--text-muted); display: block;">
+          <span class="setting-desc">
             Engedélyezi a kölcsönös megegyezésen alapuló döntetlen felajánlását.
-          </small>
+          </span>
         </div>
       </div>
 
-      <div style="display: flex; gap: 12px; margin-top: 28px;">
+      <div class="settings-btn-group">
         <%= f.submit "Beállítások Mentése", class: "btn btn-admin", style: "flex: 1;" %>
         <a href="<%= admin_root_path %>" class="btn btn-secondary">Mégse</a>
       </div>
