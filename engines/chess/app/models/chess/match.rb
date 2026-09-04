@@ -121,8 +121,22 @@ module Chess
         end
       end
       
-      # Validate the new move on the server
-      game.move(san_move)
+      # Validate the new move on the server with defensive fallback for SAN quirks
+      begin
+        game.move(san_move)
+      rescue => e
+        # If the gem is strict about trailing #, +, or = notation:
+        clean_san = san_move.to_s.sub(/[\+\#]$/, '')
+        if clean_san != san_move
+          begin
+            game.move(clean_san)
+          rescue
+            raise e
+          end
+        else
+          raise e
+        end
+      end
       
       # If no error was raised, the move is legal. Save client's provided strings.
       self.pgn = client_pgn
@@ -153,17 +167,30 @@ module Chess
       save!
     end
     
-    def undo_move!
+    def undo_move!(requested_by_color = nil)
       return unless active?
       require 'chess'
       return if self.pgn.blank?
       
       played_moves = parsed_played_moves
       return if played_moves.empty?
-      played_moves.pop
+
+      # If the player who asked for takeback is the one whose turn it currently is,
+      # it means they want to take back their OWN previous move (which was followed by the opponent's move).
+      # Therefore, both moves (2 plies) must be popped.
+      if requested_by_color.present? && requested_by_color.to_s == current_turn
+        if played_moves.length >= 2
+          played_moves.pop
+          played_moves.pop
+        else
+          played_moves.pop
+        end
+      else
+        played_moves.pop
+      end
       
       game = ::Chess::Game.new
-      played_moves.each { |m| game.move(m) }
+      played_moves.each { |m| game.move(m) rescue nil }
       
       # Reconstruct PGN
       new_pgn = ""

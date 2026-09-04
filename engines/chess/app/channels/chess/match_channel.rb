@@ -138,7 +138,7 @@ module Chess
       Rails.cache.delete("chess_match_takeback_offer:#{@match.id}")
 
       if data["accepted"]
-        @match.undo_move!
+        @match.undo_move!(requested_by)
         Chess::MatchChannel.broadcast_to(@match, {
           action: "takeback_accepted",
           fen: @match.fen,

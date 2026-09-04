@@ -220,6 +220,11 @@
     border-radius: 6px;
     border: 1px solid #1a243b;
     box-sizing: border-box;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .player-info.active-turn {
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
   }
   .player-name {
     display: flex;
@@ -660,6 +665,12 @@ document.addEventListener("DOMContentLoaded", function() {
     if (container.dataset.status !== 'active') return false;
     if (game.game_over()) return false;
     
+    // Check if player's time has run out
+    if (timeControlSeconds) {
+      if (myColor === 'white' && whiteTimeMs !== null && whiteTimeMs <= 0) return false;
+      if (myColor === 'black' && blackTimeMs !== null && blackTimeMs <= 0) return false;
+    }
+
     // Check turn
     if (myColor === 'white' && game.turn() === 'b') return false;
     if (myColor === 'black' && game.turn() === 'w') return false;
@@ -697,6 +708,31 @@ document.addEventListener("DOMContentLoaded", function() {
 
   function updateStatus () {
     $('#pgn-content').val(game.pgn());
+    updateTurnIndicator();
+  }
+
+  function updateTurnIndicator() {
+    if (container.dataset.status !== 'active') {
+      $('.player-info').removeClass('active-turn');
+      return;
+    }
+
+    const activeTurn = game.turn(); // 'w' or 'b'
+    const isWhiteTurn = activeTurn === 'w';
+
+    if (isSpectator) {
+      $('.user-info').toggleClass('active-turn', isWhiteTurn);
+      $('.opponent-info').toggleClass('active-turn', !isWhiteTurn);
+      $('#status-display').text(isWhiteTurn ? "Világos köre" : "Sötét köre");
+    } else if (myColor === 'white') {
+      $('.user-info').toggleClass('active-turn', isWhiteTurn);
+      $('.opponent-info').toggleClass('active-turn', !isWhiteTurn);
+      $('#status-display').text(isWhiteTurn ? "Te lépsz (Világos)" : "Ellenfél gondolkodik (Sötét)...");
+    } else {
+      $('.user-info').toggleClass('active-turn', !isWhiteTurn);
+      $('.opponent-info').toggleClass('active-turn', isWhiteTurn);
+      $('#status-display').text(!isWhiteTurn ? "Te lépsz (Sötét)" : "Ellenfél gondolkodik (Világos)...");
+    }
   }
 
   var config = {
@@ -726,20 +762,56 @@ document.addEventListener("DOMContentLoaded", function() {
     buildReplayPositions();
   }
 
-  // Copy PGN
+  // Ensure share link input uses current browser origin
+  var shareInput = document.getElementById("share-link-input");
+  if (shareInput) {
+    shareInput.value = window.location.origin + "<%= match_path(@match.uuid, join: true) %>";
+  }
+
+  // Copy PGN with clipboard API & execCommand fallback
   $('#btn-copy-pgn').on('click', function() {
-    navigator.clipboard.writeText($('#pgn-content').val());
-    alert('PGN vágólapra másolva!');
+    var pgnVal = $('#pgn-content').val();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(pgnVal).then(function() {
+        alert('PGN vágólapra másolva!');
+      }).catch(function() {
+        fallbackCopyText(pgnVal, 'PGN vágólapra másolva!');
+      });
+    } else {
+      fallbackCopyText(pgnVal, 'PGN vágólapra másolva!');
+    }
   });
 
-  // Copy Invitation Link
+  // Copy Invitation Link with clipboard API & execCommand fallback
   $('#btn-copy-link').on('click', function() {
     var copyText = document.getElementById("share-link-input");
+    if (!copyText) return;
     copyText.select();
     copyText.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(copyText.value);
-    alert("Meccs linkje a vágólapra másolva!");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(copyText.value).then(function() {
+        alert("Meccs linkje a vágólapra másolva!");
+      }).catch(function() {
+        fallbackCopyText(copyText.value, "Meccs linkje a vágólapra másolva!");
+      });
+    } else {
+      fallbackCopyText(copyText.value, "Meccs linkje a vágólapra másolva!");
+    }
   });
+
+  function fallbackCopyText(text, successMsg) {
+    var tempInput = document.createElement("textarea");
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    try {
+      document.execCommand("copy");
+      alert(successMsg);
+    } catch (err) {
+      alert("Másolás sikertelen, kérlek jelöld ki manuálisan.");
+    }
+    document.body.removeChild(tempInput);
+  }
 
   // Prompt helper
   function showPrompt(message, onAccept, onDecline) {
@@ -831,6 +903,24 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   });
 
+  // Helper for button cooldown
+  function applyButtonCooldown(btnSelector, originalText, seconds) {
+    var $btn = $(btnSelector);
+    $btn.prop('disabled', true).addClass('disabled');
+    var remaining = seconds;
+    $btn.text(originalText + " (" + remaining + "s)");
+
+    var interval = setInterval(function() {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(interval);
+        $btn.prop('disabled', false).removeClass('disabled').text(originalText);
+      } else {
+        $btn.text(originalText + " (" + remaining + "s)");
+      }
+    }, 1000);
+  }
+
   // Action buttons
   $('#btn-resign').on('click', function() {
     if (confirm("Biztosan feladod a játszmát?")) {
@@ -841,11 +931,13 @@ document.addEventListener("DOMContentLoaded", function() {
   $('#btn-draw').on('click', function() {
     window.matchSubscription.perform("offer_draw");
     alert("Döntetlen ajánlat elküldve az ellenfélnek.");
+    applyButtonCooldown('#btn-draw', 'Döntetlen Ajánlat', 30);
   });
 
   $('#btn-takeback').on('click', function() {
     window.matchSubscription.perform("request_takeback");
     alert("Visszalépési kérelem elküldve.");
+    applyButtonCooldown('#btn-takeback', 'Visszalépés Kérése', 20);
   });
 });
 </script>

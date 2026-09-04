@@ -12,7 +12,7 @@ module ApplicationCable
     def connect
       session_data = read_session_data
       self.current_user = find_verified_user(session_data)
-      self.guest_id = session_data["guest_id"] if session_data.is_a?(Hash)
+      self.guest_id = (session_data["guest_id"] || session_data[:guest_id]) if session_data.is_a?(Hash)
 
       if logger.respond_to?(:add_tags)
         tag = current_user ? "User ##{current_user.id} (#{current_user.username})" : "Guest (##{guest_id})"
