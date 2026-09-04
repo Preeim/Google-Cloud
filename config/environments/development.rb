@@ -38,3 +38,4 @@ Rails.application.configure do
   # Mount Action Cable inside main process or allow external connections
   config.action_cable.disable_request_forgery_protection = true
 end
+

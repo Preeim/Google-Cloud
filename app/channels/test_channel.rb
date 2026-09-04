@@ -25,3 +25,4 @@ class TestChannel < ApplicationCable::Channel
     )
   end
 end
+

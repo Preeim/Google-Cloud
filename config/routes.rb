@@ -14,3 +14,4 @@ Rails.application.routes.draw do
   # WebSocket Action Cable mount
   mount ActionCable.server => "/cable"
 end
+

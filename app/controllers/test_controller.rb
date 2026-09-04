@@ -26,3 +26,4 @@ class TestController < ApplicationController
     @hostname = `hostname`.strip rescue "Google Cloud VM"
   end
 end
+
