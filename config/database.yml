@@ -1,0 +1,20 @@
+default: &default
+  adapter: mysql2
+  encoding: utf8mb4
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  username: root
+  password: password123
+  host: 127.0.0.1
+  port: 3306
+
+development:
+  <<: *default
+  database: hub_development
+
+test:
+  <<: *default
+  database: hub_test
+
+production:
+  <<: *default
+  database: hub_production
