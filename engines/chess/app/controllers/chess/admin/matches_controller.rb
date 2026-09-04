@@ -25,7 +25,7 @@
         if @match.pending? || @match.active?
           @match.update!(status: 'aborted', termination_reason: 'resign')
           Chess::MatchChannel.broadcast_to(@match, { action: 'game_over', reason: 'A játszmát a rendszergazda leállította.' })
-          flash[:notice] = \"A(z) Match ##{@match.uuid.split('-').first} játszma megszakítva.\"
+          flash[:notice] = "A(z) Match ##{@match.uuid.split('-').first} játszma megszakítva."
         else
           flash[:alert] = 'Ez a játszma már korábban lezárult.'
         end
@@ -35,7 +35,7 @@
       def destroy
         uuid_short = @match.uuid.split('-').first
         @match.destroy
-        flash[:notice] = \"A(z) Match ##{uuid_short} sikeresen törölve az adatbázisból.\"
+        flash[:notice] = "A(z) Match ##{uuid_short} sikeresen törölve az adatbázisból."
         redirect_to admin_matches_path
       end
 
@@ -45,7 +45,7 @@
         count = expired_matches.count
         expired_matches.destroy_all
 
-        flash[:notice] = \"#{count} darab #{Setting.current.auto_abort_minutes} percnél régebbi várakozó kihívás sikeresen törölve!\"
+        flash[:notice] = "#{count} darab #{Setting.current.auto_abort_minutes} percnél régebbi várakozó kihívás sikeresen törölve!"
         redirect_to admin_matches_path
       end
 

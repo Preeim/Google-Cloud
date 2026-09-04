@@ -1,89 +1,89 @@
-﻿<div style=\"max-width: 700px; margin: 0 auto;\">
-  <div style=\"margin-bottom: 24px;\">
-    <h1 style=\"font-size: 1.6rem; font-weight: 700; color: var(--text-main);\">Sakk Modul Beállításai</h1>
-    <p style=\"color: var(--text-muted); font-size: 0.95rem; margin-top: 4px;\">Időkorlátok, játékszabályok és modul-jogosultságok finomhangolása</p>
+﻿<div style="max-width: 700px; margin: 0 auto;">
+  <div style="margin-bottom: 24px;">
+    <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text-main);">Sakk Modul Beállításai</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 4px;">Időkorlátok, játékszabályok és modul-jogosultságok finomhangolása</p>
   </div>
 
-  <div class=\"card\">
+  <div class="card">
     <%= form_with model: @settings, url: admin_settings_path, method: :patch, local: true do |f| %>
       
-      <div class=\"form-group\">
-        <label for=\"setting_available_time_controls\">Választható Játékidők (Másodpercben, vesszővel elválasztva)</label>
-        <%= f.text_field :available_time_controls, class: \"form-control\" %>
-        <small style=\"color: var(--text-muted); display: block; margin-top: 4px;\">
+      <div class="form-group">
+        <label for="setting_available_time_controls">Választható Játékidők (Másodpercben, vesszővel elválasztva)</label>
+        <%= f.text_field :available_time_controls, class: "form-control" %>
+        <small style="color: var(--text-muted); display: block; margin-top: 4px;">
           Például: <code>0,180,300,600,900,1800</code> &rarr; 0 = Végtelen, 180 = 3 perc Blitz, 300 = 5 perc Blitz, 600 = 10 perc Rapid, stb.
         </small>
       </div>
 
-      <div class=\"form-group\">
-        <label for=\"setting_default_time_control\">Alapértelmezett Játékidő (másodperc)</label>
-        <%= f.number_field :default_time_control, class: \"form-control\", step: 60 %>
-        <small style=\"color: var(--text-muted); display: block; margin-top: 4px;\">
+      <div class="form-group">
+        <label for="setting_default_time_control">Alapértelmezett Játékidő (másodperc)</label>
+        <%= f.number_field :default_time_control, class: "form-control", step: 60 %>
+        <small style="color: var(--text-muted); display: block; margin-top: 4px;">
           Az új kihívás indításakor előre kiválasztott időtartam (pl. 600 = 10 perc).
         </small>
       </div>
 
-      <div class=\"form-group\">
-        <label for=\"setting_auto_abort_minutes\">Várakozó Szobák Automatikus Elévülési Ideje (perc)</label>
-        <%= f.number_field :auto_abort_minutes, class: \"form-control\", min: 5 %>
-        <small style=\"color: var(--text-muted); display: block; margin-top: 4px;\">
+      <div class="form-group">
+        <label for="setting_auto_abort_minutes">Várakozó Szobák Automatikus Elévülési Ideje (perc)</label>
+        <%= f.number_field :auto_abort_minutes, class: "form-control", min: 5 %>
+        <small style="color: var(--text-muted); display: block; margin-top: 4px;">
           Ennyi idő után az elárvult várakozó kihívások törölhetővé válnak a takarítási művelet során.
         </small>
       </div>
 
-      <div style=\"border-top: 1px solid var(--border-subtle); margin: 24px 0;\"></div>
+      <div style="border-top: 1px solid var(--border-subtle); margin: 24px 0;"></div>
 
-      <div class=\"form-group\" style=\"display: flex; align-items: flex-start; gap: 12px;\">
-        <%= f.check_box :single_challenge_limit, id: \"single_challenge_limit\", style: \"width: 18px; height: 18px; margin-top: 2px;\" %>
+      <div class="form-group" style="display: flex; align-items: flex-start; gap: 12px;">
+        <%= f.check_box :single_challenge_limit, id: "single_challenge_limit", style: "width: 18px; height: 18px; margin-top: 2px;" %>
         <div>
-          <label for=\"single_challenge_limit\" style=\"margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);\">
+          <label for="single_challenge_limit" style="margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);">
             Egyidejű nyitott kihívás korlát (1 játékos = max 1 nyitott szoba)
           </label>
-          <small style=\"color: var(--text-muted); display: block;\">
+          <small style="color: var(--text-muted); display: block;">
             Megakadályozza, hogy egy játékos egyszerre több várakozó vagy aktív játszmát indítson.
           </small>
         </div>
       </div>
 
-      <div class=\"form-group\" style=\"display: flex; align-items: flex-start; gap: 12px;\">
-        <%= f.check_box :allow_guests, id: \"allow_guests\", style: \"width: 18px; height: 18px; margin-top: 2px;\" %>
+      <div class="form-group" style="display: flex; align-items: flex-start; gap: 12px;">
+        <%= f.check_box :allow_guests, id: "allow_guests", style: "width: 18px; height: 18px; margin-top: 2px;" %>
         <div>
-          <label for=\"allow_guests\" style=\"margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);\">
+          <label for="allow_guests" style="margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);">
             Vendég játékosok engedélyezése a Sakkban
           </label>
-          <small style=\"color: var(--text-muted); display: block;\">
+          <small style="color: var(--text-muted); display: block;">
             Ha be van kapcsolva, a be nem jelentkezett látogatók is indíthatnak és csatlakozhatnak játékokhoz.
           </small>
         </div>
       </div>
 
-      <div class=\"form-group\" style=\"display: flex; align-items: flex-start; gap: 12px;\">
-        <%= f.check_box :allow_takeback, id: \"allow_takeback\", style: \"width: 18px; height: 18px; margin-top: 2px;\" %>
+      <div class="form-group" style="display: flex; align-items: flex-start; gap: 12px;">
+        <%= f.check_box :allow_takeback, id: "allow_takeback", style: "width: 18px; height: 18px; margin-top: 2px;" %>
         <div>
-          <label for=\"allow_takeback\" style=\"margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);\">
+          <label for="allow_takeback" style="margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);">
             Visszalépési kérelem engedélyezése (Takeback)
           </label>
-          <small style=\"color: var(--text-muted); display: block;\">
+          <small style="color: var(--text-muted); display: block;">
             Engedélyezi a játékosoknak, hogy az ellenfél jóváhagyásával visszavonják az elhibázott lépést.
           </small>
         </div>
       </div>
 
-      <div class=\"form-group\" style=\"display: flex; align-items: flex-start; gap: 12px;\">
-        <%= f.check_box :allow_draw_offer, id: \"allow_draw_offer\", style: \"width: 18px; height: 18px; margin-top: 2px;\" %>
+      <div class="form-group" style="display: flex; align-items: flex-start; gap: 12px;">
+        <%= f.check_box :allow_draw_offer, id: "allow_draw_offer", style: "width: 18px; height: 18px; margin-top: 2px;" %>
         <div>
-          <label for=\"allow_draw_offer\" style=\"margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);\">
+          <label for="allow_draw_offer" style="margin-bottom: 0; cursor: pointer; font-weight: 600; color: var(--text-main);">
             Döntetlen ajánlat engedélyezése (Draw offer)
           </label>
-          <small style=\"color: var(--text-muted); display: block;\">
+          <small style="color: var(--text-muted); display: block;">
             Engedélyezi a kölcsönös megegyezésen alapuló döntetlen felajánlását.
           </small>
         </div>
       </div>
 
-      <div style=\"display: flex; gap: 12px; margin-top: 28px;\">
-        <%= f.submit \"Beállítások Mentése\", class: \"btn btn-admin\", style: \"flex: 1;\" %>
-        <a href=\"<%= admin_root_path %>\" class=\"btn btn-secondary\">Mégse</a>
+      <div style="display: flex; gap: 12px; margin-top: 28px;">
+        <%= f.submit "Beállítások Mentése", class: "btn btn-admin", style: "flex: 1;" %>
+        <a href="<%= admin_root_path %>" class="btn btn-secondary">Mégse</a>
       </div>
     <% end %>
   </div>
