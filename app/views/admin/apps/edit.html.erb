@@ -27,6 +27,13 @@
       </div>
 
       <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 14px;">
+        <%= f.check_box :requires_login, id: "requires_login", style: "width: 18px; height: 18px;" %>
+        <label for="requires_login" style="margin-bottom: 0; cursor: pointer;">
+          <strong>Bejelentkezés kötelező</strong> (Ha nincs bepipálva, vendégek is használhatják kidobás nélkül)
+        </label>
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
         <%= f.check_box :is_default_accessible, id: "is_default_accessible", style: "width: 18px; height: 18px;" %>
         <label for="is_default_accessible" style="margin-bottom: 0; cursor: pointer;">Minden regisztrált felhasználó alapértelmezetten elérheti</label>
       </div>

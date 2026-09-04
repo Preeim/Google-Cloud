@@ -13,6 +13,7 @@
         <th>Azonosító (Slug)</th>
         <th>Csatolási Útvonal</th>
         <th>Elérhetőségi Státusz</th>
+        <th>Vendég Elérés</th>
         <th>Alapértelmezett Elérés</th>
         <th style="text-align: right;">Műveletek</th>
       </tr>
@@ -27,6 +28,13 @@
             <span class="tag <%= app.state == 'active' ? 'tag-active' : (app.state == 'maintenance' ? 'tag-locked' : 'tag-user') %>">
               <%= app.state.upcase %>
             </span>
+          </td>
+          <td>
+            <% if app.requires_login? %>
+              <span class="tag tag-locked">Bejelentkezéshez kötött</span>
+            <% else %>
+              <span class="tag tag-active">Vendégeknek is nyitott</span>
+            <% end %>
           </td>
           <td>
             <%= app.is_default_accessible? ? "✓ Minden tagnak engedélyezett" : "🔒 Egyéni engedélyhez kötött" %>

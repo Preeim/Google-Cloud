@@ -27,6 +27,13 @@ class AppDefinition < ApplicationRecord
   # Scopes a gyors szűréshez
   scope :available_to_users, -> { where(state: "active") }
   scope :in_maintenance, -> { where(state: "maintenance") }
+  scope :guest_accessible, -> { where(requires_login: false) }
+  scope :members_only, -> { where(requires_login: true) }
+
+  # Vendégként látogatható-e az alkalmazás
+  def guest_accessible?
+    !requires_login?
+  end
 
   # Vizuális állapotjelvény segédmetódus
   def badge_color_class

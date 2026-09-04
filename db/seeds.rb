@@ -25,6 +25,7 @@ chess_app.mount_path = "/chess"
 chess_app.state = "active"
 chess_app.icon_identifier = "chess"
 chess_app.is_default_accessible = true
+chess_app.requires_login = false # Vendégek is kipróbálhatják; az admin felületen bármikor átkapcsolható
 chess_app.save!
 puts "  [+] Modul regisztrálva: #{chess_app.name} (#{chess_app.mount_path}) [Státusz: #{chess_app.state}]"
 

@@ -41,7 +41,7 @@ module Admin
     end
 
     def app_params
-      params.require(:app_definition).permit(:name, :description, :state, :is_default_accessible)
+      params.require(:app_definition).permit(:name, :description, :state, :is_default_accessible, :requires_login)
     end
   end
 end

@@ -3,15 +3,37 @@
 # ==============================================================================
 # A platform összes vezérlőjének (és a beépülő Rails Engine-eknek) alaposztálya.
 # Kezeli a munkamenet-érvényesítést, az RBAC jogosultsági ellenőrzéseket,
-# a fiók-zárolás vizsgálatát és az App-hozzáférési szűrőket.
+# a vendég / bejelentkezett app-hozzáférést és a hibamentes útvonal-átirányításokat.
 # ==============================================================================
 
 class ApplicationController < ActionController::Base
   # CSRF védelem bekapcsolása kivételkezeléssel
   protect_from_forgery with: :exception
 
-  # Nézetekben közvetlenül elérhető segédmetódusok
-  helper_method :current_user, :logged_in?, :admin?, :moderator?, :current_active_session
+  # Nézetekben és Engine sablonokban elérhető segédmetódusok
+  helper_method :current_user, :logged_in?, :admin?, :moderator?,
+                :current_active_session, :app_login_path, :app_root_path
+
+  # Biztonságos útvonal-lekérők (Engine-ekből hívva is garantáltan működnek)
+  def app_login_path
+    if respond_to?(:main_app) && main_app.respond_to?(:login_path)
+      main_app.login_path
+    elsif respond_to?(:login_path)
+      login_path
+    else
+      "/login"
+    end
+  end
+
+  def app_root_path
+    if respond_to?(:main_app) && main_app.respond_to?(:root_path)
+      main_app.root_path
+    elsif respond_to?(:root_path)
+      root_path
+    else
+      "/"
+    end
+  end
 
   private
 
@@ -29,11 +51,11 @@ class ApplicationController < ActionController::Base
 
       if raw_token.present? && user_id.present?
         # 1. Megkeressük az aktív munkamenet rekordot a token alapján
-        active_session = ActiveSession.find_by_raw_token(raw_token)
+        active_session = ActiveSession.find_by_raw_token(raw_token) rescue nil
 
         if active_session && active_session.user_id == user_id
           # Munkamenet frissítése (sliding expiration)
-          active_session.touch_activity!
+          active_session.touch_activity! rescue nil
           @current_active_session = active_session
           active_session.user
         else
@@ -42,8 +64,7 @@ class ApplicationController < ActionController::Base
           nil
         end
       elsif user_id.present?
-        # Visszafelé kompatibilitás fejlesztői módban
-        User.find_by(id: user_id)
+        User.find_by(id: user_id) rescue nil
       end
     end
   end
@@ -75,18 +96,18 @@ class ApplicationController < ActionController::Base
   def authenticate_user!
     unless logged_in?
       flash[:alert] = "A kért oldal eléréséhez kérjük, jelentkezz be!"
-      redirect_to login_path and return
+      redirect_to app_login_path and return
     end
 
     # Fiók zárolásának vagy felfüggesztésének ellenőrzése
     if current_user.locked?
       reset_session
       flash[:alert] = "A fiókod ideiglenesen zárolva van gyanús tevékenység miatt. Kérjük, próbáld újra később!"
-      redirect_to login_path and return
+      redirect_to app_login_path and return
     elsif current_user.suspended?
       reset_session
       flash[:alert] = "A fiókodat az adminisztrátor felfüggesztette."
-      redirect_to login_path and return
+      redirect_to app_login_path and return
     end
   end
 
@@ -97,18 +118,57 @@ class ApplicationController < ActionController::Base
 
     unless admin?
       flash[:alert] = "Hozzáférés megtagadva: Adminisztrátori jogosultság szükséges."
-      redirect_to root_path and return
+      redirect_to app_root_path and return
     end
   end
 
-  # Beépülő modulok (pl. Sakk) jogosultsági ellenőrzése
+  # Beépülő modulok (pl. Sakk) rugalmas jogosultsági ellenőrzése
+  # Szabályozza, hogy adott modulhoz kötelező-e a bejelentkezés, vagy vendégként is használható
   def check_app_access!(app_slug)
-    authenticate_user!
-    return if performed?
+    app = AppDefinition.find_by(slug: app_slug)
 
-    unless current_user.can_access_app?(app_slug)
-      flash[:alert] = "Nincs jogosultságod a(z) #{app_slug} modul eléréséhez, vagy az alkalmazás karbantartás alatt áll."
-      redirect_to root_path and return
+    # 1. Ha az alkalmazás nem létezik vagy globálisan le van tiltva
+    if app.nil? || app.state_disabled?
+      flash[:alert] = "A keresett modul jelenleg nem érhető el a platformon."
+      redirect_to app_root_path and return
     end
+
+    # 2. Ha az alkalmazás karbantartás alatt van vagy csak adminoknak szól
+    if (app.state_maintenance? || app.state_admin_only?) && !admin?
+      flash[:alert] = "A(z) #{app.name} modul jelenleg karbantartás alatt áll. Hamarosan újra elérhető!"
+      redirect_to app_root_path and return
+    end
+
+    # 3. Ha az alkalmazás NEM igényel bejelentkezést (requires_login: false), és nincs belépve:
+    #    -> Nem dobjuk ki! Vendégként szabadon megnyithatja és használhatja!
+    if !app.requires_login? && !logged_in?
+      return true
+    end
+
+    # 4. Ha az alkalmazás bejelentkezést igényel, de nincs belépve:
+    #    -> Kidobás helyett szép, barátságos értesítéssel átirányítjuk a bejelentkezéshez
+    unless logged_in?
+      flash[:alert] = "A(z) #{app.name} modul használatához kérjük, jelentkezz be a fiókodba, vagy hozz létre egy újat!"
+      redirect_to app_login_path and return
+    end
+
+    # 5. Belépett felhasználó fiókállapotának ellenőrzése
+    if current_user.locked?
+      reset_session
+      flash[:alert] = "A fiókod ideiglenesen zárolva van gyanús tevékenység miatt."
+      redirect_to app_login_path and return
+    elsif current_user.suspended?
+      reset_session
+      flash[:alert] = "A fiókodat az adminisztrátor felfüggesztette."
+      redirect_to app_login_path and return
+    end
+
+    # 6. Granuláris felhasználói engedély vizsgálata
+    unless current_user.can_access_app?(app_slug)
+      flash[:alert] = "Ehhez a modulhoz (#{app.name}) egyéni engedély szükséges."
+      redirect_to app_root_path and return
+    end
+
+    true
   end
 end

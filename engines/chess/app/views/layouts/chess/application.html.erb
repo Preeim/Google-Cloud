@@ -56,10 +56,17 @@
       <span class="badge-gold">Rails Engine v1.0</span>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 16px;">
-      <span style="color: var(--text-muted); font-size: 0.9rem;">
-        Játékos: <strong style="color: var(--text-main);"><%= current_user.username %></strong>
-      </span>
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <% if logged_in? %>
+        <span style="color: var(--text-muted); font-size: 0.9rem;">
+          Játékos: <strong style="color: var(--text-main);"><%= current_user.username %></strong>
+        </span>
+      <% else %>
+        <span style="color: var(--text-muted); font-size: 0.88rem;">
+          Játékos: <strong style="color: var(--accent);">Vendég játékos</strong>
+        </span>
+        <a href="/login" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.82rem;">Bejelentkezés</a>
+      <% end %>
       <a href="/" class="btn btn-secondary">← Vissza a Főoldalra</a>
     </div>
   </header>
@@ -69,4 +76,3 @@
   </main>
 </body>
 </html>
-
