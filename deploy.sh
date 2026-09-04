@@ -21,9 +21,10 @@ git pull origin main
 echo "[3/5] Checking Gem dependencies..."
 bundle install
 
-# 4. Migrate database
-echo "[4/5] Running database migrations..."
-bin/rails db:migrate
+# 4. Migrate database (creates if not exists, then runs migrations)
+echo "[4/5] Preparing database & migrations..."
+chmod +x bin/* || true
+bin/rails db:prepare
 
 # 5. Restart server
 echo "[5/5] Restarting Rails server..."
