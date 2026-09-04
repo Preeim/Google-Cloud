@@ -13,17 +13,17 @@ Rails.application.configure do
     # Betűtípusok és ikonok
     policy.font_src    :self, :data
 
-    # Képek és avatarok
-    policy.img_src     :self, :data
+    # Képek és avatarok (plusz chessboard.js bábuk CDN)
+    policy.img_src     :self, :data, "https://chessboardjs.com"
 
     # Flash és más objektumok tiltása
     policy.object_src  :none
 
-    # Scriptek
-    policy.script_src  :self, :unsafe_inline
+    # Scriptek (plusz külső könyvtárak a sakk modulhoz)
+    policy.script_src  :self, :unsafe_inline, "https://cdnjs.cloudflare.com", "https://code.jquery.com", "https://unpkg.com"
 
-    # Stílusok
-    policy.style_src   :self, :unsafe_inline
+    # Stílusok (plusz külső könyvtárak a sakk modulhoz)
+    policy.style_src   :self, :unsafe_inline, "https://unpkg.com"
 
     # Hálózati kapcsolatok: Fetch, XHR és Action Cable WebSocket csatornák
     # Teljes körűen engedélyezi a ws:// és wss:// kapcsolatokat a domainhez

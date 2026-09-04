@@ -164,8 +164,9 @@
 
       if (move === null) return 'snapback';
 
-      // Send to server via ActionCable (Assume setup in a separate stimulus controller or standard JS)
-      // window.App.matchChannel.send({ action: "make_move", san_move: move.san });
+      if (window.matchSubscription) {
+        window.matchSubscription.makeMove(move.san);
+      }
       
       updateStatus();
     }
@@ -179,6 +180,7 @@
     }
 
     var config = {
+      pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
       draggable: !isCompleted,
       position: game.fen(),
       onDragStart: onDragStart,
@@ -194,6 +196,56 @@
       navigator.clipboard.writeText($('#pgn-content').val());
       alert('PGN vágólapra másolva!');
     });
+
+    // Setup ActionCable
+    if (window.ActionCable) {
+      var consumer = window.ActionCable.createConsumer();
+      window.matchSubscription = consumer.subscriptions.create({ channel: "Chess::MatchChannel", match_id: matchId }, {
+        received: function(data) {
+          if (data.action === "move" || data.action === "takeback_accepted") {
+            game.load_pgn(data.pgn);
+            board.position(game.fen());
+            updateStatus();
+          } else if (data.action === "error") {
+            alert(data.message);
+            // Revert invalid move on client
+            game.undo();
+            board.position(game.fen());
+          } else if (data.action === "takeback_requested") {
+            if (confirm("Az ellenfél visszalépést kér. Elfogadod?")) {
+              this.perform("answer_takeback", { accepted: true });
+            } else {
+              this.perform("answer_takeback", { accepted: false });
+            }
+          } else if (data.action === "takeback_rejected") {
+            alert("Az ellenfél elutasította a visszalépést.");
+          } else if (data.action === "draw_offered") {
+            if (confirm("Az ellenfél döntetlent ajánl. Elfogadod?")) {
+              this.perform("accept_draw");
+            }
+          } else if (data.action === "game_over") {
+            alert("A játszma véget ért: " + data.reason);
+            location.reload();
+          }
+        },
+        makeMove: function(san_move) {
+          this.perform("make_move", { san_move: san_move });
+        }
+      });
+
+      // Bind buttons
+      $('#btn-resign').on('click', function() {
+        if(confirm("Biztosan feladod?")) window.matchSubscription.perform("resign");
+      });
+      $('#btn-draw').on('click', function() {
+        window.matchSubscription.perform("offer_draw");
+      });
+      $('#btn-takeback').on('click', function() {
+        window.matchSubscription.perform("request_takeback");
+      });
+    } else {
+      console.error("ActionCable is not available on window. Make sure it's loaded.");
+    }
   });
 </script>
 
