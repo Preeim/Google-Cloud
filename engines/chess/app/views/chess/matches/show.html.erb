@@ -813,18 +813,45 @@ document.addEventListener("DOMContentLoaded", function() {
     document.body.removeChild(tempInput);
   }
 
-  // Prompt helper
-  function showPrompt(message, onAccept, onDecline) {
-    $('#prompt-message').text(message);
+  // Prompt helper with auto-dismiss timeout
+  var promptTimer = null;
+
+  function hidePrompt() {
+    if (promptTimer) {
+      clearInterval(promptTimer);
+      promptTimer = null;
+    }
+    $('#prompt-card').slideUp();
+  }
+
+  function showPrompt(message, onAccept, onDecline, timeoutSeconds) {
+    hidePrompt();
+    timeoutSeconds = timeoutSeconds || 20;
+
+    var secondsLeft = timeoutSeconds;
+    function updateMsg() {
+      $('#prompt-message').html(message + "<br><small style='color: #94a3b8;'>Automatikus elutasítás: <strong style='color: #f59e0b;'>" + secondsLeft + "s</strong></small>");
+    }
+    updateMsg();
     $('#prompt-card').slideDown();
+
+    promptTimer = setInterval(function() {
+      secondsLeft--;
+      if (secondsLeft <= 0) {
+        hidePrompt();
+        if (onDecline) onDecline();
+      } else {
+        updateMsg();
+      }
+    }, 1000);
     
     $('#btn-prompt-accept').off('click').on('click', function() {
-      $('#prompt-card').slideUp();
+      hidePrompt();
       if (onAccept) onAccept();
     });
 
     $('#btn-prompt-decline').off('click').on('click', function() {
-      $('#prompt-card').slideUp();
+      hidePrompt();
       if (onDecline) onDecline();
     });
   }
@@ -834,6 +861,11 @@ document.addEventListener("DOMContentLoaded", function() {
   window.matchSubscription = consumer.subscriptions.create({ channel: "Chess::MatchChannel", match_id: matchId }, {
     received: function(data) {
       if (data.action === "move" || data.action === "takeback_accepted") {
+        // Automatically dismiss any open prompt when a move or takeback is applied
+        hidePrompt();
+        resetButtonCooldown('#btn-draw', 'Döntetlen Ajánlat');
+        resetButtonCooldown('#btn-takeback', 'Visszalépés Kérése');
+
         if (data.pgn && data.pgn.trim().length > 0) {
           game.load_pgn(data.pgn);
         } else {
@@ -861,9 +893,10 @@ document.addEventListener("DOMContentLoaded", function() {
           window.matchSubscription.perform("answer_takeback", { accepted: true });
         }, function() {
           window.matchSubscription.perform("answer_takeback", { accepted: false });
-        });
+        }, 20);
       } else if (data.action === "takeback_rejected") {
         if (isSpectator || data.color === myColor) return;
+        resetButtonCooldown('#btn-takeback', 'Visszalépés Kérése');
         alert("Az ellenfél elutasította a visszalépési kérést.");
       } else if (data.action === "draw_offered") {
         if (isSpectator || data.color === myColor) return;
@@ -871,14 +904,16 @@ document.addEventListener("DOMContentLoaded", function() {
           window.matchSubscription.perform("accept_draw");
         }, function() {
           window.matchSubscription.perform("decline_draw");
-        });
+        }, 20);
       } else if (data.action === "draw_declined") {
         if (isSpectator || data.color === myColor) return;
+        resetButtonCooldown('#btn-draw', 'Döntetlen Ajánlat');
         alert("Az ellenfél elutasította a döntetlen ajánlatot.");
       } else if (data.action === "game_over") {
         isCompleted = true;
         container.dataset.status = "completed";
         if (clockInterval) clearInterval(clockInterval);
+        hidePrompt();
 
         // Lock Board
         config.draggable = false;
@@ -904,21 +939,32 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 
   // Helper for button cooldown
+  var buttonIntervals = {};
+
   function applyButtonCooldown(btnSelector, originalText, seconds) {
+    resetButtonCooldown(btnSelector, originalText);
     var $btn = $(btnSelector);
     $btn.prop('disabled', true).addClass('disabled');
     var remaining = seconds;
     $btn.text(originalText + " (" + remaining + "s)");
 
-    var interval = setInterval(function() {
+    buttonIntervals[btnSelector] = setInterval(function() {
       remaining--;
       if (remaining <= 0) {
-        clearInterval(interval);
-        $btn.prop('disabled', false).removeClass('disabled').text(originalText);
+        resetButtonCooldown(btnSelector, originalText);
       } else {
         $btn.text(originalText + " (" + remaining + "s)");
       }
     }, 1000);
+  }
+
+  function resetButtonCooldown(btnSelector, originalText) {
+    if (buttonIntervals[btnSelector]) {
+      clearInterval(buttonIntervals[btnSelector]);
+      delete buttonIntervals[btnSelector];
+    }
+    var $btn = $(btnSelector);
+    $btn.prop('disabled', false).removeClass('disabled').text(originalText);
   }
 
   // Action buttons
@@ -931,7 +977,7 @@ document.addEventListener("DOMContentLoaded", function() {
   $('#btn-draw').on('click', function() {
     window.matchSubscription.perform("offer_draw");
     alert("Döntetlen ajánlat elküldve az ellenfélnek.");
-    applyButtonCooldown('#btn-draw', 'Döntetlen Ajánlat', 30);
+    applyButtonCooldown('#btn-draw', 'Döntetlen Ajánlat', 20);
   });
 
   $('#btn-takeback').on('click', function() {

@@ -58,7 +58,7 @@ module Chess
       return unless @match.active?
       return if current_player_color == "spectator"
 
-      Rails.cache.write("chess_match_draw_offer:#{@match.id}", current_player_color, expires_in: 5.minutes)
+      Rails.cache.write("chess_match_draw_offer:#{@match.id}", current_player_color, expires_in: 25.seconds)
 
       Chess::MatchChannel.broadcast_to(@match, {
         action: "draw_offered",
@@ -76,7 +76,7 @@ module Chess
       opponent_color = current_player_color == "white" ? "black" : "white"
 
       if offered_by.to_s != opponent_color
-        transmit({ action: "error", message: "Nincs érvényes döntetlen ajánlat az ellenféltől!" })
+        transmit({ action: "error", message: "A döntetlen ajánlat lejárt vagy nem létezik!" })
         return
       end
 
@@ -113,7 +113,7 @@ module Chess
       return unless @match.active?
       return if current_player_color == "spectator"
 
-      Rails.cache.write("chess_match_takeback_offer:#{@match.id}", current_player_color, expires_in: 2.minutes)
+      Rails.cache.write("chess_match_takeback_offer:#{@match.id}", current_player_color, expires_in: 25.seconds)
 
       Chess::MatchChannel.broadcast_to(@match, {
         action: "takeback_requested",
@@ -131,7 +131,7 @@ module Chess
       opponent_color = current_player_color == "white" ? "black" : "white"
 
       if requested_by.to_s != opponent_color
-        transmit({ action: "error", message: "Nincs függőben lévő visszalépési kérelem az ellenféltől!" })
+        transmit({ action: "error", message: "A visszalépési kérelem lejárt vagy nem létezik!" })
         return
       end
 
