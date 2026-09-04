@@ -133,7 +133,7 @@
       <% if logged_in? %>
         <!-- ADMINISZTRÁTOR ÁLLAPOT: Kiemelt Admin Pult elérés -->
         <% if admin? %>
-          <%= link_to admin_root_path, class: "btn btn-admin" do %>
+          <%= link_to app_admin_root_path, class: "btn btn-admin" do %>
             <span>🛡️</span>
             <span>Adminisztráció</span>
           <% end %>
@@ -143,11 +143,11 @@
         <span style="color: var(--text-muted);">
           Tag: <strong style="color: var(--text-main);"><%= current_user.username %></strong>
         </span>
-        <%= link_to "Kijelentkezés", logout_path, class: "btn btn-secondary", method: :delete %>
+        <%= link_to "Kijelentkezés", app_logout_path, class: "btn btn-secondary", method: :delete %>
       <% else %>
         <!-- KIJELENTKEZETT VENDÉG ÁLLAPOT -->
-        <%= link_to "Bejelentkezés", login_path, class: "btn btn-secondary" %>
-        <%= link_to "Regisztráció", register_path, class: "btn btn-primary" %>
+        <%= link_to "Bejelentkezés", app_login_path, class: "btn btn-secondary" %>
+        <%= link_to "Regisztráció", app_register_path, class: "btn btn-primary" %>
       <% end %>
     </div>
   </header>

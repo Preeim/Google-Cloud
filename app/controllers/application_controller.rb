@@ -12,7 +12,8 @@ class ApplicationController < ActionController::Base
 
   # Nézetekben és Engine sablonokban elérhető segédmetódusok
   helper_method :current_user, :logged_in?, :admin?, :moderator?,
-                :current_active_session, :app_login_path, :app_root_path
+                :current_active_session, :app_login_path, :app_root_path,
+                :app_logout_path, :app_register_path, :app_admin_root_path
 
   # Biztonságos útvonal-lekérők (Engine-ekből hívva is garantáltan működnek)
   def app_login_path
@@ -22,6 +23,36 @@ class ApplicationController < ActionController::Base
       login_path
     else
       "/login"
+    end
+  end
+
+  def app_logout_path
+    if respond_to?(:main_app) && main_app.respond_to?(:logout_path)
+      main_app.logout_path
+    elsif respond_to?(:logout_path)
+      logout_path
+    else
+      "/logout"
+    end
+  end
+
+  def app_register_path
+    if respond_to?(:main_app) && main_app.respond_to?(:register_path)
+      main_app.register_path
+    elsif respond_to?(:register_path)
+      register_path
+    else
+      "/register"
+    end
+  end
+
+  def app_admin_root_path
+    if respond_to?(:main_app) && main_app.respond_to?(:admin_root_path)
+      main_app.admin_root_path
+    elsif respond_to?(:admin_root_path)
+      admin_root_path
+    else
+      "/bank-admin"
     end
   end
 
