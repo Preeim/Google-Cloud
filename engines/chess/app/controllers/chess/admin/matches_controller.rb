@@ -1,4 +1,4 @@
-﻿module Chess
+module Chess
   module Admin
     class MatchesController < BaseController
       before_action :set_match, only: [:show, :abort, :destroy]
@@ -16,6 +16,7 @@
         end
 
         @matches = @matches.order(created_at: :desc).limit(100)
+        @settings = Chess::Setting.current
       end
 
       def show
@@ -40,12 +41,12 @@
       end
 
       def cleanup_pending
-        cutoff = Setting.current.auto_abort_minutes.minutes.ago
+        cutoff = Chess::Setting.current.auto_abort_minutes.minutes.ago
         expired_matches = Match.where(status: 'pending').where('created_at < ?', cutoff)
         count = expired_matches.count
         expired_matches.destroy_all
 
-        flash[:notice] = "#{count} darab #{Setting.current.auto_abort_minutes} percnél régebbi várakozó kihívás sikeresen törölve!"
+        flash[:notice] = "#{count} darab #{Chess::Setting.current.auto_abort_minutes} percnél régebbi várakozó kihívás sikeresen törölve!"
         redirect_to admin_matches_path
       end
 

@@ -1,4 +1,4 @@
-﻿module Chess
+module Chess
   module Admin
     class SettingsController < BaseController
       before_action :set_settings
@@ -23,7 +23,7 @@
       private
 
       def set_settings
-        @settings = Setting.current
+        @settings = Chess::Setting.current
       end
 
       def settings_params

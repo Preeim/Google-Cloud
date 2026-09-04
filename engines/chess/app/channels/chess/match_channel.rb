@@ -57,7 +57,7 @@ module Chess
       @match.reload
       return unless @match.active?
       return if current_player_color == "spectator"
-      return unless Setting.current.allow_draw_offer?
+      return unless Chess::Setting.current.allow_draw_offer?
 
       Rails.cache.write("chess_match_draw_offer:#{@match.id}", current_player_color, expires_in: 25.seconds)
 
@@ -113,7 +113,7 @@ module Chess
       @match.reload
       return unless @match.active?
       return if current_player_color == "spectator"
-      return unless Setting.current.allow_takeback?
+      return unless Chess::Setting.current.allow_takeback?
 
       Rails.cache.write("chess_match_takeback_offer:#{@match.id}", current_player_color, expires_in: 25.seconds)
 

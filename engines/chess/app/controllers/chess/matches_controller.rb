@@ -100,7 +100,7 @@ module Chess
     private
 
     def load_settings
-      @settings = Setting.current
+      @settings = Chess::Setting.current
     end
 
     def join_pending_match!

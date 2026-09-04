@@ -1,4 +1,4 @@
-﻿module Chess
+module Chess
   module Admin
     class DashboardController < BaseController
       def index
@@ -13,7 +13,7 @@
         @draws = Match.where(winner: 'draw').count
 
         @recent_matches = Match.order(created_at: :desc).limit(8)
-        @settings = Setting.current
+        @settings = Chess::Setting.current
       end
     end
   end
