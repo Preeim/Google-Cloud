@@ -7,6 +7,11 @@
 
 Chess::Engine.routes.draw do
   root to: "matches#index"
-  resources :matches, only: [:index, :show, :create]
+  resources :matches, only: [:index, :show, :create] do
+    member do
+      post :join
+      get :join
+    end
+  end
 end
 

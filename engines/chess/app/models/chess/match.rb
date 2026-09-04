@@ -40,16 +40,66 @@ module Chess
     
     public
 
+    # Helper to parse moves from PGN safely regardless of header tags or comments
+    def parsed_played_moves
+      clean = self.pgn.to_s.gsub(/\[.*?\]/m, '')
+      clean = clean.gsub(/\{.*?\}/m, '')
+      moves = clean.gsub(/\d+\.+/, '').split
+      moves.reject { |m| %w[1-0 0-1 1/2-1/2 *].include?(m) }
+    end
+
+    # Helper for current turn
+    def current_turn
+      parsed_played_moves.length.even? ? "white" : "black"
+    end
+
+    # Check and apply timeout if time_control is set and expired
+    def check_timeout!
+      return false unless active? && time_control.present? && last_move_at.present?
+
+      elapsed_ms = ((Time.current - last_move_at) * 1000).to_i
+      turn = current_turn
+
+      if turn == "white"
+        remaining = (white_time_left || 0) - elapsed_ms
+        if remaining <= 0
+          update!(
+            white_time_left: 0,
+            status: "completed",
+            termination_reason: "timeout",
+            winner: "black"
+          )
+          return true
+        end
+      else
+        remaining = (black_time_left || 0) - elapsed_ms
+        if remaining <= 0
+          update!(
+            black_time_left: 0,
+            status: "completed",
+            termination_reason: "timeout",
+            winner: "white"
+          )
+          return true
+        end
+      end
+      false
+    end
+
     # Move validator using the chess gem, relying on client FEN/PGN for saving state to avoid gem API limits
     def make_move!(san_move, client_fen, client_pgn, current_player_color)
+      raise "A játszma nem aktív vagy már befejeződött!" unless active?
+
+      if check_timeout!
+        raise "Időtúllépés! A játszma véget ért."
+      end
+
       require 'chess'
       
       game = ::Chess::Game.new
       
       # Replay existing moves to reach current state
-      pgn_moves_part = self.pgn.to_s.split("]\n\n").last || self.pgn.to_s
-      played_moves = pgn_moves_part.gsub(/\d+\./, '').split
-      played_moves.reject! { |m| %w[1-0 0-1 1/2-1/2 *].include?(m) }
+      played_moves = parsed_played_moves
       played_moves.each do |m|
         game.move(m)
       end
@@ -60,6 +110,16 @@ module Chess
       if expected_turn != current_player_color
         raise "Nem a te köröd jön!"
       end
+
+      # Deduct time from thinking player if time_control is active
+      if time_control.present? && last_move_at.present?
+        elapsed_ms = ((Time.current - last_move_at) * 1000).to_i
+        if current_player_color == "white"
+          self.white_time_left = [self.white_time_left.to_i - elapsed_ms, 0].max
+        else
+          self.black_time_left = [self.black_time_left.to_i - elapsed_ms, 0].max
+        end
+      end
       
       # Validate the new move on the server
       game.move(san_move)
@@ -68,11 +128,22 @@ module Chess
       self.pgn = client_pgn
       self.fen = client_fen
       
-      if client_pgn.end_with?('#')
+      is_checkmate = san_move.to_s.include?('#') ||
+                     client_pgn.to_s.match?(/(?:#|#\s*(?:1-0|0-1|\*))\s*$/) ||
+                     (game.respond_to?(:checkmate?) && game.checkmate?) ||
+                     (game.respond_to?(:in_checkmate?) && game.in_checkmate?) ||
+                     (game.respond_to?(:over?) && game.over? && game.respond_to?(:status) && [:white_won, :black_won].include?(game.status))
+
+      is_draw = client_pgn.to_s.match?(/(?:1\/2-1\/2|\bdraw\b|\bstalemate\b)\s*$/) ||
+                (game.respond_to?(:stalemate?) && game.stalemate?) ||
+                (game.respond_to?(:in_stalemate?) && game.in_stalemate?) ||
+                (game.respond_to?(:over?) && game.over? && game.respond_to?(:status) && [:stalemate, :draw].include?(game.status))
+
+      if is_checkmate
         self.status = "completed"
         self.termination_reason = "checkmate"
-        self.winner = played_moves.length.even? ? "white" : "black"
-      elsif client_pgn.end_with?('1/2-1/2')
+        self.winner = current_player_color
+      elsif is_draw
         self.status = "completed"
         self.termination_reason = "stalemate"
         self.winner = "draw"
@@ -83,16 +154,12 @@ module Chess
     end
     
     def undo_move!
-      # Manual undo by stripping the last move from PGN and recalculating FEN on client later, or simpler:
-      # We just remove the last move from the PGN, and we don't recalculate FEN on server (client will resync it when they move again).
-      # But wait, when takeback is accepted, client needs the new FEN immediately to render the board backwards!
-      # We can use the chess gem to calculate the FEN of the previous state!
+      return unless active?
       require 'chess'
       return if self.pgn.blank?
       
-      pgn_moves_part = self.pgn.to_s.split("]\n\n").last || self.pgn.to_s
-      played_moves = pgn_moves_part.gsub(/\d+\./, '').split
-      played_moves.reject! { |m| %w[1-0 0-1 1/2-1/2 *].include?(m) }
+      played_moves = parsed_played_moves
+      return if played_moves.empty?
       played_moves.pop
       
       game = ::Chess::Game.new
@@ -108,13 +175,13 @@ module Chess
       self.pgn = new_pgn.strip
       
       # Attempt to get fen if the gem supports it, else use a placeholder and client will fix it.
-      # Most gems support game.board.fen or game.fen
       begin
         self.fen = game.respond_to?(:fen) ? game.fen : game.board.fen
       rescue
-        self.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" # Fallback, client might need to refresh
+        self.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
       end
       
+      self.last_move_at = Time.current if time_control.present?
       save!
     end
   end

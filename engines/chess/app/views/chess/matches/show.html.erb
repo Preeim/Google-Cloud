@@ -1,120 +1,476 @@
-<div class="chess-game-container" data-match-id="<%= @match.uuid %>" data-status="<%= @match.status %>">
-  
+<%
+  current_guest = session[:guest_id]
+
+  is_white = (@match.white_user_id.present? && current_user.present? && @match.white_user_id == current_user.id) ||
+             (@match.white_guest_id.present? && current_guest.present? && @match.white_guest_id.to_s == current_guest.to_s)
+
+  is_black = (@match.black_user_id.present? && current_user.present? && @match.black_user_id == current_user.id) ||
+             (@match.black_guest_id.present? && current_guest.present? && @match.black_guest_id.to_s == current_guest.to_s)
+
+  is_spectator = !is_white && !is_black
+  my_color = is_white ? "white" : (is_black ? "black" : "spectator")
+
+  white_open = @match.white_user_id.nil? && @match.white_guest_id.nil?
+  black_open = @match.black_user_id.nil? && @match.black_guest_id.nil?
+  can_join = @match.pending? && is_spectator && (white_open || black_open)
+  is_creator = !is_spectator
+
+  if is_spectator
+    top_role_label = "Sötét:"
+    top_name = @match.black_player_name
+    bottom_role_label = "Világos:"
+    bottom_name = @match.white_player_name
+  elsif is_white
+    top_role_label = "Ellenfél (Sötét):"
+    top_name = @match.black_player_name
+    bottom_role_label = "Te (Világos):"
+    bottom_name = @match.white_player_name
+  else
+    top_role_label = "Ellenfél (Világos):"
+    top_name = @match.white_player_name
+    bottom_role_label = "Te (Sötét):"
+    bottom_name = @match.black_player_name
+  end
+
+  status_badge_text = case @match.status
+                      when "pending" then "Várakozás ellenfélre"
+                      when "active" then "Játékban"
+                      when "completed" then "Befejeződött"
+                      when "aborted" then "Megszakítva"
+                      else @match.status
+                      end
+
+  # Real-time remaining clock deduction for initial page load
+  server_now = Time.current
+  elapsed_since_last_move = (@match.active? && @match.time_control.present? && @match.last_move_at.present?) ? ((server_now - @match.last_move_at) * 1000).to_i : 0
+
+  turn = @match.current_turn
+  white_time_now = @match.white_time_left
+  black_time_now = @match.black_time_left
+  if @match.active? && @match.time_control.present?
+    if turn == "white" && white_time_now.present?
+      white_time_now = [white_time_now - elapsed_since_last_move, 0].max
+    elsif turn == "black" && black_time_now.present?
+      black_time_now = [black_time_now - elapsed_since_last_move, 0].max
+    end
+  end
+%>
+
+<div class="chess-game-container"
+     data-match-id="<%= @match.uuid %>"
+     data-status="<%= @match.status %>"
+     data-time-control="<%= @match.time_control %>"
+     data-white-time="<%= white_time_now %>"
+     data-black-time="<%= black_time_now %>"
+     data-last-move-at="<%= @match.last_move_at ? (@match.last_move_at.to_f * 1000).to_i : '' %>"
+     data-my-color="<%= my_color %>">
+
+  <!-- Main Game Layout -->
   <div class="game-layout">
-    <!-- Left / Top: Opponent Info -->
+    <!-- Notifications & Game Over Banner -->
+    <div id="game-over-banner" class="game-banner <%= @match.completed? ? 'active' : '' %>" style="<%= @match.completed? ? '' : 'display: none;' %>">
+      <h3 id="banner-title"><%= @match.completed? ? "Játszma véget ért" : "" %></h3>
+      <p id="banner-reason">
+        <% if @match.completed? %>
+          <% case @match.termination_reason %>
+          <% when "checkmate" %>
+            Sakk-matt! Nyertes: <%= @match.winner == "white" ? @match.white_player_name : @match.black_player_name %>
+          <% when "resign" %>
+            Feladás. Nyertes: <%= @match.winner == "white" ? @match.white_player_name : @match.black_player_name %>
+          <% when "timeout" %>
+            Időtúllépés! Nyertes: <%= @match.winner == "white" ? @match.white_player_name : @match.black_player_name %>
+          <% when "draw_agreed" %>
+            Döntetlen közös megegyezéssel.
+          <% when "stalemate" %>
+            Patt! A játszma döntetlen.
+          <% else %>
+            A játszma lezárult.
+          <% end %>
+        <% end %>
+      </p>
+    </div>
+
+    <% if can_join %>
+      <div class="join-banner">
+        <div>
+          <strong>Nyitott kihívás!</strong> Csatlakozz a mérkőzéshez mint 
+          <span class="badge-role"><%= white_open ? "Világos" : "Sötét" %></span> játékos!
+        </div>
+        <%= link_to "Csatlakozás Játékosként", match_path(@match.uuid, join: true), class: "btn btn-primary btn-sm" %>
+      </div>
+    <% elsif @match.pending? && is_creator %>
+      <div class="pending-creator-banner">
+        <div style="margin-bottom: 0.5rem;">
+          <strong>Várakozás az ellenfélre...</strong> Oszd meg ezt a linket a barátoddal:
+        </div>
+        <div class="share-link-group">
+          <input type="text" id="share-link-input" readonly value="<%= match_url(@match.uuid, join: true) %>" class="share-input">
+          <button type="button" id="btn-copy-link" class="btn btn-primary btn-sm">Link Másolása</button>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Opponent / Top Player Info -->
     <div class="player-info opponent-info">
-      <div class="player-name">Ellenfél: <span id="opponent-name">Várakozás...</span></div>
+      <div class="player-name">
+        <span class="role-label" id="opponent-role-label"><%= top_role_label %></span>
+        <span id="opponent-name" class="name-highlight"><%= top_name %></span>
+      </div>
       <div class="player-clock" id="opponent-clock">--:--</div>
     </div>
 
     <!-- Center: Board -->
     <div class="board-wrapper">
-      <div id="chess-board" style="width: 400px; height: 400px;"></div>
+      <div id="chess-board"></div>
     </div>
 
-    <!-- Right / Bottom: Player Info -->
+    <!-- Replay Controls (Visible for completed games or upon game over) -->
+    <div id="replay-panel" class="replay-panel" style="<%= @match.completed? ? '' : 'display: none;' %>">
+      <div class="replay-controls">
+        <button type="button" id="btn-replay-first" class="btn btn-secondary btn-replay" title="Kezdőállás">⏮ Első</button>
+        <button type="button" id="btn-replay-prev" class="btn btn-secondary btn-replay" title="Előző lépés">◀ Előző</button>
+        <span id="replay-step-info" class="replay-step-info">Kezdőállás</span>
+        <button type="button" id="btn-replay-next" class="btn btn-secondary btn-replay" title="Következő lépés">Következő ▶</button>
+        <button type="button" id="btn-replay-last" class="btn btn-secondary btn-replay" title="Utolsó lépés">Utolsó ⏭</button>
+      </div>
+      <small class="replay-hint">Tipp: A billentyűzet ← és → gombjaival is lépegethetsz.</small>
+    </div>
+
+    <!-- User / Bottom Player Info -->
     <div class="player-info user-info">
-      <div class="player-name">Te: <span id="user-name">Várakozás...</span></div>
+      <div class="player-name">
+        <span class="role-label" id="user-role-label"><%= bottom_role_label %></span>
+        <span id="user-name" class="name-highlight"><%= bottom_name %></span>
+      </div>
       <div class="player-clock" id="user-clock">--:--</div>
     </div>
   </div>
 
+  <!-- Sidebar Controls -->
   <div class="sidebar-controls">
     <h3>Játszma Állapota</h3>
-    <div id="status-display" class="status-box"><%= @match.status %></div>
+    <div id="status-display" class="status-box status-<%= @match.status %>">
+      <%= status_badge_text %>
+    </div>
     
-    <% if @match.active? %>
+    <div id="active-actions-container" style="<%= @match.active? && !is_spectator ? '' : 'display: none;' %>">
       <div class="actions">
-        <button id="btn-resign" class="btn btn-danger">Feladás</button>
-        <button id="btn-draw" class="btn btn-warning">Döntetlen Ajánlat</button>
-        <button id="btn-takeback" class="btn btn-info">Visszalépés Kérése</button>
+        <button type="button" id="btn-resign" class="btn btn-danger">Feladás</button>
+        <button type="button" id="btn-draw" class="btn btn-warning">Döntetlen Ajánlat</button>
+        <button type="button" id="btn-takeback" class="btn btn-info">Visszalépés Kérése</button>
       </div>
-    <% end %>
+    </div>
+
+    <!-- Pending interactive prompt for draw / takeback -->
+    <div id="prompt-card" class="prompt-card" style="display: none;">
+      <p id="prompt-message"></p>
+      <div class="prompt-buttons">
+        <button type="button" id="btn-prompt-accept" class="btn btn-success btn-sm">Elfogadás</button>
+        <button type="button" id="btn-prompt-decline" class="btn btn-danger btn-sm">Elutasítás</button>
+      </div>
+    </div>
 
     <div class="pgn-box">
       <h4>Lépések (PGN)</h4>
       <textarea id="pgn-content" readonly><%= @match.pgn %></textarea>
-      <button id="btn-copy-pgn" class="btn btn-secondary">PGN Másolása</button>
+      <button type="button" id="btn-copy-pgn" class="btn btn-secondary">PGN Másolása</button>
+    </div>
+
+    <div class="match-meta-box">
+      <div><strong>Időkorlát:</strong> <%= @match.time_control.present? ? "#{@match.time_control / 60} perc" : "Nincs (Végtelen)" %></div>
+      <div><strong>Azonosító:</strong> <span style="font-family: monospace; font-size: 0.82rem;"><%= @match.uuid[0..7] %></span></div>
     </div>
   </div>
 
 </div>
 
-<!-- CSS Styles for Deep Dark Theme -->
+<!-- CSS Styles for Deep Dark Theme & Responsive Design -->
 <style>
   .chess-game-container {
     display: flex;
-    gap: 2rem;
-    padding: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 1.5rem 1rem;
     color: #e2e8f0;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .game-layout {
     display: flex;
     flex-direction: column;
     align-items: center;
     background: #11192e;
-    padding: 1.5rem;
-    border-radius: 8px;
+    padding: 1.25rem;
+    border-radius: 10px;
     border: 1px solid #1a243b;
+    width: 100%;
+    max-width: 480px;
+    box-sizing: border-box;
   }
   .player-info {
-    width: 400px;
+    width: 100%;
+    max-width: 450px;
     display: flex;
     justify-content: space-between;
-    padding: 0.5rem;
+    align-items: center;
+    padding: 0.6rem 0.85rem;
     background: #0a0f1d;
-    margin: 0.5rem 0;
-    border-radius: 4px;
+    margin: 0.4rem 0;
+    border-radius: 6px;
     border: 1px solid #1a243b;
+    box-sizing: border-box;
+  }
+  .player-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+  }
+  .role-label {
+    color: #94a3b8;
+    font-size: 0.85rem;
+  }
+  .name-highlight {
+    font-weight: 600;
+    color: #f1f5f9;
   }
   .player-clock {
-    font-family: monospace;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 1.2rem;
-    font-weight: bold;
+    font-weight: 700;
     color: #38bdf8;
+    background: #11192e;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #1a243b;
+    min-width: 60px;
+    text-align: center;
+  }
+  .player-clock.low-time {
+    color: #ef4444;
+    border-color: #ef4444;
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .board-wrapper {
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+  }
+  #chess-board {
+    width: 100%;
+    max-width: 450px;
+    aspect-ratio: 1 / 1;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
   }
   .sidebar-controls {
-    width: 300px;
+    width: 100%;
+    max-width: 380px;
     background: #11192e;
-    padding: 1.5rem;
-    border-radius: 8px;
+    padding: 1.25rem;
+    border-radius: 10px;
+    border: 1px solid #1a243b;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-sizing: border-box;
   }
   .status-box {
-    padding: 0.5rem;
+    padding: 0.6rem;
     background: #1a243b;
     text-align: center;
-    border-radius: 4px;
-    margin-bottom: 1rem;
+    border-radius: 6px;
     text-transform: uppercase;
-    font-weight: bold;
+    font-weight: 700;
+    font-size: 0.88rem;
+    letter-spacing: 0.05em;
   }
+  .status-active { color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+  .status-pending { color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+  .status-completed { color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+
   .actions {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    margin-bottom: 1.5rem;
   }
   .btn {
-    padding: 0.5rem;
+    padding: 0.55rem 0.85rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
+    font-weight: 600;
+    font-size: 0.88rem;
+    text-align: center;
+    text-decoration: none;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+  }
+  .btn-sm {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+  }
+  .btn-primary { background: #38bdf8; color: #0a0f1d; }
+  .btn-primary:hover { background: #0284c7; }
+  .btn-danger { background: #ef4444; color: white; }
+  .btn-danger:hover { background: #dc2626; }
+  .btn-warning { background: #f59e0b; color: #0a0f1d; }
+  .btn-warning:hover { background: #d97706; }
+  .btn-info { background: #3b82f6; color: white; }
+  .btn-info:hover { background: #2563eb; }
+  .btn-success { background: #10b981; color: white; }
+  .btn-success:hover { background: #059669; }
+  .btn-secondary { background: #1a243b; color: #e2e8f0; border: 1px solid #23304d; }
+  .btn-secondary:hover { background: #23304d; }
+
+  .game-banner {
+    width: 100%;
+    max-width: 450px;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid #38bdf8;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    text-align: center;
+    color: #f1f5f9;
+    box-sizing: border-box;
+  }
+  .game-banner h3 { margin-bottom: 0.25rem; font-size: 1.05rem; }
+  .game-banner p { margin: 0; font-size: 0.9rem; color: #cbd5e1; }
+
+  .join-banner, .pending-creator-banner {
+    width: 100%;
+    max-width: 450px;
+    background: #0a0f1d;
+    border: 1px solid #fbbf24;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    box-sizing: border-box;
+  }
+  .badge-role {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+    padding: 2px 6px;
+    border-radius: 4px;
     font-weight: bold;
   }
-  .btn-danger { background: #ef4444; color: white; }
-  .btn-warning { background: #f59e0b; color: white; }
-  .btn-info { background: #3b82f6; color: white; }
-  .btn-secondary { background: #475569; color: white; width: 100%; margin-top: 0.5rem; }
-  
+  .share-link-group {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .share-input {
+    flex: 1;
+    background: #11192e;
+    color: #38bdf8;
+    border: 1px solid #1a243b;
+    padding: 0.35rem 0.6rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.8rem;
+  }
+
+  .replay-panel {
+    width: 100%;
+    max-width: 450px;
+    margin: 0.5rem 0;
+    text-align: center;
+    background: #0a0f1d;
+    padding: 0.6rem;
+    border-radius: 6px;
+    border: 1px solid #1a243b;
+    box-sizing: border-box;
+  }
+  .replay-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .btn-replay {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+  }
+  .replay-step-info {
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-width: 80px;
+    text-align: center;
+    color: #38bdf8;
+  }
+  .replay-hint {
+    display: block;
+    margin-top: 0.35rem;
+    color: #64748b;
+    font-size: 0.75rem;
+  }
+
+  .prompt-card {
+    background: #0a0f1d;
+    border: 1px solid #38bdf8;
+    border-radius: 6px;
+    padding: 0.75rem;
+    text-align: center;
+  }
+  .prompt-buttons {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+  }
+
   .pgn-box textarea {
     width: 100%;
-    height: 150px;
+    height: 140px;
     background: #0a0f1d;
     color: #94a3b8;
     border: 1px solid #1a243b;
     padding: 0.5rem;
     font-family: monospace;
+    font-size: 0.85rem;
     resize: none;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-top: 0.4rem;
+  }
+  .match-meta-box {
+    background: #0a0f1d;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  @media (max-width: 768px) {
+    .chess-game-container {
+      padding: 0.75rem 0.4rem;
+      gap: 1rem;
+    }
+    .game-layout, .sidebar-controls {
+      padding: 0.85rem;
+      max-width: 100%;
+    }
+    .player-clock {
+      font-size: 1.05rem;
+    }
   }
 </style>
 
@@ -131,48 +487,184 @@ document.addEventListener("DOMContentLoaded", function() {
   if (!container) return;
 
   const matchId = container.dataset.matchId;
-  const isCompleted = container.dataset.status === 'completed';
-
-  // Set player names properly
-  document.getElementById('user-name').innerText = "<%= current_user ? current_user.username : "Vendég ##{session[:guest_id].to_s[0..3]}" %>";
-  document.getElementById('opponent-name').innerText = "<%= @match.white_user_id == current_user&.id || @match.white_guest_id == session[:guest_id] ? @match.black_player_name : @match.white_player_name %>";
-
-  <% 
-    if current_user
-      is_white = @match.white_user_id == current_user.id
-      is_black = @match.black_user_id == current_user.id
-    else
-      is_white = @match.white_guest_id == session[:guest_id]
-      is_black = @match.black_guest_id == session[:guest_id]
-    end
-    
-    current_player_color = 'spectator'
-    current_player_color = 'white' if is_white
-    current_player_color = 'black' if is_black
-  %>
-
-  const myId = "<%= current_user&.id || session[:guest_id] %>";
-  const myColor = "<%= current_player_color %>";
+  let isCompleted = container.dataset.status === 'completed';
+  const myColor = container.dataset.myColor || 'spectator';
   const isSpectator = myColor === 'spectator';
+  const timeControlSeconds = parseInt(container.dataset.timeControl) || null;
+
+  // Initialize Clocks State
+  let whiteTimeMs = parseInt(container.dataset.whiteTime);
+  let blackTimeMs = parseInt(container.dataset.blackTime);
+  if (isNaN(whiteTimeMs)) whiteTimeMs = timeControlSeconds ? timeControlSeconds * 1000 : null;
+  if (isNaN(blackTimeMs)) blackTimeMs = timeControlSeconds ? timeControlSeconds * 1000 : null;
+  let lastMoveAtTimestamp = container.dataset.lastMoveAt ? parseInt(container.dataset.lastMoveAt) : null;
+  let clockInterval = null;
 
   // Initialize chess logic
   var game = new Chess();
   var board = null;
   
   var pgnText = document.getElementById('pgn-content').value;
-  if (pgnText) {
+  if (pgnText && pgnText.trim().length > 0) {
     game.load_pgn(pgnText);
   }
 
+  // Replay Data
+  let replayFens = [];
+  let currentReplayStep = 0;
+
+  function buildReplayPositions() {
+    replayFens = [];
+    var tempGame = new Chess();
+    replayFens.push(tempGame.fen());
+    var moves = game.history();
+    for (var i = 0; i < moves.length; i++) {
+      tempGame.move(moves[i]);
+      replayFens.push(tempGame.fen());
+    }
+    currentReplayStep = replayFens.length - 1;
+    updateReplayUI();
+  }
+
+  function updateReplayUI() {
+    if (replayFens.length <= 1) {
+      $('#replay-step-info').text("Kezdőállás");
+      $('#btn-replay-first, #btn-replay-prev, #btn-replay-next, #btn-replay-last').prop('disabled', true);
+      return;
+    }
+
+    if (currentReplayStep === 0) {
+      $('#replay-step-info').text("Kezdőállás");
+    } else {
+      $('#replay-step-info').text("Lépés: " + currentReplayStep + " / " + (replayFens.length - 1));
+    }
+
+    $('#btn-replay-first, #btn-replay-prev').prop('disabled', currentReplayStep <= 0);
+    $('#btn-replay-next, #btn-replay-last').prop('disabled', currentReplayStep >= replayFens.length - 1);
+  }
+
+  function goToReplayStep(step) {
+    if (step < 0) step = 0;
+    if (step >= replayFens.length) step = replayFens.length - 1;
+    currentReplayStep = step;
+    board.position(replayFens[currentReplayStep], false);
+    updateReplayUI();
+  }
+
+  $('#btn-replay-first').on('click', function() { goToReplayStep(0); });
+  $('#btn-replay-prev').on('click', function() { goToReplayStep(currentReplayStep - 1); });
+  $('#btn-replay-next').on('click', function() { goToReplayStep(currentReplayStep + 1); });
+  $('#btn-replay-last').on('click', function() { goToReplayStep(replayFens.length - 1); });
+
+  // Keyboard navigation for replay
+  $(document).on('keydown', function(e) {
+    if ($(e.target).is('input, textarea')) return;
+    if (isCompleted || $('#replay-panel').is(':visible')) {
+      if (e.key === 'ArrowLeft') {
+        goToReplayStep(currentReplayStep - 1);
+      } else if (e.key === 'ArrowRight') {
+        goToReplayStep(currentReplayStep + 1);
+      }
+    }
+  });
+
+  // Clock Formatter (MM:SS)
+  function formatClock(ms) {
+    if (ms === null || isNaN(ms)) return "--:--";
+    if (ms <= 0) return "00:00";
+    var totalSeconds = Math.floor(ms / 1000);
+    var minutes = Math.floor(totalSeconds / 60);
+    var seconds = totalSeconds % 60;
+    return (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+  }
+
+  function renderClocks() {
+    if (!timeControlSeconds) {
+      $('#opponent-clock').text("∞");
+      $('#user-clock').text("∞");
+      return;
+    }
+
+    let topMs, bottomMs;
+    if (isSpectator) {
+      topMs = blackTimeMs;
+      bottomMs = whiteTimeMs;
+    } else if (myColor === 'white') {
+      topMs = blackTimeMs;
+      bottomMs = whiteTimeMs;
+    } else {
+      topMs = whiteTimeMs;
+      bottomMs = blackTimeMs;
+    }
+
+    $('#opponent-clock').text(formatClock(topMs));
+    $('#user-clock').text(formatClock(bottomMs));
+
+    if (topMs !== null && topMs <= 10000 && container.dataset.status === 'active') {
+      $('#opponent-clock').addClass('low-time');
+    } else {
+      $('#opponent-clock').removeClass('low-time');
+    }
+
+    if (bottomMs !== null && bottomMs <= 10000 && container.dataset.status === 'active') {
+      $('#user-clock').addClass('low-time');
+    } else {
+      $('#user-clock').removeClass('low-time');
+    }
+  }
+
+  function startClockTicker() {
+    if (clockInterval) clearInterval(clockInterval);
+    if (!timeControlSeconds || container.dataset.status !== 'active') {
+      renderClocks();
+      return;
+    }
+
+    let lastTick = Date.now();
+    clockInterval = setInterval(function() {
+      if (container.dataset.status !== 'active') {
+        clearInterval(clockInterval);
+        return;
+      }
+
+      const now = Date.now();
+      const delta = now - lastTick;
+      lastTick = now;
+
+      const activeTurn = game.turn(); // 'w' or 'b'
+      if (activeTurn === 'w') {
+        if (whiteTimeMs !== null) {
+          whiteTimeMs = Math.max(0, whiteTimeMs - delta);
+          if (whiteTimeMs <= 0 && window.matchSubscription) {
+            window.matchSubscription.perform("claim_timeout");
+            clearInterval(clockInterval);
+          }
+        }
+      } else {
+        if (blackTimeMs !== null) {
+          blackTimeMs = Math.max(0, blackTimeMs - delta);
+          if (blackTimeMs <= 0 && window.matchSubscription) {
+            window.matchSubscription.perform("claim_timeout");
+            clearInterval(clockInterval);
+          }
+        }
+      }
+
+      renderClocks();
+    }, 250);
+  }
+
+  // Board Event Handlers
   function onDragStart (source, piece, position, orientation) {
     if (isCompleted || isSpectator) return false;
+    if (container.dataset.status !== 'active') return false;
     if (game.game_over()) return false;
     
-    // Csak a saját körünkben léphetünk
+    // Check turn
     if (myColor === 'white' && game.turn() === 'b') return false;
     if (myColor === 'black' && game.turn() === 'w') return false;
 
-    // Ne engedjük felvenni az ellenfél bábuját
+    // Do not pick up opponent pieces
     if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
         (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
       return false;
@@ -209,7 +701,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   var config = {
     pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-    draggable: !isCompleted && !isSpectator,
+    draggable: !isCompleted && !isSpectator && (container.dataset.status === 'active'),
     position: game.fen(),
     onDragStart: onDragStart,
     onDrop: onDrop,
@@ -217,59 +709,143 @@ document.addEventListener("DOMContentLoaded", function() {
   };
   
   config.orientation = isSpectator ? 'white' : myColor;
-  
   board = Chessboard('chess-board', config);
   updateStatus();
+  renderClocks();
+  if (container.dataset.status === 'active') {
+    startClockTicker();
+  }
 
+  // Responsive Resize
+  $(window).on('resize', function() {
+    if (board) board.resize();
+  });
+
+  // Replay init if already completed
+  if (isCompleted) {
+    buildReplayPositions();
+  }
+
+  // Copy PGN
   $('#btn-copy-pgn').on('click', function() {
     navigator.clipboard.writeText($('#pgn-content').val());
     alert('PGN vágólapra másolva!');
   });
+
+  // Copy Invitation Link
+  $('#btn-copy-link').on('click', function() {
+    var copyText = document.getElementById("share-link-input");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value);
+    alert("Meccs linkje a vágólapra másolva!");
+  });
+
+  // Prompt helper
+  function showPrompt(message, onAccept, onDecline) {
+    $('#prompt-message').text(message);
+    $('#prompt-card').slideDown();
+    
+    $('#btn-prompt-accept').off('click').on('click', function() {
+      $('#prompt-card').slideUp();
+      if (onAccept) onAccept();
+    });
+
+    $('#btn-prompt-decline').off('click').on('click', function() {
+      $('#prompt-card').slideUp();
+      if (onDecline) onDecline();
+    });
+  }
 
   // Setup ActionCable
   var consumer = window.ActionCable ? window.ActionCable.createConsumer() : ActionCable.createConsumer();
   window.matchSubscription = consumer.subscriptions.create({ channel: "Chess::MatchChannel", match_id: matchId }, {
     received: function(data) {
       if (data.action === "move" || data.action === "takeback_accepted") {
-        game.load_pgn(data.pgn);
-        board.position(game.fen());
+        if (data.pgn && data.pgn.trim().length > 0) {
+          game.load_pgn(data.pgn);
+        } else {
+          game.reset();
+        }
+        board.position(data.fen || game.fen());
         updateStatus();
+
+        if (data.white_time_left !== undefined) whiteTimeMs = data.white_time_left;
+        if (data.black_time_left !== undefined) blackTimeMs = data.black_time_left;
+        renderClocks();
+
+        if (data.status === "completed") {
+          isCompleted = true;
+          container.dataset.status = "completed";
+          if (clockInterval) clearInterval(clockInterval);
+        }
       } else if (data.action === "error") {
         alert(data.message);
         game.undo();
         board.position(game.fen());
       } else if (data.action === "takeback_requested") {
-        if (data.by && data.by.toString() === myId) return;
-        if (confirm("Az ellenfél visszalépést kér. Elfogadod?")) {
-          this.perform("answer_takeback", { accepted: true });
-        } else {
-          this.perform("answer_takeback", { accepted: false });
-        }
+        if (isSpectator || data.color === myColor) return;
+        showPrompt("Az ellenfél visszalépést kért. Elfogadod?", function() {
+          window.matchSubscription.perform("answer_takeback", { accepted: true });
+        }, function() {
+          window.matchSubscription.perform("answer_takeback", { accepted: false });
+        });
       } else if (data.action === "takeback_rejected") {
-        alert("Az ellenfél elutasította a visszalépést.");
+        if (isSpectator || data.color === myColor) return;
+        alert("Az ellenfél elutasította a visszalépési kérést.");
       } else if (data.action === "draw_offered") {
-        if (data.by && data.by.toString() === myId) return;
-        if (confirm("Az ellenfél döntetlent ajánl. Elfogadod?")) {
-          this.perform("accept_draw");
-        }
+        if (isSpectator || data.color === myColor) return;
+        showPrompt("Az ellenfél döntetlent ajánlott fel. Elfogadod?", function() {
+          window.matchSubscription.perform("accept_draw");
+        }, function() {
+          window.matchSubscription.perform("decline_draw");
+        });
+      } else if (data.action === "draw_declined") {
+        if (isSpectator || data.color === myColor) return;
+        alert("Az ellenfél elutasította a döntetlen ajánlatot.");
       } else if (data.action === "game_over") {
-        alert("A játszma véget ért: " + data.reason);
-        location.reload();
+        isCompleted = true;
+        container.dataset.status = "completed";
+        if (clockInterval) clearInterval(clockInterval);
+
+        // Lock Board
+        config.draggable = false;
+        board.position(game.fen());
+
+        // Update UI
+        $('#status-display').text("BEFEJEZŐDÖTT").removeClass('status-active status-pending').addClass('status-completed');
+        $('#active-actions-container').hide();
+        $('#prompt-card').hide();
+
+        // Show Game Over Banner
+        $('#banner-title').text("Játszma véget ért");
+        $('#banner-reason').text(data.reason);
+        $('#game-over-banner').slideDown();
+
+        // Activate Replay
+        $('#replay-panel').slideDown();
+        buildReplayPositions();
       } else if (data.action === "match_started") {
         location.reload();
       }
     }
   });
 
+  // Action buttons
   $('#btn-resign').on('click', function() {
-    if(confirm("Biztosan feladod?")) window.matchSubscription.perform("resign");
+    if (confirm("Biztosan feladod a játszmát?")) {
+      window.matchSubscription.perform("resign");
+    }
   });
+
   $('#btn-draw').on('click', function() {
     window.matchSubscription.perform("offer_draw");
+    alert("Döntetlen ajánlat elküldve az ellenfélnek.");
   });
+
   $('#btn-takeback').on('click', function() {
     window.matchSubscription.perform("request_takeback");
+    alert("Visszalépési kérelem elküldve.");
   });
 });
 </script>
-

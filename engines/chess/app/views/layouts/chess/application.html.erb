@@ -44,6 +44,19 @@
 
     .chess-container { max-width: 1200px; margin: 24px auto; width: 100%; padding: 0 20px; flex: 1; }
     .card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+
+    @media (max-width: 640px) {
+      header.chess-header {
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px 14px;
+        align-items: center;
+      }
+      .chess-container {
+        padding: 0 8px;
+        margin: 12px auto;
+      }
+    }
   </style>
 </head>
 <body>
