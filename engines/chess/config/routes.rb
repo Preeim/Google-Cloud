@@ -6,11 +6,7 @@
 # ==============================================================================
 
 Chess::Engine.routes.draw do
-  # Sakk lobby és kezdőoldal (/chess)
-  root to: "dashboard#index"
-
-  # Jövőbeli végpontok vázlata:
-  # resources :games, only: [:index, :show, :create]
-  # resources :lobbies, only: [:index, :create, :join]
+  root to: "matches#index"
+  resources :matches, only: [:index, :show, :create]
 end
 

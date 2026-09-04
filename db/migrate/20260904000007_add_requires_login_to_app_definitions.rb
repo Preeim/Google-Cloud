@@ -12,3 +12,4 @@ class AddRequiresLoginToAppDefinitions < ActiveRecord::Migration[7.1]
     add_index  :app_definitions, :requires_login
   end
 end
+

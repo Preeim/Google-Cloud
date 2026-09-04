@@ -43,3 +43,7 @@ group :development do
   gem "web-console"
 end
 
+
+# Chess module logic
+gem "chess"
+

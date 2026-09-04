@@ -1,0 +1,117 @@
+<div class="chess-lobby-container">
+  <div class="header">
+    <h1>Sakk Lobbi</h1>
+    <%= form_with url: matches_path, method: :post, local: true, class: "new-match-form" do |f| %>
+      <%= f.select :time_control, [["Végtelen", ""], ["5 perc", 300], ["10 perc", 600]], {}, class: "time-select" %>
+      <%= f.select :side, [["Véletlen", "random"], ["Világos", "white"], ["Sötét", "black"]], {}, class: "side-select" %>
+      <%= f.submit "Új Kihívás Indítása", class: "btn-primary" %>
+    <% end %>
+  </div>
+
+  <div class="lobby-grid">
+    <div class="column">
+      <h2>Várakozó Kihívások</h2>
+      <% if @pending_matches.any? %>
+        <ul class="match-list">
+          <% @pending_matches.each do |match| %>
+            <li class="match-card">
+              <span class="match-id">Match #<%= match.uuid.split('-').first %></span>
+              <span class="match-time"><%= match.time_control ? "#{match.time_control / 60} perc" : "Végtelen" %></span>
+              <%= link_to "Csatlakozás", match_path(match.uuid), class: "btn-join" %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="empty-state">Jelenleg nincs várakozó játékos.</p>
+      <% end %>
+    </div>
+
+    <div class="column">
+      <h2>Saját Játszmák</h2>
+      <% if @user_matches.any? %>
+        <ul class="match-list">
+          <% @user_matches.each do |match| %>
+            <li class="match-card <%= match.status %>">
+              <span class="match-players">
+                <%= match.white_player_name %> vs <%= match.black_player_name %>
+              </span>
+              <span class="match-status"><%= match.status %></span>
+              <%= link_to match.completed? ? "Visszanézés" : "Folytatás", match_path(match.uuid), class: "btn-view" %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="empty-state">Még nem játszottál egyetlen meccset sem.</p>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Deep Dark Theme Styles for Lobby */
+  .chess-lobby-container {
+    color: #e2e8f0;
+    padding: 2rem;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #1a243b;
+    padding-bottom: 1rem;
+  }
+  .new-match-form select {
+    background: #11192e;
+    color: white;
+    border: 1px solid #1a243b;
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-right: 0.5rem;
+  }
+  .btn-primary {
+    background: #38bdf8;
+    color: #0a0f1d;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .btn-join, .btn-view {
+    background: #1a243b;
+    color: #38bdf8;
+    padding: 0.25rem 0.75rem;
+    text-decoration: none;
+    border-radius: 4px;
+  }
+  .lobby-grid {
+    display: flex;
+    gap: 2rem;
+  }
+  .column {
+    flex: 1;
+    background: #11192e;
+    padding: 1.5rem;
+    border-radius: 8px;
+  }
+  .match-list {
+    list-style: none;
+    padding: 0;
+  }
+  .match-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #0a0f1d;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #1a243b;
+  }
+  .empty-state {
+    color: #94a3b8;
+    font-style: italic;
+  }
+</style>
+

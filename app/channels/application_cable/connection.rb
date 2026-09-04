@@ -7,21 +7,27 @@
 
 module ApplicationCable
   class Connection < ActionCable::Connection::Base
-    identified_by :current_user
+    identified_by :current_user, :guest_id
 
     def connect
-      self.current_user = find_verified_user
+      session_data = read_session_data
+      self.current_user = find_verified_user(session_data)
+      self.guest_id = session_data["guest_id"] if session_data.is_a?(Hash)
+
       if logger.respond_to?(:add_tags)
-        tag = current_user ? "User ##{current_user.id} (#{current_user.username})" : "Guest"
+        tag = current_user ? "User ##{current_user.id} (#{current_user.username})" : "Guest (##{guest_id})"
         logger.add_tags("ActionCable", tag) rescue nil
       end
     end
 
     protected
-
-    def find_verified_user
+    
+    def read_session_data
       session_key = Rails.application.config.session_options[:key]
-      session_data = cookies.encrypted[session_key] rescue nil
+      cookies.encrypted[session_key] rescue nil
+    end
+
+    def find_verified_user(session_data)
 
       if session_data.is_a?(Hash)
         raw_token = session_data["session_token"]

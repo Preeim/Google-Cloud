@@ -11,7 +11,17 @@ module Chess
   class ApplicationController < ::ApplicationController
     # Modul hozzáférési szűrő futtatása
     before_action -> { check_app_access!("chess") }
+    
+    # Vendég azonosító kiosztása, ha nincs belépve felhasználó
+    before_action :set_guest_id
 
     layout "chess/application"
+
+    private
+
+    def set_guest_id
+      return if logged_in?
+      session[:guest_id] ||= SecureRandom.hex(8)
+    end
   end
 end

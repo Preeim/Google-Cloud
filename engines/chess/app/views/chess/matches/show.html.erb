@@ -1,0 +1,199 @@
+<div class="chess-game-container" data-match-id="<%= @match.uuid %>" data-status="<%= @match.status %>">
+  
+  <div class="game-layout">
+    <!-- Left / Top: Opponent Info -->
+    <div class="player-info opponent-info">
+      <div class="player-name">Ellenfél: <span id="opponent-name">Várakozás...</span></div>
+      <div class="player-clock" id="opponent-clock">--:--</div>
+    </div>
+
+    <!-- Center: Board -->
+    <div class="board-wrapper">
+      <div id="chess-board" style="width: 400px; height: 400px;"></div>
+    </div>
+
+    <!-- Right / Bottom: Player Info -->
+    <div class="player-info user-info">
+      <div class="player-name">Te: <span id="user-name">Várakozás...</span></div>
+      <div class="player-clock" id="user-clock">--:--</div>
+    </div>
+  </div>
+
+  <div class="sidebar-controls">
+    <h3>Játszma Állapota</h3>
+    <div id="status-display" class="status-box"><%= @match.status %></div>
+    
+    <% if @match.active? %>
+      <div class="actions">
+        <button id="btn-resign" class="btn btn-danger">Feladás</button>
+        <button id="btn-draw" class="btn btn-warning">Döntetlen Ajánlat</button>
+        <button id="btn-takeback" class="btn btn-info">Visszalépés Kérése</button>
+      </div>
+    <% end %>
+
+    <div class="pgn-box">
+      <h4>Lépések (PGN)</h4>
+      <textarea id="pgn-content" readonly><%= @match.pgn %></textarea>
+      <button id="btn-copy-pgn" class="btn btn-secondary">PGN Másolása</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- CSS Styles for Deep Dark Theme -->
+<style>
+  .chess-game-container {
+    display: flex;
+    gap: 2rem;
+    padding: 2rem;
+    color: #e2e8f0;
+  }
+  .game-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #11192e;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #1a243b;
+  }
+  .player-info {
+    width: 400px;
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    background: #0a0f1d;
+    margin: 0.5rem 0;
+    border-radius: 4px;
+    border: 1px solid #1a243b;
+  }
+  .player-clock {
+    font-family: monospace;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #38bdf8;
+  }
+  .sidebar-controls {
+    width: 300px;
+    background: #11192e;
+    padding: 1.5rem;
+    border-radius: 8px;
+  }
+  .status-box {
+    padding: 0.5rem;
+    background: #1a243b;
+    text-align: center;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .btn {
+    padding: 0.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .btn-danger { background: #ef4444; color: white; }
+  .btn-warning { background: #f59e0b; color: white; }
+  .btn-info { background: #3b82f6; color: white; }
+  .btn-secondary { background: #475569; color: white; width: 100%; margin-top: 0.5rem; }
+  
+  .pgn-box textarea {
+    width: 100%;
+    height: 150px;
+    background: #0a0f1d;
+    color: #94a3b8;
+    border: 1px solid #1a243b;
+    padding: 0.5rem;
+    font-family: monospace;
+    resize: none;
+  }
+</style>
+
+<!-- Load chess libraries via CDN for this implementation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+
+<!-- Note: In a real production deployment with Rails 7 importmaps, these would be pinned. 
+     For this implementation plan, we embed the init script directly to demonstrate logic. -->
+<script>
+  document.addEventListener("turbo:load", function() {
+    const container = document.querySelector('.chess-game-container');
+    if (!container) return;
+
+    const matchId = container.dataset.matchId;
+    const isCompleted = container.dataset.status === 'completed';
+
+    // Initialize chess logic
+    var game = new Chess();
+    var board = null;
+    
+    // Load existing PGN if available
+    var pgnText = document.getElementById('pgn-content').value;
+    if (pgnText) {
+      game.load_pgn(pgnText);
+    }
+
+    function onDragStart (source, piece, position, orientation) {
+      if (isCompleted) return false;
+      // Do not pick up pieces if it's not our turn
+      // (Simplified check. Real check would verify if user color matches piece color)
+      if (game.game_over()) return false;
+      if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+          (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+        return false;
+      }
+    }
+
+    function onDrop (source, target) {
+      var move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q'
+      });
+
+      if (move === null) return 'snapback';
+
+      // Send to server via ActionCable (Assume setup in a separate stimulus controller or standard JS)
+      // window.App.matchChannel.send({ action: "make_move", san_move: move.san });
+      
+      updateStatus();
+    }
+
+    function onSnapEnd () {
+      board.position(game.fen());
+    }
+
+    function updateStatus () {
+      $('#pgn-content').val(game.pgn());
+    }
+
+    var config = {
+      draggable: !isCompleted,
+      position: game.fen(),
+      onDragStart: onDragStart,
+      onDrop: onDrop,
+      onSnapEnd: onSnapEnd
+    };
+    
+    board = Chessboard('chess-board', config);
+    updateStatus();
+
+    // Copy PGN
+    $('#btn-copy-pgn').on('click', function() {
+      navigator.clipboard.writeText($('#pgn-content').val());
+      alert('PGN vágólapra másolva!');
+    });
+  });
+</script>
+
