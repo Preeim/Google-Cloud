@@ -14,6 +14,9 @@ require "rails/test_unit/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+# Izolált In-App Rails Engine-ek betöltése (Sakk Modul)
+require_relative "../engines/chess/lib/chess"
+
 module GoogleCloudHub
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
@@ -24,10 +27,6 @@ module GoogleCloudHub
     config.autoload_lib(ignore: %w(assets tasks))
 
     # Configuration for the application, engines, and railties goes here.
-    #
-    # These settings can be overridden in specific environments using the files
-    # in config/environments, which are processed later.
     config.time_zone = "UTC"
   end
 end
-

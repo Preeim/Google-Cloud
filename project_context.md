@@ -36,7 +36,11 @@ The server runs Ruby 3.3.0, which has a known syntax parser bug regarding "anony
    - The script automatically: pulls from git, installs bundle dependencies, runs database migrations, and restarts the Puma daemon.
 
 ## 📦 Current Features & Architecture
-- **Authentication:** Custom authentication system using `has_secure_password` (bcrypt). Includes `User` model, `RegistrationsController`, and `SessionsController`.
-- **Testing Console:** A general testing area (`/test/index`) used to validate Action Cable WebSocket connections, including ping/pong latency tests and a broadcast echo room.
-- **Frontend styling:** Custom Tailwind-style utility classes integrated into the main application layout.
+- **Architecture:** Modular Monolith with isolated In-App Rails Engines mounted under `/engines` (e.g. `Chess::Engine` mounted at `/chess` with `chess_` database table prefix).
+- **Authentication & RBAC:** Custom secure auth via `has_secure_password` (bcrypt) with `User` roles (`user`, `moderator`, `admin`), `ActiveSession` (SHA-256 hashed session tracking), brute-force account lockout (15 minutes after 5 failed attempts), and `AuditLog` security event tracking.
+- **Administration:** Dedicated `/bank-admin` management portal for platform owner (Bánk) to supervise users, toggle module availability (maintenance/active), view audit logs, and monitor telemetry.
+- **Security:** Content Security Policy (CSP) with Action Cable WSS support, parameter log masking, rate limiter middleware, and secure cookie configuration.
+- **Testing Console:** Action Cable WebSocket testing area preserved at `/test`.
+- **Frontend Styling:** Bespoke Deep Dark Theme (`#0a0f1d` canvas, `#11192e` surface, `#1a243b` elevated, `#38bdf8` accent, `#a855f7` admin accent; specifically non-#000000) with a 3-state Top Navigation Bar and App Launcher sidebar.
+
 

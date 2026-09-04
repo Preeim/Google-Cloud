@@ -1,3 +1,10 @@
+# ==============================================================================
+# Bánk's Repository - Action Cable Konfiguráció
+# ==============================================================================
+# Fejlesztői környezetben a könnyű memóriabeli async adapter fut.
+# Élesben (production) a szerveren futó Redis 5.0 pubsub csatornát használjuk.
+# ==============================================================================
+
 development:
   adapter: async
 
@@ -5,5 +12,6 @@ test:
   adapter: test
 
 production:
-  adapter: async
-
+  adapter: redis
+  url: <%= ENV.fetch("REDIS_URL") { "redis://127.0.0.1:6379/1" } %>
+  channel_prefix: banks_repository_production

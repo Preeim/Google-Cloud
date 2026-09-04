@@ -1,0 +1,41 @@
+# ==============================================================================
+# Bánk's Repository - Alkalmazás Definíció Modell (AppDefinition)
+# ==============================================================================
+# A platformhoz kapcsolt önálló modulok (pl. Sakk, Jegyzetek) központi leírója.
+# Lehetővé teszi az adminisztrátornak, hogy karbantartási módba tegyen vagy
+# korlátozzon egy-egy mini-appot anélkül, hogy a teljes webhelyet leállítaná.
+# ==============================================================================
+
+class AppDefinition < ApplicationRecord
+  # Állapotok: aktív, karbantartás alatt, inaktív (tiltva), csak adminisztrátoroknak
+  enum state: {
+    active: "active",
+    maintenance: "maintenance",
+    disabled: "disabled",
+    admin_only: "admin_only"
+  }, _prefix: :state, _default: "active"
+
+  # Asszociációk
+  has_many :user_app_permissions, dependent: :cascade
+  has_many :users, through: :user_app_permissions
+
+  # Validációk
+  validates :slug, presence: true, uniqueness: true, format: { with: /\A[a-z0-9\-_]+\z/ }
+  validates :name, presence: true
+  validates :mount_path, presence: true
+
+  # Scopes a gyors szűréshez
+  scope :available_to_users, -> { where(state: "active") }
+  scope :in_maintenance, -> { where(state: "maintenance") }
+
+  # Vizuális állapotjelvény segédmetódus
+  def badge_color_class
+    case state
+    when "active" then "badge-success"
+    when "maintenance" then "badge-warning"
+    when "admin_only" then "badge-admin"
+    else "badge-disabled"
+    end
+  end
+end
+

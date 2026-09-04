@@ -1,0 +1,89 @@
+<div style="margin-bottom: 28px;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;">
+        Üdvözlünk a Bánk's Repository Hubon!
+      </h1>
+      <p style="color: var(--text-muted); font-size: 1rem; margin-top: 6px;">
+        Válaszd ki az alábbi modulok egyikét, vagy indíts egy új sakk partit valós időben.
+      </p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <span style="display: inline-flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.12); border: 1px solid var(--success); color: #34d399; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+        <span style="width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 8px var(--success);"></span>
+        Platform Állapot: Online
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Alkalmazás Modulok Kártyarács -->
+<h2 style="font-size: 1.2rem; font-weight: 700; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+  <span>📦</span> Elérhető Alkalmazások & Eszközök
+</h2>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; margin-bottom: 36px;">
+  <!-- Sakk Modul Kártya -->
+  <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-color: rgba(56, 189, 248, 0.3); background: linear-gradient(145deg, #11192e 0%, #13203c 100%);">
+    <div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <div style="font-size: 2.2rem;">♟️</div>
+        <span class="badge badge-live">Elérhető</span>
+      </div>
+      <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
+        Sakk Mester (Chess App)
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; margin-bottom: 16px;">
+        Izolált Rails Engine alapú sakk-alkalmazás valós idejű WebSocket szinkronizációval, lobby rendszerrel és interaktív táblával.
+      </p>
+    </div>
+    <div>
+      <a href="/chess" class="btn btn-primary" style="width: 100%; text-align: center; font-size: 0.95rem; padding: 10px;">
+        Sakk Alkalmazás Megnyitása →
+      </a>
+    </div>
+  </div>
+
+  <!-- Fejlesztői Teszt Konzol Kártya -->
+  <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+    <div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <div style="font-size: 2.2rem;">🛠️</div>
+        <span class="badge badge-live">Live</span>
+      </div>
+      <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
+        Action Cable Teszt Konzol
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; margin-bottom: 16px;">
+        WebSocket késleltetés mérés, kétirányú ping-pong tesztek és Redis pub/sub közvetítés ellenőrzése.
+      </p>
+    </div>
+    <div>
+      <a href="/test" class="btn btn-secondary" style="width: 100%; text-align: center; font-size: 0.95rem; padding: 10px;">
+        Konzol Futtatása →
+      </a>
+    </div>
+  </div>
+
+  <!-- Jövőbeli Modulok Helyőrző -->
+  <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-style: dashed; opacity: 0.85;">
+    <div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <div style="font-size: 2.2rem;">⚡</div>
+        <span class="badge badge-soon">Hamarosan</span>
+      </div>
+      <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
+        Következő Beépülő Eszköz
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; margin-bottom: 16px;">
+        A moduláris monolit architektúrának köszönhetően új mini-appok (pl. feladatkezelő vagy jegyzetelő) azonnal felcsatolhatóak.
+      </p>
+    </div>
+    <div>
+      <button class="btn btn-secondary" disabled style="width: 100%; opacity: 0.5; cursor: not-allowed; padding: 10px;">
+        Fejlesztés Alatt
+      </button>
+    </div>
+  </div>
+</div>
+

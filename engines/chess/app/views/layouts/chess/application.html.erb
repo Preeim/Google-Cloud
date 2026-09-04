@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sakk Mester | Bánk's Repository</title>
+  <%= csrf_meta_tags %>
+  <%= csp_meta_tag %>
+  <style>
+    :root {
+      --bg-canvas: #0a0f1d;
+      --bg-surface: #11192e;
+      --bg-elevated: #1a243b;
+      --border-subtle: #23304d;
+      --border-hover: #3b4b73;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --chess-gold: #fbbf24;
+      --success: #10b981;
+      --danger: #f43f5e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+    body { background-color: var(--bg-canvas); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* Sakk Fejléc */
+    header.chess-header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chess-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; color: var(--text-main); text-decoration: none; }
+    .badge-gold { background: rgba(251, 191, 36, 0.15); border: 1px solid var(--chess-gold); color: var(--chess-gold); font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+
+    .btn { padding: 8px 16px; border-radius: 6px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border: none; font-size: 0.88rem; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #0a0f1d; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary { background: var(--bg-elevated); color: var(--text-main); border: 1px solid var(--border-subtle); }
+    .btn-secondary:hover { border-color: var(--border-hover); }
+
+    .chess-container { max-width: 1200px; margin: 24px auto; width: 100%; padding: 0 20px; flex: 1; }
+    .card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+  <header class="chess-header">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <a href="/chess" class="chess-brand">
+        <span style="font-size: 1.5rem;">♟️</span>
+        <span>Sakk Mester</span>
+      </a>
+      <span class="badge-gold">Rails Engine v1.0</span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <span style="color: var(--text-muted); font-size: 0.9rem;">
+        Játékos: <strong style="color: var(--text-main);"><%= current_user.username %></strong>
+      </span>
+      <a href="/" class="btn btn-secondary">← Vissza a Főoldalra</a>
+    </div>
+  </header>
+
+  <main class="chess-container">
+    <%= yield %>
+  </main>
+</body>
+</html>
+
