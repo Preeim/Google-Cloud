@@ -76,6 +76,18 @@ class AppBackupService
         payload[:data][:matches] = matches
         payload[:metadata][:records_count] = matches.size
       end
+    when "casino"
+      if defined?(Casino::Profile)
+        profiles = Casino::Profile.includes(:user).all.map do |p|
+          p.as_json.merge("username" => p.user.username)
+        end
+        bets = defined?(Casino::Bet) ? Casino::Bet.all.as_json : []
+        transactions = defined?(Casino::Transaction) ? Casino::Transaction.all.as_json : []
+        payload[:data][:profiles] = profiles
+        payload[:data][:bets] = bets
+        payload[:data][:transactions] = transactions
+        payload[:metadata][:records_count] = profiles.size + bets.size + transactions.size
+      end
     else
       payload[:metadata][:records_count] = 0
     end

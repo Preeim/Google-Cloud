@@ -27,6 +27,7 @@ class User < ApplicationRecord
   has_many :active_sessions, dependent: :destroy
   has_many :user_app_permissions, dependent: :destroy
   has_many :app_definitions, through: :user_app_permissions
+  has_one :casino_profile, class_name: "Casino::Profile", dependent: :destroy
 
   # Audit napló kapcsolatok
   has_many :audit_logs_as_actor, class_name: "AuditLog", foreign_key: :actor_user_id, dependent: :nullify

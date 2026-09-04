@@ -1,0 +1,400 @@
+<div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+  <div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <a href="<%= root_path %>" style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">← Lobbi</a>
+      <span style="color: var(--border-hover);">/</span>
+      <h1 style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin: 0;">
+        <%= @table.name %>
+      </h1>
+      <span class="tag tag-active" style="text-transform: uppercase;"><%= @table.game_type %></span>
+    </div>
+    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+      Kör száma: <strong style="color: var(--casino-gold);">#<span id="current-round-number"><%= @table.round_number %></span></strong> |
+      Téthatárok: <%= @table.min_bet %> - <%= number_with_delimiter(@table.max_bet) %> zseton
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <!-- Visszaszámláló Időzítő Kijelző -->
+    <div id="timer-box" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px 16px; display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 1.2rem;">⏱️</span>
+      <div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Fogadási Idő</div>
+        <div id="countdown-timer" style="font-size: 1.15rem; font-weight: 800; color: <%= @table.seconds_remaining > 5 ? 'var(--success)' : 'var(--danger)' %>;">
+          <%= @table.betting_open? ? "#{@table.seconds_remaining} mp" : "Várakozás tétre" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pörgetés / Sorsolás indítása azonnal -->
+    <%= button_to spin_table_path(@table.slug), method: :post, id: "btn-spin-now", class: "btn btn-gold", style: "padding: 10px 18px; font-weight: 800;" do %>
+      <span>🎲 Pörgetés Most</span>
+    <% end %>
+  </div>
+</div>
+
+<!-- ========================================================================== -->
+<!-- 1. JÁTÉKSPECIFIKUS ASZTAL FELÜLET                                           -->
+<!-- ========================================================================== -->
+
+<div class="card" style="background: #0d1527; border: 2px solid #1e293b; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 24px;">
+
+  <% if @table.game_type == "roulette" %>
+    <!-- ==================== EURÓPAI RULETT FELÜLET ==================== -->
+    <div style="text-align: center; margin-bottom: 24px;">
+      <!-- Rulett Kerék Kijelző Doboz -->
+      <div id="roulette-wheel-display" style="display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 140px; height: 140px; border-radius: 50%; border: 6px solid #fbbf24; background: radial-gradient(circle, #1e293b 0%, #0a0f1d 100%); box-shadow: 0 0 25px rgba(251, 191, 36, 0.3); margin: 0 auto; transition: transform 2s cubic-bezier(0.1, 0.7, 0.1, 1);">
+        <div id="roulette-result-number" style="font-size: 2.8rem; font-weight: 900; color: <%= @state_data['color'] == 'red' ? '#ef4444' : (@state_data['color'] == 'black' ? '#f8fafc' : '#10b981') %>;">
+          <%= @state_data["winning_number"].presence || "—" %>
+        </div>
+        <div id="roulette-result-color" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted);">
+          <%= @state_data["color"].presence || "KÉSZENLÉT" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rulett Fogadómező (Betting Board) -->
+    <div style="max-width: 900px; margin: 0 auto; user-select: none;">
+      <!-- Külső egyszerű fogadások (Outside Bets) -->
+      <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 8px;">
+        <button type="button" class="btn-bet-cell" data-bet="1-18" style="background: #1e293b; color: #fff; padding: 12px; border: 1px solid #334155; border-radius: 6px; font-weight: 700; cursor: pointer;">1 - 18</button>
+        <button type="button" class="btn-bet-cell" data-bet="even" style="background: #1e293b; color: #fff; padding: 12px; border: 1px solid #334155; border-radius: 6px; font-weight: 700; cursor: pointer;">PÁROS</button>
+        <button type="button" class="btn-bet-cell" data-bet="red" style="background: #dc2626; color: #fff; padding: 12px; border: 1px solid #ef4444; border-radius: 6px; font-weight: 700; cursor: pointer;">PIROS</button>
+        <button type="button" class="btn-bet-cell" data-bet="black" style="background: #18181b; color: #fff; padding: 12px; border: 1px solid #3f3f46; border-radius: 6px; font-weight: 700; cursor: pointer;">FEKETE</button>
+        <button type="button" class="btn-bet-cell" data-bet="odd" style="background: #1e293b; color: #fff; padding: 12px; border: 1px solid #334155; border-radius: 6px; font-weight: 700; cursor: pointer;">PÁRATLAN</button>
+        <button type="button" class="btn-bet-cell" data-bet="19-36" style="background: #1e293b; color: #fff; padding: 12px; border: 1px solid #334155; border-radius: 6px; font-weight: 700; cursor: pointer;">19 - 36</button>
+      </div>
+
+      <!-- Tucatok (Dozens) -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px;">
+        <button type="button" class="btn-bet-cell" data-bet="dozen_1" style="background: #1e293b; color: #fbbf24; padding: 10px; border: 1px solid #334155; border-radius: 6px; font-weight: 700; cursor: pointer;">1. Tucat (1-12)</button>
+        <button type="button" class="btn-bet-cell" data-bet="dozen_2" style="background: #1e293b; color: #fbbf24; padding: 10px; border: 1px solid #334155; border-radius: 6px; font-weight: 700; cursor: pointer;">2. Tucat (13-24)</button>
+        <button type="button" class="btn-bet-cell" data-bet="dozen_3" style="background: #1e293b; color: #fbbf24; padding: 10px; border: 1px solid #334155; border-radius: 6px; font-weight: 700; cursor: pointer;">3. Tucat (25-36)</button>
+      </div>
+
+      <!-- Számok Rácsa (0 és 1-36) -->
+      <div style="display: flex; gap: 6px;">
+        <!-- Zöld Nulla (0) -->
+        <button type="button" class="btn-bet-cell" data-bet="0" style="background: #16a34a; color: #fff; width: 60px; font-size: 1.4rem; font-weight: 900; border: 2px solid #22c55e; border-radius: 6px; cursor: pointer;">0</button>
+
+        <!-- 1-36 Számok 3 sorban -->
+        <div style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; flex: 1;">
+          <% 
+            reds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
+            (1..36).each do |num|
+              is_red = reds.include?(num)
+              bg_col = is_red ? '#b91c1c' : '#18181b'
+              border_col = is_red ? '#ef4444' : '#3f3f46'
+          %>
+            <button type="button" class="btn-bet-cell" data-bet="<%= num %>" style="background: <%= bg_col %>; color: #fff; padding: 12px 2px; border: 1px solid <%= border_col %>; border-radius: 4px; font-weight: 800; font-size: 0.95rem; cursor: pointer;">
+              <%= num %>
+            </button>
+          <% end %>
+        </div>
+
+        <!-- Oszlopok (Columns) -->
+        <div style="display: flex; flex-direction: column; gap: 4px; width: 50px;">
+          <button type="button" class="btn-bet-cell" data-bet="col_1" style="background: #1e293b; color: #94a3b8; flex: 1; border: 1px solid #334155; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer;">2:1</button>
+          <button type="button" class="btn-bet-cell" data-bet="col_2" style="background: #1e293b; color: #94a3b8; flex: 1; border: 1px solid #334155; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer;">2:1</button>
+          <button type="button" class="btn-bet-cell" data-bet="col_3" style="background: #1e293b; color: #94a3b8; flex: 1; border: 1px solid #334155; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer;">2:1</button>
+        </div>
+      </div>
+    </div>
+
+  <% elsif @table.game_type == "baccarat" %>
+    <!-- ==================== PUNTO BANCO BACCARAT FELÜLET ==================== -->
+    <div style="max-width: 800px; margin: 0 auto; text-align: center;">
+      <!-- Kártyák Kijelző Területe -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+        <!-- Player Kéz -->
+        <div style="background: rgba(56, 189, 248, 0.08); border: 2px solid #0284c7; border-radius: 12px; padding: 18px;">
+          <h3 style="color: #38bdf8; font-size: 1.2rem; font-weight: 800; margin-bottom: 10px;">JÁTÉKOS (PLAYER)</h3>
+          <div id="baccarat-player-score" style="font-size: 2rem; font-weight: 900; color: #f1f5f9; margin-bottom: 10px;">
+            <%= @state_data["player_score"].presence || "—" %>
+          </div>
+          <div id="baccarat-player-cards" style="display: flex; justify-content: center; gap: 8px; min-height: 70px;">
+            <% if @state_data["player_cards"].present? %>
+              <% @state_data["player_cards"].each do |c| %>
+                <div style="background: #fff; color: <%= %w[♥ ♦].include?(c['suit']) ? '#dc2626' : '#000' %>; border-radius: 6px; padding: 10px 14px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.4);">
+                  <%= c["rank"] %><%= c["suit"] %>
+                </div>
+              <% end %>
+            <% else %>
+              <div style="color: var(--text-muted); font-size: 0.85rem; align-self: center;">Lapok a sorsoláskor jelennek meg</div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Banker Kéz -->
+        <div style="background: rgba(239, 68, 68, 0.08); border: 2px solid #dc2626; border-radius: 12px; padding: 18px;">
+          <h3 style="color: #f87171; font-size: 1.2rem; font-weight: 800; margin-bottom: 10px;">BANKÁR (BANKER)</h3>
+          <div id="baccarat-banker-score" style="font-size: 2rem; font-weight: 900; color: #f1f5f9; margin-bottom: 10px;">
+            <%= @state_data["banker_score"].presence || "—" %>
+          </div>
+          <div id="baccarat-banker-cards" style="display: flex; justify-content: center; gap: 8px; min-height: 70px;">
+            <% if @state_data["banker_cards"].present? %>
+              <% @state_data["banker_cards"].each do |c| %>
+                <div style="background: #fff; color: <%= %w[♥ ♦].include?(c['suit']) ? '#dc2626' : '#000' %>; border-radius: 6px; padding: 10px 14px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.4);">
+                  <%= c["rank"] %><%= c["suit"] %>
+                </div>
+              <% end %>
+            <% else %>
+              <div style="color: var(--text-muted); font-size: 0.85rem; align-self: center;">Lapok a sorsoláskor jelennek meg</div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Baccarat 3 Fő Fogadási Mezője -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px;">
+        <button type="button" class="btn-bet-cell" data-bet="player" style="background: #0369a1; color: #fff; padding: 22px 14px; border: 2px solid #38bdf8; border-radius: 10px; font-size: 1.2rem; font-weight: 900; cursor: pointer;">
+          PLAYER<br><span style="font-size: 0.8rem; font-weight: 600; opacity: 0.9;">Fizet 1:1</span>
+        </button>
+
+        <button type="button" class="btn-bet-cell" data-bet="tie" style="background: #047857; color: #fff; padding: 22px 14px; border: 2px solid #34d399; border-radius: 10px; font-size: 1.2rem; font-weight: 900; cursor: pointer;">
+          TIE (DÖNTETLEN)<br><span style="font-size: 0.8rem; font-weight: 600; opacity: 0.9;">Fizet 8:1</span>
+        </button>
+
+        <button type="button" class="btn-bet-cell" data-bet="banker" style="background: #991b1b; color: #fff; padding: 22px 14px; border: 2px solid #f87171; border-radius: 10px; font-size: 1.2rem; font-weight: 900; cursor: pointer;">
+          BANKER<br><span style="font-size: 0.8rem; font-weight: 600; opacity: 0.9;">Fizet 0.95:1</span>
+        </button>
+      </div>
+    </div>
+
+  <% elsif @table.game_type == "blackjack" %>
+    <!-- ==================== BLACKJACK FELÜLET ==================== -->
+    <div style="max-width: 850px; margin: 0 auto; text-align: center;">
+      <!-- Osztó Keze -->
+      <div style="background: rgba(16, 185, 129, 0.08); border: 2px solid #059669; border-radius: 12px; padding: 18px; margin-bottom: 24px;">
+        <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-weight: 700;">OSZTÓ (DEALER)</div>
+        <div id="bj-dealer-score" style="font-size: 1.8rem; font-weight: 900; color: #f1f5f9; margin: 6px 0 10px;">
+          <%= @state_data["dealer_score"].presence || "—" %>
+        </div>
+        <div id="bj-dealer-cards" style="display: flex; justify-content: center; gap: 8px; min-height: 70px;">
+          <% if @state_data["dealer_cards"].present? %>
+            <% @state_data["dealer_cards"].each do |c| %>
+              <div style="background: #fff; color: <%= %w[♥ ♦].include?(c['suit']) ? '#dc2626' : '#000' %>; border-radius: 6px; padding: 10px 14px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.4);">
+                <%= c["rank"] %><%= c["suit"] %>
+              </div>
+            <% end %>
+          <% else %>
+            <div style="color: var(--text-muted); font-size: 0.85rem; align-self: center;">Az osztó lapjai itt láthatóak</div>
+          <% end %>
+        </div>
+      </div>
+
+      <!-- Blackjack Asztal Ülőhelyek Fogadáshoz -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;">
+        <% (1..3).each do |seat_num| %>
+          <div style="background: var(--bg-elevated); border: 2px solid #334155; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="font-size: 0.95rem; font-weight: 800; color: var(--casino-gold); margin-bottom: 8px;">
+                <%= seat_num %>. Ülőhely
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;">
+                Blackjack 3:2 | Normál 1:1
+              </div>
+            </div>
+            <button type="button" class="btn-bet-cell" data-bet="seat_<%= seat_num %>" style="background: #059669; color: #fff; padding: 14px 10px; border: 1px solid #10b981; border-radius: 8px; font-weight: 800; font-size: 1rem; cursor: pointer;">
+              Fogadás ezen a széken →
+            </button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+</div>
+
+<!-- ========================================================================== -->
+<!-- 2. ZSETONVÁLASZTÓ ÉS TÉTTÉTELI VEZÉRLŐPULT                                  -->
+<!-- ========================================================================== -->
+
+<div class="card" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 20px; margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+    <!-- Zseton Érték Kiválasztó Gombok -->
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Zseton Tét:</span>
+      <% [50, 100, 250, 500, 1000, 5000].each_with_index do |val, idx| %>
+        <button type="button" class="chip-select-btn <%= 'active' if idx == 0 %>" data-amount="<%= val %>" style="background: #1e293b; border: 2px solid <%= idx == 0 ? '#fbbf24' : '#475569' %>; color: #fef08a; padding: 8px 14px; border-radius: 20px; font-weight: 800; font-size: 0.9rem; cursor: pointer; transition: all 0.15s;">
+          🪙 <%= number_with_delimiter(val) %>
+        </button>
+      <% end %>
+    </div>
+
+    <!-- Kiválasztott Mező és Megerősítés Információ -->
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div style="font-size: 0.9rem; color: var(--text-muted);">
+        Kiválasztva: <strong id="selected-bet-display" style="color: var(--accent); font-size: 1.05rem;">—</strong>
+      </div>
+      <button type="button" id="btn-submit-bet" class="btn btn-gold" style="padding: 10px 22px; font-size: 1rem;" disabled>
+        Tét Elhelyezése
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================== -->
+<!-- 3. ÉLŐ ASZTALI TEVÉKENYSÉG ÉS SAJÁT TÉTEK                                   -->
+<!-- ========================================================================== -->
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+  <!-- Saját Téteid Ebben a Körben -->
+  <div class="card">
+    <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+      <span>🎟️</span> Saját Téteid (Kör #<%= @table.round_number %>)
+    </h3>
+    <div id="my-bets-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto;">
+      <% if @my_bets.any? %>
+        <% @my_bets.each do |bet| %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-elevated); border-radius: 6px; font-size: 0.85rem;">
+            <div>
+              <strong style="color: var(--text-main);"><%= bet.bet_type.upcase %></strong>
+            </div>
+            <div style="font-weight: 700; color: #fef08a;">
+              🪙 <%= number_with_delimiter(bet.amount) %>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <p style="color: var(--text-muted); font-size: 0.85rem;" id="no-my-bets-msg">Még nem tettél tétet ebben a körben.</p>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Élő Asztali Közvetítés (Minden Játékos Tétje) -->
+  <div class="card">
+    <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+      <span>📡</span> Élő Asztali Napló
+      <span style="width: 8px; height: 8px; background: var(--success); border-radius: 50%; display: inline-block;"></span>
+    </h3>
+    <div id="live-feed-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto;">
+      <% if @current_bets.any? %>
+        <% @current_bets.each do |b| %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-elevated); border-radius: 6px; font-size: 0.85rem;">
+            <div>
+              <strong style="color: var(--accent);"><%= b.profile.user.username %></strong>
+              <span style="color: var(--text-muted);">tétet tett:</span>
+              <strong style="color: var(--text-main);"><%= b.bet_type.upcase %></strong>
+            </div>
+            <div style="font-weight: 700; color: #fef08a;">
+              🪙 <%= number_with_delimiter(b.amount) %>
+            </div>
+          </div>
+        <% end %>
+      <% else %>
+        <p style="color: var(--text-muted); font-size: 0.85rem;" id="no-feed-msg">Várakozás a játékosok fogadásaira...</p>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================================================== -->
+<!-- 4. JAVASCRIPT: ACTION CABLE & TÉTKEZELŐ LOGIKA                              -->
+<!-- ========================================================================== -->
+
+<script>
+  (function() {
+    let currentSelectedBet = null;
+    let currentSelectedAmount = 50;
+    const tableSlug = "<%= @table.slug %>";
+    const tableId = "<%= @table.id %>";
+    const submitBtn = document.getElementById('btn-submit-bet');
+    const selectedBetDisplay = document.getElementById('selected-bet-display');
+    const timerElem = document.getElementById('countdown-timer');
+
+    // 1. Zseton összeg választó
+    document.querySelectorAll('.chip-select-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.chip-select-btn').forEach(b => {
+          b.style.borderColor = '#475569';
+          b.classList.remove('active');
+        });
+        this.style.borderColor = '#fbbf24';
+        this.classList.add('active');
+        currentSelectedAmount = parseInt(this.getAttribute('data-amount'), 10);
+      });
+    });
+
+    // 2. Fogadási mező választó
+    document.querySelectorAll('.btn-bet-cell').forEach(cell => {
+      cell.addEventListener('click', function() {
+        document.querySelectorAll('.btn-bet-cell').forEach(c => c.style.outline = 'none');
+        this.style.outline = '3px solid #fbbf24';
+        currentSelectedBet = this.getAttribute('data-bet');
+        selectedBetDisplay.textContent = currentSelectedBet.toUpperCase() + " (" + currentSelectedAmount.toLocaleString() + " zseton)";
+        submitBtn.removeAttribute('disabled');
+      });
+    });
+
+    // 3. Tét elküldése AJAX / WebSocket formában
+    submitBtn.addEventListener('click', function() {
+      if (!currentSelectedBet || currentSelectedAmount <= 0) return;
+
+      submitBtn.setAttribute('disabled', 'true');
+      submitBtn.textContent = "Küldés...";
+
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+      fetch(`/casino/tables/${tableSlug}/bet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          bet_type: currentSelectedBet,
+          amount: currentSelectedAmount
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        submitBtn.removeAttribute('disabled');
+        submitBtn.textContent = "Tét Elhelyezése";
+
+        if (data.success) {
+          // Egyenleg azonnali frissítése a fejlécben
+          const headerChip = document.getElementById('player-chips-display');
+          if (headerChip && data.chips !== undefined) {
+            headerChip.textContent = data.chips.toLocaleString();
+          }
+
+          // Helyi lista frissítése
+          const myBetsList = document.getElementById('my-bets-list');
+          const noMyBets = document.getElementById('no-my-bets-msg');
+          if (noMyBets) noMyBets.remove();
+
+          const row = document.createElement('div');
+          row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-elevated); border-radius: 6px; font-size: 0.85rem;";
+          row.innerHTML = `<div><strong style="color: var(--text-main);">${currentSelectedBet.toUpperCase()}</strong></div><div style="font-weight: 700; color: #fef08a;">🪙 ${currentSelectedAmount.toLocaleString()}</div>`;
+          myBetsList.prepend(row);
+        } else {
+          alert(data.error || "Hiba történt a tét elhelyezésekor.");
+        }
+      })
+      .catch(err => {
+        submitBtn.removeAttribute('disabled');
+        submitBtn.textContent = "Tét Elhelyezése";
+        console.error(err);
+      });
+    });
+
+    // 4. Visszaszámláló óra
+    let secondsLeft = <%= @table.seconds_remaining %>;
+    if (secondsLeft > 0) {
+      const interval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft > 0) {
+          timerElem.textContent = secondsLeft + " mp";
+          timerElem.style.color = secondsLeft > 5 ? 'var(--success)' : 'var(--danger)';
+        } else {
+          timerElem.textContent = "Kör elbírálása...";
+          timerElem.style.color = 'var(--casino-gold)';
+          clearInterval(interval);
+        }
+      }, 1000);
+    }
+  })();
+</script>
+

@@ -29,7 +29,45 @@ chess_app.requires_login = false # Vendégek is kipróbálhatják; az admin fel�
 chess_app.save!
 puts "  [+] Modul regisztrálva: #{chess_app.name} (#{chess_app.mount_path}) [Státusz: #{chess_app.state}]"
 
-# 3. Teszt / Vendég fiók létrehozása a fejlesztéshez
+# 3. Második Beépülő Modul: Grand Casino (Casino Engine) regisztrálása
+casino_app = AppDefinition.find_or_initialize_by(slug: "casino")
+casino_app.name = "Grand Casino"
+casino_app.description = "Valós idejű többjátékos kaszinó szimulátor: Rulett, Baccarat és Blackjack asztalok, zsetonrendszer és ranglista."
+casino_app.mount_path = "/casino"
+casino_app.state = "active"
+casino_app.icon_identifier = "casino"
+casino_app.is_default_accessible = true
+casino_app.requires_login = true # Kötelező belépés a zsetonszámlához
+casino_app.save!
+puts "  [+] Modul regisztrálva: #{casino_app.name} (#{casino_app.mount_path}) [Státusz: #{casino_app.state}]"
+
+# Kezdő kaszinó asztalok létrehozása
+roulette = Casino::Table.find_or_initialize_by(slug: "roulette-1")
+roulette.name = "Arany Rulett Terem"
+roulette.game_type = "roulette"
+roulette.min_bet = 50
+roulette.max_bet = 5000
+roulette.state = "idle"
+roulette.save!
+
+baccarat = Casino::Table.find_or_initialize_by(slug: "baccarat-1")
+baccarat.name = "Royal Baccarat Szalon"
+baccarat.game_type = "baccarat"
+baccarat.min_bet = 100
+baccarat.max_bet = 10000
+baccarat.state = "idle"
+baccarat.save!
+
+blackjack = Casino::Table.find_or_initialize_by(slug: "blackjack-1")
+blackjack.name = "VIP Blackjack Asztal"
+blackjack.game_type = "blackjack"
+blackjack.min_bet = 50
+blackjack.max_bet = 5000
+blackjack.state = "idle"
+blackjack.save!
+puts "  [+] Kaszinó asztalok konfigurálva: Rulett, Baccarat, Blackjack"
+
+# 4. Teszt / Vendég fiók létrehozása a fejlesztéshez
 demo_user = User.find_or_initialize_by(username: "demo_user")
 demo_user.email = "demo@bankrepo.hu"
 demo_user.password = "DemoPass123!"

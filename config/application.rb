@@ -14,8 +14,9 @@ require "rails/test_unit/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
-# Izolált In-App Rails Engine-ek betöltése (Sakk Modul)
+# Izolált In-App Rails Engine-ek betöltése (Sakk és Kaszinó Modulok)
 require_relative "../engines/chess/lib/chess"
+require_relative "../engines/casino/lib/casino"
 
 module GoogleCloudHub
   class Application < Rails::Application
