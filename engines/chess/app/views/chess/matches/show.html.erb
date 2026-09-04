@@ -255,6 +255,8 @@ document.addEventListener("DOMContentLoaded", function() {
       } else if (data.action === "game_over") {
         alert("A játszma véget ért: " + data.reason);
         location.reload();
+      } else if (data.action === "match_started") {
+        location.reload();
       }
     }
   });

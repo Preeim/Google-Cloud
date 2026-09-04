@@ -54,8 +54,9 @@ module Chess
         game.move(m)
       end
       
-      # game.turn stringet ad (vagy szimbólumot). Tipikusan :white vagy :black.
-      expected_turn = game.turn.to_s
+      # Kiszámítjuk, kinek a köre jön a lépések száma alapján
+      expected_turn = played_moves.length.even? ? "white" : "black"
+      
       if expected_turn != current_player_color
         raise "Nem a te köröd jön!"
       end

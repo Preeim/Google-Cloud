@@ -29,12 +29,14 @@ module Chess
             else
               @match.update!(white_guest_id: session[:guest_id], status: "active")
             end
+            Chess::MatchChannel.broadcast_to(@match, { action: "match_started" })
           elsif black_open
             if current_user
               @match.update!(black_user_id: current_user.id, status: "active")
             else
               @match.update!(black_guest_id: session[:guest_id], status: "active")
             end
+            Chess::MatchChannel.broadcast_to(@match, { action: "match_started" })
           end
         end
       end
