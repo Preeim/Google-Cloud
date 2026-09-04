@@ -12,7 +12,18 @@ module Chess
 
     def make_move(data)
       begin
-        @match.make_move!(data["san_move"], data["fen"], data["pgn"])
+        # Biztonsági ellenőrzés: csak az a játékos léphet, aki jön
+        if current_player_color == "spectator"
+          raise "Nézők nem léphetnek!"
+        end
+        
+        # A Ruby chess gem ellenőrzi, hogy kinek a köre jön a PGN alapján, 
+        # de nekünk ellenőriznünk kell, hogy a jelenlegi játékos küldi-e a lépést.
+        # Ehhez a tábla állását le kell kérdeznünk. 
+        # Mivel a model amúgy is felépíti a játékot, ott is validálhatnánk, de legegyszerűbb,
+        # ha átadjuk a current_player_color-t a make_move! metódusnak.
+        @match.make_move!(data["san_move"], data["fen"], data["pgn"], current_player_color)
+        
         Chess::MatchChannel.broadcast_to(@match, {
           action: "move",
           fen: @match.fen,
@@ -26,6 +37,7 @@ module Chess
     end
 
     def offer_draw
+      return if current_player_color == "spectator"
       Chess::MatchChannel.broadcast_to(@match, {
         action: "draw_offered",
         by: current_user_or_guest_id
@@ -33,17 +45,20 @@ module Chess
     end
 
     def accept_draw
+      return if current_player_color == "spectator"
       @match.update!(status: "completed", termination_reason: "draw_agreed", winner: "draw")
       Chess::MatchChannel.broadcast_to(@match, { action: "game_over", reason: "Döntetlen megegyezés" })
     end
 
     def resign
+      return if current_player_color == "spectator"
       winner = current_player_color == "white" ? "black" : "white"
       @match.update!(status: "completed", termination_reason: "resign", winner: winner)
       Chess::MatchChannel.broadcast_to(@match, { action: "game_over", reason: "Feladás" })
     end
 
     def request_takeback
+      return if current_player_color == "spectator"
       Chess::MatchChannel.broadcast_to(@match, {
         action: "takeback_requested",
         by: current_user_or_guest_id
@@ -51,6 +66,7 @@ module Chess
     end
 
     def answer_takeback(data)
+      return if current_player_color == "spectator"
       if data["accepted"]
         @match.undo_move!
         Chess::MatchChannel.broadcast_to(@match, {

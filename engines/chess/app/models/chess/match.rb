@@ -41,16 +41,23 @@ module Chess
     public
 
     # Move validator using the chess gem, relying on client FEN/PGN for saving state to avoid gem API limits
-    def make_move!(san_move, client_fen, client_pgn)
+    def make_move!(san_move, client_fen, client_pgn, current_player_color)
       require 'chess'
       
       game = ::Chess::Game.new
       
       # Replay existing moves to reach current state
-      played_moves = self.pgn.to_s.gsub(/\d+\./, '').split
+      pgn_moves_part = self.pgn.to_s.split("]\n\n").last || self.pgn.to_s
+      played_moves = pgn_moves_part.gsub(/\d+\./, '').split
       played_moves.reject! { |m| %w[1-0 0-1 1/2-1/2 *].include?(m) }
       played_moves.each do |m|
         game.move(m)
+      end
+      
+      # game.turn stringet ad (vagy szimbólumot). Tipikusan :white vagy :black.
+      expected_turn = game.turn.to_s
+      if expected_turn != current_player_color
+        raise "Nem a te köröd jön!"
       end
       
       # Validate the new move on the server
@@ -82,7 +89,8 @@ module Chess
       require 'chess'
       return if self.pgn.blank?
       
-      played_moves = self.pgn.to_s.gsub(/\d+\./, '').split
+      pgn_moves_part = self.pgn.to_s.split("]\n\n").last || self.pgn.to_s
+      played_moves = pgn_moves_part.gsub(/\d+\./, '').split
       played_moves.reject! { |m| %w[1-0 0-1 1/2-1/2 *].include?(m) }
       played_moves.pop
       

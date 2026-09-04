@@ -137,6 +137,24 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById('user-name').innerText = "<%= current_user ? current_user.username : "Vendég ##{session[:guest_id].to_s[0..3]}" %>";
   document.getElementById('opponent-name').innerText = "<%= @match.white_user_id == current_user&.id || @match.white_guest_id == session[:guest_id] ? @match.black_player_name : @match.white_player_name %>";
 
+  <% 
+    if current_user
+      is_white = @match.white_user_id == current_user.id
+      is_black = @match.black_user_id == current_user.id
+    else
+      is_white = @match.white_guest_id == session[:guest_id]
+      is_black = @match.black_guest_id == session[:guest_id]
+    end
+    
+    current_player_color = 'spectator'
+    current_player_color = 'white' if is_white
+    current_player_color = 'black' if is_black
+  %>
+
+  const myId = "<%= current_user&.id || session[:guest_id] %>";
+  const myColor = "<%= current_player_color %>";
+  const isSpectator = myColor === 'spectator';
+
   // Initialize chess logic
   var game = new Chess();
   var board = null;
@@ -147,8 +165,14 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function onDragStart (source, piece, position, orientation) {
-    if (isCompleted) return false;
+    if (isCompleted || isSpectator) return false;
     if (game.game_over()) return false;
+    
+    // Csak a saját körünkben léphetünk
+    if (myColor === 'white' && game.turn() === 'b') return false;
+    if (myColor === 'black' && game.turn() === 'w') return false;
+
+    // Ne engedjük felvenni az ellenfél bábuját
     if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
         (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
       return false;
@@ -185,22 +209,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
   var config = {
     pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-    draggable: !isCompleted,
+    draggable: !isCompleted && !isSpectator,
     position: game.fen(),
     onDragStart: onDragStart,
     onDrop: onDrop,
     onSnapEnd: onSnapEnd
   };
   
-  <% 
-    if current_user
-      is_white = @match.white_user_id == current_user.id
-    else
-      is_white = @match.white_guest_id == session[:guest_id]
-    end
-    current_player_color = is_white ? 'white' : 'black' 
-  %>
-  config.orientation = '<%= current_player_color %>';
+  config.orientation = isSpectator ? 'white' : myColor;
   
   board = Chessboard('chess-board', config);
   updateStatus();
@@ -223,6 +239,7 @@ document.addEventListener("DOMContentLoaded", function() {
         game.undo();
         board.position(game.fen());
       } else if (data.action === "takeback_requested") {
+        if (data.by && data.by.toString() === myId) return;
         if (confirm("Az ellenfél visszalépést kér. Elfogadod?")) {
           this.perform("answer_takeback", { accepted: true });
         } else {
@@ -231,6 +248,7 @@ document.addEventListener("DOMContentLoaded", function() {
       } else if (data.action === "takeback_rejected") {
         alert("Az ellenfél elutasította a visszalépést.");
       } else if (data.action === "draw_offered") {
+        if (data.by && data.by.toString() === myId) return;
         if (confirm("Az ellenfél döntetlent ajánl. Elfogadod?")) {
           this.perform("accept_draw");
         }
