@@ -12,6 +12,7 @@ module Chess
 
     def make_move(data)
       begin
+        @match.reload
         # Biztonsági ellenőrzés: csak az a játékos léphet, aki jön
         if current_player_color == "spectator"
           raise "Nézők nem léphetnek!"
@@ -37,6 +38,7 @@ module Chess
     end
 
     def offer_draw
+      @match.reload
       return if current_player_color == "spectator"
       Chess::MatchChannel.broadcast_to(@match, {
         action: "draw_offered",
@@ -45,12 +47,14 @@ module Chess
     end
 
     def accept_draw
+      @match.reload
       return if current_player_color == "spectator"
       @match.update!(status: "completed", termination_reason: "draw_agreed", winner: "draw")
       Chess::MatchChannel.broadcast_to(@match, { action: "game_over", reason: "Döntetlen megegyezés" })
     end
 
     def resign
+      @match.reload
       return if current_player_color == "spectator"
       winner = current_player_color == "white" ? "black" : "white"
       @match.update!(status: "completed", termination_reason: "resign", winner: winner)
@@ -58,6 +62,7 @@ module Chess
     end
 
     def request_takeback
+      @match.reload
       return if current_player_color == "spectator"
       Chess::MatchChannel.broadcast_to(@match, {
         action: "takeback_requested",
@@ -66,6 +71,7 @@ module Chess
     end
 
     def answer_takeback(data)
+      @match.reload
       return if current_player_color == "spectator"
       if data["accepted"]
         @match.undo_move!
