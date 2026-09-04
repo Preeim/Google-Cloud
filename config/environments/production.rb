@@ -33,8 +33,6 @@ Rails.application.configure do
     redirect: { exclude: ->(request) { request.path == "/health" } }
   }
 
-  # Engedélyezett domain nevek
-  config.hosts << "bankrepo.hu"
-  config.hosts << "www.bankrepo.hu"
-  config.hosts << "127.0.0.1"
+  # Nginx fordított proxy kezeli a domaineket; belső blokkolás feloldása
+  config.hosts.clear
 end

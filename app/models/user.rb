@@ -10,18 +10,18 @@ class User < ApplicationRecord
   has_secure_password
 
   # Szerepkörök definíciója: normál tag, moderátor, adminisztrátor (Bánk)
-  enum role: {
+  enum :role, {
     user: "user",
     moderator: "moderator",
     admin: "admin"
-  }, _default: "user"
+  }, default: "user"
 
   # Fiók életciklus státuszok: aktív, felfüggesztett (tiltott), függőben lévő
-  enum status: {
+  enum :status, {
     active: "active",
     suspended: "suspended",
     pending: "pending"
-  }, _default: "active"
+  }, default: "active"
 
   # Asszociációk
   has_many :active_sessions, dependent: :destroy

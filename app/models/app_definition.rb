@@ -8,15 +8,15 @@
 
 class AppDefinition < ApplicationRecord
   # Állapotok: aktív, karbantartás alatt, inaktív (tiltva), csak adminisztrátoroknak
-  enum state: {
+  enum :state, {
     active: "active",
     maintenance: "maintenance",
     disabled: "disabled",
     admin_only: "admin_only"
-  }, _prefix: :state, _default: "active"
+  }, prefix: :state, default: "active"
 
   # Asszociációk
-  has_many :user_app_permissions, dependent: :cascade
+  has_many :user_app_permissions, dependent: :destroy
   has_many :users, through: :user_app_permissions
 
   # Validációk

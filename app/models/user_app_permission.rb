@@ -12,12 +12,12 @@ class UserAppPermission < ApplicationRecord
   belongs_to :granted_by, class_name: "User", foreign_key: :granted_by_user_id, optional: true
 
   # Jogosultsági szintek
-  enum access_level: {
+  enum :access_level, {
     none: "none",
     standard: "standard",
     beta_tester: "beta_tester",
     manager: "manager"
-  }, _default: "standard"
+  }, default: "standard"
 
   validates :user_id, uniqueness: { scope: :app_definition_id, message: "már rendelkezik jogosultsággal ehhez a modulhoz" }
   validates :access_level, presence: true
