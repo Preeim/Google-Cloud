@@ -4,8 +4,8 @@ module Casino
       @table = Casino::Table.find_by(slug: params[:table_id]) || Casino::Table.find_by(id: params[:table_id])
       if @table
         stream_for @table
-        # Automatikus visszaszámláló ellenőrzése / indítása, ha játékos csatlakozott
-        Casino::TableManager.check_or_start_timer(@table)
+        # Automatikus visszaszámláló ellenőrzése / indítása, ha játékos csatlakozott Blackjack asztalhoz
+        Casino::TableManager.check_or_start_timer(@table) if @table.game_type == "blackjack"
 
         # Értesítés az asztalnak, hogy új játékos lépett be
         if current_user

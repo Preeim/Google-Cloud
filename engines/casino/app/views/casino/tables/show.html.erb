@@ -23,16 +23,24 @@
     <div id="timer-box" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px 16px; display: flex; align-items: center; gap: 10px;">
       <span style="font-size: 1.2rem;">⏱️</span>
       <div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Fogadási Idő</div>
+        <div id="timer-label" style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">
+          <%= @table.state == "player_turns" ? "Döntési Idő" : "Fogadási Idő" %>
+        </div>
         <div id="countdown-timer" style="font-size: 1.15rem; font-weight: 800; color: <%= @table.seconds_remaining > 5 ? 'var(--success)' : 'var(--danger)' %>;">
-          <%= @table.betting_open? ? "#{@table.seconds_remaining} mp" : (@table.state == "player_turns" ? "Játékosok döntése" : "Várakozás tétre") %>
+          <%= @table.seconds_remaining > 0 ? "#{@table.seconds_remaining} mp" : (@table.state == "player_turns" ? "Játékosok döntése" : "Várakozás tétre") %>
         </div>
       </div>
     </div>
 
-    <!-- Pörgetés / Sorsolás indítása azonnal -->
-    <%= button_to spin_table_path(@table), method: :post, id: "btn-spin-now", class: "btn btn-gold", style: "padding: 10px 18px; font-weight: 800;" do %>
-      <span><%= @table.game_type == 'blackjack' ? '🃏 Osztás / Lezárás' : '🎲 Pörgetés Most' %></span>
+    <!-- Pörgetés / Sorsolás indítása -->
+    <% if @table.game_type == 'blackjack' && @table.state == 'player_turns' %>
+      <button type="button" class="btn btn-secondary" style="padding: 10px 18px; font-weight: 800; opacity: 0.6; cursor: not-allowed;" disabled>
+        ⏳ Játékosok döntése...
+      </button>
+    <% else %>
+      <%= button_to spin_table_path(@table), method: :post, id: "btn-spin-now", class: "btn btn-gold", style: "padding: 10px 18px; font-weight: 800;" do %>
+        <span><%= @table.game_type == 'blackjack' ? '🃏 Lapok Osztása' : '🎲 Pörgetés Most' %></span>
+      <% end %>
     <% end %>
   </div>
 </div>
@@ -175,15 +183,17 @@
         <div id="bj-dealer-score" style="font-size: 1.9rem; font-weight: 900; color: #f1f5f9; margin-bottom: 12px;">
           <% if @table.state == "player_turns" %>
             Pontszám: <%= @state_data["dealer_visible_score"].presence || "?" %> + ?
+          <% elsif @table.state == "betting" %>
+            Várakozás az osztásra...
           <% else %>
             Pontszám: <%= @state_data["dealer_score"].presence || "—" %>
           <% end %>
         </div>
 
         <div id="bj-dealer-cards" style="display: flex; justify-content: center; gap: 10px; min-height: 80px;">
-          <% if @state_data["dealer_cards"].present? %>
+          <% if @table.state == "player_turns" && @state_data["dealer_cards"].present? %>
             <% @state_data["dealer_cards"].each_with_index do |c, idx| %>
-              <% if @table.state == "player_turns" && idx > 0 %>
+              <% if idx > 0 %>
                 <!-- Fordított rejtett lap -->
                 <div style="background: repeating-linear-gradient(45deg, #1e293b, #1e293b 10px, #0f172a 10px, #0f172a 20px); border: 2px solid #475569; border-radius: 8px; width: 56px; height: 78px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
                   🂠
@@ -195,6 +205,13 @@
                   <div style="text-align: right; font-size: 1.3rem;"><%= c["suit"] %></div>
                 </div>
               <% end %>
+            <% end %>
+          <% elsif @table.state == "idle" && @state_data["dealer_cards"].present? %>
+            <% @state_data["dealer_cards"].each do |c| %>
+              <div style="background: #fff; color: <%= %w[♥ ♦].include?(c['suit']) ? '#dc2626' : '#000' %>; border-radius: 8px; width: 56px; height: 78px; display: flex; flex-direction: column; justify-content: space-between; padding: 6px 8px; font-weight: 900; font-size: 1.15rem; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+                <div><%= c["rank"] %></div>
+                <div style="text-align: right; font-size: 1.3rem;"><%= c["suit"] %></div>
+              </div>
             <% end %>
           <% else %>
             <div style="color: var(--text-muted); font-size: 0.88rem; align-self: center;">Az osztó lapjai az osztáskor jelennek meg</div>
@@ -211,7 +228,7 @@
 
       <% unless i_have_bet %>
         <div style="background: rgba(56, 189, 248, 0.1); border: 1px dashed var(--accent); border-radius: 10px; padding: 10px 16px; margin-bottom: 20px; font-size: 0.9rem; color: #bae6fd;">
-          👀 <strong>Nézői Mód:</strong> Nem tettél tétet ebben a körben. A játékosok döntéseit és az osztást valós időben látod! A következő kör kezdetekor (amikor az óra újraindul) fogadhatsz.
+          👀 <strong>Nézői Mód:</strong> Nem tettél tétet ebben a körben. A játékosok döntéseit és az osztást valós időben látod! A következő kör fogadási idejében bármikor beszállhatsz.
         </div>
       <% end %>
 
@@ -219,12 +236,30 @@
         <% (1..3).each do |seat_num| %>
           <% 
             seat_key = "seat_#{seat_num}"
-            # Megkeressük van-e játékos ezen a széken
-            seated_player = players_data.values.find { |p| p["seat"] == seat_key }
+            # Megkeressük, ki ül ezen a széken:
+            # Döntési fázisban (player_turns): a dealt lapokból
+            # Fogadási/készenléti fázisban: az aktuális kör függő tétjeiből
+            if @table.state == "player_turns"
+              seated_player = players_data.values.find { |p| p["seat"] == seat_key }
+            else
+              pending_seat_bet = @current_bets.find { |b| b.bet_type == seat_key }
+              if pending_seat_bet
+                seated_player = {
+                  "profile_id" => (pending_seat_bet.casino_profile_id || pending_seat_bet.profile_id).to_s,
+                  "username" => pending_seat_bet.profile.user.username,
+                  "seat" => seat_key,
+                  "amount" => pending_seat_bet.amount,
+                  "status" => "pending"
+                }
+              else
+                seated_player = nil
+              end
+            end
+
             is_my_seat = seated_player && seated_player["profile_id"].to_s == my_profile_id
           %>
 
-          <div id="seat-card-<%= seat_num %>" style="background: var(--bg-elevated); border: 2px solid <%= is_my_seat ? '#fbbf24' : '#334155' %>; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; box-shadow: <%= is_my_seat ? '0 0 16px rgba(251, 191, 36, 0.2)' : 'none' %>;">
+          <div id="seat-card-<%= seat_num %>" data-seat="<%= seat_num %>" data-profile-id="<%= seated_player ? seated_player['profile_id'] : '' %>" style="background: var(--bg-elevated); border: 2px solid <%= is_my_seat ? '#fbbf24' : '#334155' %>; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; box-shadow: <%= is_my_seat ? '0 0 16px rgba(251, 191, 36, 0.2)' : 'none' %>;">
             
             <!-- Ülés Fejléc -->
             <div>
@@ -246,38 +281,51 @@
                   </div>
                 </div>
 
-                <!-- Játékos Pontszám & Státusz -->
-                <div style="margin-bottom: 12px;">
-                  <span id="player-score-<%= seat_num %>" style="font-size: 1.3rem; font-weight: 900; color: #fff;">
-                    <%= seated_player["score"] %> pont
-                  </span>
-                  <div id="player-status-<%= seat_num %>" style="margin-top: 4px;">
-                    <% case seated_player["status"]
-                       when "blackjack" %>
-                      <span class="tag" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24;">🔥 BLACKJACK (21)</span>
-                    <% when "busted" %>
-                      <span class="tag" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444;">💀 BESOKALLT (>21)</span>
-                    <% when "stood" %>
-                      <span class="tag" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #0284c7;">✋ MEGÁLLT</span>
-                    <% else %>
-                      <span class="tag tag-active">⏳ LAPON VAN</span>
+                <% if @table.state == "player_turns" %>
+                  <!-- Játékos Pontszám & Státusz -->
+                  <div style="margin-bottom: 12px;">
+                    <span id="player-score-<%= seat_num %>" style="font-size: 1.3rem; font-weight: 900; color: #fff;">
+                      <%= seated_player["score"] %> pont
+                    </span>
+                    <div id="player-status-<%= seat_num %>" style="margin-top: 4px;">
+                      <% case seated_player["status"]
+                         when "blackjack" %>
+                        <span class="tag" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24;">🔥 BLACKJACK (21)</span>
+                      <% when "busted" %>
+                        <span class="tag" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444;">💀 BESOKALLT (>21)</span>
+                      <% when "stood" %>
+                        <span class="tag" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #0284c7;">✋ MEGÁLLT</span>
+                      <% else %>
+                        <span class="tag tag-active">⏳ DÖNTÉSRE VÁR</span>
+                      <% end %>
+                    </div>
+                  </div>
+
+                  <!-- Játékos Kártyái -->
+                  <div id="player-cards-<%= seat_num %>" style="display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; min-height: 70px; margin-bottom: 12px;">
+                    <% (seated_player["cards"] || []).each do |c| %>
+                      <div style="background: #fff; color: <%= %w[♥ ♦].include?(c['suit']) ? '#dc2626' : '#000' %>; border-radius: 6px; width: 44px; height: 62px; display: flex; flex-direction: column; justify-content: space-between; padding: 4px 6px; font-weight: 900; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(0,0,0,0.4);">
+                        <div><%= c["rank"] %></div>
+                        <div style="text-align: right; font-size: 1.1rem;"><%= c["suit"] %></div>
+                      </div>
                     <% end %>
                   </div>
-                </div>
-
-                <!-- Játékos Kártyái -->
-                <div id="player-cards-<%= seat_num %>" style="display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; min-height: 70px; margin-bottom: 12px;">
-                  <% (seated_player["cards"] || []).each do |c| %>
-                    <div style="background: #fff; color: <%= %w[♥ ♦].include?(c['suit']) ? '#dc2626' : '#000' %>; border-radius: 6px; width: 44px; height: 62px; display: flex; flex-direction: column; justify-content: space-between; padding: 4px 6px; font-weight: 900; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(0,0,0,0.4);">
-                      <div><%= c["rank"] %></div>
-                      <div style="text-align: right; font-size: 1.1rem;"><%= c["suit"] %></div>
-                    </div>
-                  <% end %>
-                </div>
+                <% else %>
+                  <!-- Fogadási fázisban: Tét leadva, várakozás az osztásra -->
+                  <div style="margin: 16px 0 12px;">
+                    <span class="tag tag-active" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981;">
+                      ⏳ Tét rögzítve (Osztásra vár)
+                    </span>
+                  </div>
+                  <div style="display: flex; justify-content: center; gap: 6px; min-height: 50px; opacity: 0.4;">
+                    <div style="background: repeating-linear-gradient(45deg, #1e293b, #1e293b 10px, #0f172a 10px, #0f172a 20px); border: 1px solid #475569; border-radius: 6px; width: 38px; height: 52px;"></div>
+                    <div style="background: repeating-linear-gradient(45deg, #1e293b, #1e293b 10px, #0f172a 10px, #0f172a 20px); border: 1px solid #475569; border-radius: 6px; width: 38px; height: 52px;"></div>
+                  </div>
+                <% end %>
 
               <% else %>
                 <!-- Szabad Ülőhely -->
-                <div style="color: var(--text-muted); font-size: 0.85rem; margin: 24px 0;">
+                <div style="color: var(--text-muted); font-size: 0.85rem; margin: 28px 0;">
                   Szabad Ülőhely
                 </div>
               <% end %>
@@ -296,10 +344,17 @@
                   </button>
                 </div>
               <% elsif seated_player.nil? && (@table.state == "betting" || @table.state == "idle") %>
-                <!-- Fogadás Gomb a Székre -->
-                <button type="button" class="btn-bet-cell" data-bet="seat_<%= seat_num %>" style="width: 100%; background: #059669; color: #fff; padding: 12px 10px; border: 1px solid #10b981; border-radius: 8px; font-weight: 800; font-size: 0.95rem; cursor: pointer;">
-                  Fogadás ezen a széken →
-                </button>
+                <% if i_have_bet %>
+                  <!-- Már van másik széke a felhasználónak -->
+                  <div style="font-size: 0.75rem; color: var(--text-muted); padding: 8px 0;">
+                    Már foglaltál széket ebben a körben
+                  </div>
+                <% else %>
+                  <!-- Fogadás Gomb a Székre -->
+                  <button type="button" class="btn-bet-cell" data-bet="seat_<%= seat_num %>" style="width: 100%; background: #059669; color: #fff; padding: 12px 10px; border: 1px solid #10b981; border-radius: 8px; font-weight: 800; font-size: 0.95rem; cursor: pointer;">
+                    Fogadás ezen a széken →
+                  </button>
+                <% end %>
               <% end %>
             </div>
 
@@ -519,6 +574,10 @@
 
     // 5. Visszaszámláló Időzítő Kezelő
     let countdownInterval = null;
+    const isBlackjack = "<%= @table.game_type %>" === "blackjack";
+    const currentUserId = "<%= current_user.id %>";
+    const currentProfileId = "<%= current_casino_profile.id %>";
+
     function startTimer(seconds) {
       if (countdownInterval) clearInterval(countdownInterval);
       let secondsLeft = seconds;
@@ -533,10 +592,15 @@
           timerElem.textContent = "Kör indítása...";
           timerElem.style.color = 'var(--casino-gold)';
           clearInterval(countdownInterval);
-          // Ha az idő lejárt és Blackjacknél vagyunk: automatikusan kérjük a lapok osztását!
-          setTimeout(() => {
-            document.getElementById('btn-spin-now')?.click();
-          }, 800);
+          // Ha az idő lejárt és Blackjacknél vagyunk: automatikusan kérjük a lapok osztását, ha van aktív gomb!
+          if (isBlackjack) {
+            setTimeout(() => {
+              const spinBtn = document.getElementById('btn-spin-now');
+              if (spinBtn && !spinBtn.disabled) {
+                spinBtn.click();
+              }
+            }, 800);
+          }
         }
       }, 1000);
     }
@@ -568,12 +632,59 @@
               row.innerHTML = `<div><strong style="color: var(--accent);">${data.user_name}</strong> <span style="color: var(--text-muted);">tétet tett:</span> <strong style="color: var(--text-main);">${data.bet_type.toUpperCase()}</strong></div><div style="font-weight: 700; color: #fef08a;">🪙 ${Number(data.amount).toLocaleString()}</div>`;
               feedList.prepend(row);
 
+              // Valós idejű székfrissítés Blackjack esetén
+              if (data.bet_type && data.bet_type.startsWith('seat_')) {
+                const seatNum = data.bet_type.replace('seat_', '');
+                const seatCard = document.getElementById(`seat-card-${seatNum}`);
+                if (seatCard) {
+                  const isMe = String(data.user_id) === currentUserId;
+                  seatCard.style.borderColor = isMe ? '#fbbf24' : '#334155';
+                  seatCard.style.boxShadow = isMe ? '0 0 16px rgba(251, 191, 36, 0.2)' : 'none';
+                  seatCard.setAttribute('data-profile-id', data.profile_id);
+
+                  seatCard.innerHTML = `
+                    <div>
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: 800; font-size: 0.95rem; color: var(--casino-gold);">
+                          ${seatNum}. Ülőhely
+                        </span>
+                        ${isMe ? '<span style="background: var(--casino-gold); color: #000; font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 8px;">TE</span>' : ''}
+                      </div>
+                      <div style="margin-bottom: 10px;">
+                        <strong style="color: var(--text-main); font-size: 1.05rem;">${data.user_name}</strong>
+                        <div style="font-size: 0.8rem; color: #fef08a; font-weight: 700; margin-top: 2px;">
+                          🪙 ${Number(data.amount).toLocaleString()} zseton tét
+                        </div>
+                      </div>
+                      <div style="margin: 16px 0 12px;">
+                        <span class="tag tag-active" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981;">
+                          ⏳ Tét rögzítve (Osztásra vár)
+                        </span>
+                      </div>
+                      <div style="display: flex; justify-content: center; gap: 6px; min-height: 50px; opacity: 0.4;">
+                        <div style="background: repeating-linear-gradient(45deg, #1e293b, #1e293b 10px, #0f172a 10px, #0f172a 20px); border: 1px solid #475569; border-radius: 6px; width: 38px; height: 52px;"></div>
+                        <div style="background: repeating-linear-gradient(45deg, #1e293b, #1e293b 10px, #0f172a 10px, #0f172a 20px); border: 1px solid #475569; border-radius: 6px; width: 38px; height: 52px;"></div>
+                      </div>
+                    </div>
+                    <div></div>
+                  `;
+
+                  if (isMe) {
+                    document.querySelectorAll('.btn-bet-cell').forEach(btn => {
+                      if (btn.getAttribute('data-bet')?.startsWith('seat_')) {
+                        btn.style.display = 'none';
+                      }
+                    });
+                  }
+                }
+              }
+
               if (data.seconds_remaining && data.seconds_remaining > 0) {
                 startTimer(data.seconds_remaining);
               }
             }
 
-            // B) Új visszaszámlálás indult (valaki belépett az asztalhoz)
+            // B) Új visszaszámlálás indult
             else if (data.type === 'timer_started') {
               startTimer(data.seconds_remaining);
             }
@@ -585,7 +696,52 @@
 
             // D) Egy játékos lapot kért vagy megállt
             else if (data.type === 'player_action_taken') {
-              window.location.reload();
+              // Keressük meg a széket
+              let seatNum = null;
+              if (data.seat && data.seat.startsWith('seat_')) {
+                seatNum = data.seat.replace('seat_', '');
+              } else {
+                const card = document.querySelector(`[data-profile-id="${data.profile_id}"]`);
+                if (card) seatNum = card.getAttribute('data-seat');
+              }
+
+              if (seatNum) {
+                const scoreElem = document.getElementById(`player-score-${seatNum}`);
+                if (scoreElem) scoreElem.textContent = `${data.score} pont`;
+
+                const statusElem = document.getElementById(`player-status-${seatNum}`);
+                if (statusElem) {
+                  if (data.status === 'blackjack') {
+                    statusElem.innerHTML = '<span class="tag" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24;">🔥 BLACKJACK (21)</span>';
+                  } else if (data.status === 'busted') {
+                    statusElem.innerHTML = '<span class="tag" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444;">💀 BESOKALLT (>21)</span>';
+                  } else if (data.status === 'stood') {
+                    statusElem.innerHTML = '<span class="tag" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #0284c7;">✋ MEGÁLLT</span>';
+                  } else {
+                    statusElem.innerHTML = '<span class="tag tag-active">⏳ DÖNTÉSRE VÁR</span>';
+                  }
+                }
+
+                const cardsElem = document.getElementById(`player-cards-${seatNum}`);
+                if (cardsElem && data.cards) {
+                  cardsElem.innerHTML = '';
+                  data.cards.forEach(c => {
+                    const isRed = ['♥', '♦'].includes(c.suit);
+                    const tile = document.createElement('div');
+                    tile.style.cssText = "background: #fff; color: " + (isRed ? '#dc2626' : '#000') + "; border-radius: 6px; width: 44px; height: 62px; display: flex; flex-direction: column; justify-content: space-between; padding: 4px 6px; font-weight: 900; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(0,0,0,0.4);";
+                    tile.innerHTML = `<div>${c.rank}</div><div style="text-align: right; font-size: 1.1rem;">${c.suit}</div>`;
+                    cardsElem.appendChild(tile);
+                  });
+                }
+
+                // Ha ez az aktuális felhasználó döntése volt és véget ért a köre, tüntessük el a gombokat
+                if (String(data.profile_id) === currentProfileId && ['stood', 'busted', 'blackjack'].includes(data.status)) {
+                  const actionsContainer = document.getElementById('my-bj-actions');
+                  if (actionsContainer) actionsContainer.remove();
+                }
+              } else {
+                window.location.reload();
+              }
             }
 
             // E) Kör lezárult és nyertesek kihirdetése
@@ -606,10 +762,10 @@
                 }
               }
 
-              // Asztal frissítése a teljes eredmények megmutatásához
+              // Asztal automatikus frissítése a következő kör előkészítéséhez
               setTimeout(() => {
                 window.location.reload();
-              }, 1800);
+              }, 2200);
             }
           }
         }

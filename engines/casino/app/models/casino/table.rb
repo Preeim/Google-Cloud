@@ -32,8 +32,12 @@ module Casino
       state == "betting" && (betting_closes_at.nil? || betting_closes_at > Time.current)
     end
 
+    def turn_decision_open?
+      state == "player_turns" && (betting_closes_at.nil? || betting_closes_at > Time.current)
+    end
+
     def seconds_remaining
-      return 0 unless betting_open?
+      return 0 if betting_closes_at.nil? || betting_closes_at <= Time.current
       [((betting_closes_at - Time.current)).round, 0].max
     end
   end

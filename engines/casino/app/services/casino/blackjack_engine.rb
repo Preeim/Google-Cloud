@@ -58,7 +58,8 @@ module Casino
     def self.play_dealer_hand(dealer_cards, deck)
       cards = dealer_cards.dup
       while hand_value(cards) < 17
-        cards << deck.pop
+        card = deck.pop || new_shuffled_deck.pop
+        cards << card
       end
       cards
     end

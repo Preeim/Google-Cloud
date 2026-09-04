@@ -80,7 +80,11 @@ module Casino
               redirect_to table_path(@table), notice: "A kör sikeresen lezárult! #{outcome_text}"
             end
           else
-            redirect_to table_path(@table), alert: res[:error]
+            if res[:idle] || res[:error] == "Nincs aktív tét az asztalon."
+              redirect_to table_path(@table), notice: "A fogadási idő lejárt. Tegyél egy tétet a játék megkezdéséhez!"
+            else
+              redirect_to table_path(@table), alert: res[:error]
+            end
           end
         end
       end
