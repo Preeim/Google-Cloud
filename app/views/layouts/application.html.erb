@@ -111,11 +111,21 @@
       Bánk's <span>Repository</span>
     </a>
 
-    <!-- Középső menüpontok -->
+    <!-- Középső menüpontok (Dinamikus modul-betöltés) -->
+    <% 
+      nav_apps = (admin? rescue false) ? AppDefinition.order(:name) : AppDefinition.available_to_users.order(:name)
+    %>
     <div class="nav-center">
-      <a href="/" class="nav-link <%= 'active' if current_page?(root_path) %>">Műszerfal</a>
-      <a href="/chess" class="nav-link">Sakk App</a>
-      <a href="/test" class="nav-link">Teszt Konzol</a>
+      <a href="/" class="nav-link <%= 'active' if request.path == '/' %>">Műszerfal</a>
+      <% nav_apps.each do |app| %>
+        <a href="<%= app.mount_path %>" class="nav-link <%= 'active' if request.path.start_with?(app.mount_path) %>">
+          <%= app.name %>
+          <% if (admin? rescue false) && !app.state_active? %>
+            <span style="font-size: 0.72rem; color: var(--warning);">(<%= app.state.upcase %>)</span>
+          <% end %>
+        </a>
+      <% end %>
+      <a href="/test" class="nav-link <%= 'active' if request.path == '/test' %>">Teszt Konzol</a>
     </div>
 
     <!-- Jobb oldali állapot-vezérelt menü -->
@@ -158,18 +168,31 @@
       <div class="sidebar-card">
         <div class="sidebar-title">Alkalmazások & Eszközök</div>
         <ul class="nav-list">
-          <li class="nav-item <%= 'active' if current_page?(root_path) %>">
+          <li class="nav-item <%= 'active' if request.path == '/' %>">
             <a href="/">
               <span>🏠 Irányítópult</span>
             </a>
           </li>
-          <li class="nav-item">
-            <a href="/chess">
-              <span>♟️ Sakk App</span>
-              <span class="badge badge-live">Live</span>
-            </a>
-          </li>
-          <li class="nav-item">
+          <% nav_apps.each do |app| %>
+            <% 
+              app_icon = case app.slug
+                         when "chess" then "♟️"
+                         when "test" then "🛠️"
+                         else "📦"
+                         end
+            %>
+            <li class="nav-item <%= 'active' if request.path.start_with?(app.mount_path) %>">
+              <a href="<%= app.mount_path %>">
+                <span><%= app_icon %> <%= app.name %></span>
+                <% if app.state_active? %>
+                  <span class="badge badge-live">Live</span>
+                <% elsif (admin? rescue false) %>
+                  <span class="badge badge-soon" style="color: var(--warning); border: 1px solid var(--warning);"><%= app.state.capitalize %></span>
+                <% end %>
+              </a>
+            </li>
+          <% end %>
+          <li class="nav-item <%= 'active' if request.path == '/test' %>">
             <a href="/test">
               <span>🛠️ Teszt Konzol</span>
               <span class="badge badge-live">Socket</span>

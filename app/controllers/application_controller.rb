@@ -127,16 +127,21 @@ class ApplicationController < ActionController::Base
   def check_app_access!(app_slug)
     app = AppDefinition.find_by(slug: app_slug)
 
-    # 1. Ha az alkalmazás nem létezik vagy globálisan le van tiltva
-    if app.nil? || app.state_disabled?
-      flash[:alert] = "A keresett modul jelenleg nem érhető el a platformon."
+    # 1. Ha az alkalmazás nem létezik az adatbázisban
+    if app.nil?
+      flash[:alert] = "A keresett modul nem létezik a platformon."
       redirect_to app_root_path and return
     end
 
-    # 2. Ha az alkalmazás karbantartás alatt van vagy csak adminoknak szól
-    if (app.state_maintenance? || app.state_admin_only?) && !admin?
-      flash[:alert] = "A(z) #{app.name} modul jelenleg karbantartás alatt áll. Hamarosan újra elérhető!"
-      redirect_to app_root_path and return
+    # 2. Ha az alkalmazás inaktív (kikapcsolt), karbantartás alatt van vagy csak adminoknak szól
+    if app.state_disabled? || app.state_maintenance? || app.state_admin_only?
+      if admin?
+        # Rendszergazdáknak engedélyezzük a tesztelést és előnézetet
+        flash.now[:alert] = "Figyelem: A(z) #{app.name} modul jelenleg #{app.state.upcase} állapotban van! (Csak adminisztrátori előnézet)"
+      else
+        @disabled_app = app
+        render "shared/app_disabled", layout: "application", status: :service_unavailable and return
+      end
     end
 
     # 3. Ha az alkalmazás NEM igényel bejelentkezést (requires_login: false), és nincs belépve:

@@ -39,8 +39,17 @@
           <td>
             <%= app.is_default_accessible? ? "✓ Minden tagnak engedélyezett" : "🔒 Egyéni engedélyhez kötött" %>
           </td>
-          <td style="text-align: right;">
-            <a href="/bank-admin/apps/<%= app.id %>/edit" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Státusz Módosítása</a>
+          <td style="text-align: right; display: flex; justify-content: flex-end; gap: 8px;">
+            <% if app.state_active? %>
+              <%= button_to toggle_admin_app_path(app), method: :post, class: "btn btn-danger", style: "padding: 4px 10px; font-size: 0.8rem;", data: { turbo_confirm: "Biztosan kikapcsolod a(z) #{app.name} modult? A rendszer automatikus biztonsági mentést készít az adatokról a háttértárra!" } do %>
+                <span>🔴 Kikapcsolás</span>
+              <% end %>
+            <% else %>
+              <%= button_to toggle_admin_app_path(app), method: :post, class: "btn btn-primary", style: "padding: 4px 10px; font-size: 0.8rem;" do %>
+                <span>🟢 Bekapcsolás</span>
+              <% end %>
+            <% end %>
+            <a href="/bank-admin/apps/<%= app.id %>/edit" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Beállítások</a>
           </td>
         </tr>
       <% end %>

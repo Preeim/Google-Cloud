@@ -7,13 +7,43 @@
 
 module Admin
   class AppsController < BaseController
-    before_action :set_app, only: [:edit, :update]
+    before_action :set_app, only: [:edit, :update, :toggle]
 
     def index
       @apps = AppDefinition.order(:name)
     end
 
     def edit
+    end
+
+    def toggle
+      old_state = @app.state
+      backup_filename = nil
+
+      if @app.state_active?
+        # Kikapcsolás: Automatikus mentés készítése
+        backup_result = AppBackupService.export!(@app, actor: current_user)
+        backup_filename = backup_result[:filename] if backup_result[:success]
+
+        @app.update!(state: "disabled")
+        notice_msg = "A(z) #{@app.name} modul sikeresen KIKAPCSOLVA."
+        notice_msg += " Mentés a szerveren rögzítve: #{backup_filename}." if backup_filename
+      else
+        # Bekapcsolás
+        @app.update!(state: "active")
+        notice_msg = "A(z) #{@app.name} modul sikeresen BEKAPCSOLVA (aktív)."
+      end
+
+      AuditLog.log!(
+        action: @app.state_active? ? "app_enabled" : "app_disabled_with_backup",
+        actor: current_user,
+        resource: @app,
+        request: request,
+        metadata: { old_state: old_state, new_state: @app.state, backup_file: backup_filename }
+      )
+
+      flash[:notice] = notice_msg
+      redirect_to admin_apps_path
     end
 
     def update

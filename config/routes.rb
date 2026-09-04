@@ -29,12 +29,14 @@ Rails.application.routes.draw do
       post :unlock, on: :member
     end
 
-    resources :apps, only: [:index, :edit, :update]
+    resources :apps, only: [:index, :edit, :update] do
+      post :toggle, on: :member
+    end
     resources :audit_logs, only: [:index]
   end
 
   # 5. Izolált Moduláris Webalkalmazások (Rails Engines)
-  # mount Chess::Engine => "/chess", as: :chess_app
+  mount Chess::Engine => "/chess", as: :chess_app
 
   # 6. WebSocket Action Cable Végpont
   mount ActionCable.server => "/cable"
