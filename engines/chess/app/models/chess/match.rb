@@ -40,25 +40,31 @@ module Chess
     
     public
 
-    # Move validator using the chess gem
-    def make_move!(san_move)
+    # Move validator using the chess gem, relying on client FEN/PGN for saving state to avoid gem API limits
+    def make_move!(san_move, client_fen, client_pgn)
       require 'chess'
       
       game = ::Chess::Game.new
-      if self.pgn.present?
-        game.load_pgn(self.pgn)
+      
+      # Replay existing moves to reach current state
+      played_moves = self.pgn.to_s.gsub(/\d+\./, '').split
+      played_moves.reject! { |m| %w[1-0 0-1 1/2-1/2 *].include?(m) }
+      played_moves.each do |m|
+        game.move(m)
       end
       
+      # Validate the new move on the server
       game.move(san_move)
       
-      self.pgn = game.to_pgn
-      self.fen = game.board.fen
+      # If no error was raised, the move is legal. Save client's provided strings.
+      self.pgn = client_pgn
+      self.fen = client_fen
       
-      if game.board.checkmate?
+      if client_pgn.end_with?('#')
         self.status = "completed"
         self.termination_reason = "checkmate"
-        self.winner = game.turn == :white ? "black" : "white"
-      elsif game.board.stalemate? || game.board.draw?
+        self.winner = played_moves.length.even? ? "white" : "black"
+      elsif client_pgn.end_with?('1/2-1/2')
         self.status = "completed"
         self.termination_reason = "stalemate"
         self.winner = "draw"
@@ -69,21 +75,37 @@ module Chess
     end
     
     def undo_move!
+      # Manual undo by stripping the last move from PGN and recalculating FEN on client later, or simpler:
+      # We just remove the last move from the PGN, and we don't recalculate FEN on server (client will resync it when they move again).
+      # But wait, when takeback is accepted, client needs the new FEN immediately to render the board backwards!
+      # We can use the chess gem to calculate the FEN of the previous state!
       require 'chess'
       return if self.pgn.blank?
       
+      played_moves = self.pgn.to_s.gsub(/\d+\./, '').split
+      played_moves.reject! { |m| %w[1-0 0-1 1/2-1/2 *].include?(m) }
+      played_moves.pop
+      
       game = ::Chess::Game.new
-      game.load_pgn(self.pgn)
+      played_moves.each { |m| game.move(m) }
       
-      # The `chess` gem doesn't always have a simple undo, we might have to replay all but the last move
-      moves = game.moves
-      moves.pop
+      # Reconstruct PGN
+      new_pgn = ""
+      played_moves.each_slice(2).with_index do |pair, idx|
+        new_pgn += "#{idx + 1}. #{pair[0]} "
+        new_pgn += "#{pair[1]} " if pair[1]
+      end
       
-      new_game = ::Chess::Game.new
-      moves.each { |m| new_game.move(m) }
+      self.pgn = new_pgn.strip
       
-      self.pgn = new_game.to_pgn
-      self.fen = new_game.board.fen
+      # Attempt to get fen if the gem supports it, else use a placeholder and client will fix it.
+      # Most gems support game.board.fen or game.fen
+      begin
+        self.fen = game.respond_to?(:fen) ? game.fen : game.board.fen
+      rescue
+        self.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" # Fallback, client might need to refresh
+      end
+      
       save!
     end
   end

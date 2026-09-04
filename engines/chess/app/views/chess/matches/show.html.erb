@@ -165,7 +165,11 @@ document.addEventListener("DOMContentLoaded", function() {
     if (move === null) return 'snapback';
 
     if (window.matchSubscription) {
-      window.matchSubscription.perform("make_move", { san_move: move.san });
+      window.matchSubscription.perform("make_move", { 
+        san_move: move.san,
+        fen: game.fen(),
+        pgn: game.pgn()
+      });
     }
     
     updateStatus();
@@ -188,7 +192,14 @@ document.addEventListener("DOMContentLoaded", function() {
     onSnapEnd: onSnapEnd
   };
   
-  <% current_player_color = (@match.white_user_id == current_user&.id || @match.white_guest_id == session[:guest_id]) ? 'white' : 'black' %>
+  <% 
+    if current_user
+      is_white = @match.white_user_id == current_user.id
+    else
+      is_white = @match.white_guest_id == session[:guest_id]
+    end
+    current_player_color = is_white ? 'white' : 'black' 
+  %>
   config.orientation = '<%= current_player_color %>';
   
   board = Chessboard('chess-board', config);

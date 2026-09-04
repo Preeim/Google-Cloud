@@ -11,12 +11,8 @@ module Chess
     end
 
     def make_move(data)
-      # data["san_move"] e.g. "e4" or "Nf3"
-      # Actually the client usually sends from and to squares.
-      # `chess` gem might need `make_move!` adaptation for algebraic vs SAN.
-      # For now, let's assume client sends san_move.
       begin
-        @match.make_move!(data["san_move"])
+        @match.make_move!(data["san_move"], data["fen"], data["pgn"])
         Chess::MatchChannel.broadcast_to(@match, {
           action: "move",
           fen: @match.fen,

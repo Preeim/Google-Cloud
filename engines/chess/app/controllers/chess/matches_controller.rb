@@ -13,18 +13,28 @@ module Chess
       
       # Auto-join if pending and not the creator
       if @match.pending?
-        if current_user
-          if @match.white_user_id.nil? && @match.black_user_id != current_user.id
-            @match.update!(white_user_id: current_user.id, status: "active")
-          elsif @match.black_user_id.nil? && @match.white_user_id != current_user.id
-            @match.update!(black_user_id: current_user.id, status: "active")
-          end
-        else
-          # Guest
-          if @match.white_guest_id.nil? && @match.black_guest_id != session[:guest_id]
-            @match.update!(white_guest_id: session[:guest_id], status: "active")
-          elsif @match.black_guest_id.nil? && @match.white_guest_id != session[:guest_id]
-            @match.update!(black_guest_id: session[:guest_id], status: "active")
+        is_creator = if current_user
+                       @match.white_user_id == current_user.id || @match.black_user_id == current_user.id
+                     else
+                       @match.white_guest_id == session[:guest_id] || @match.black_guest_id == session[:guest_id]
+                     end
+
+        unless is_creator
+          white_open = @match.white_user_id.nil? && @match.white_guest_id.nil?
+          black_open = @match.black_user_id.nil? && @match.black_guest_id.nil?
+
+          if white_open
+            if current_user
+              @match.update!(white_user_id: current_user.id, status: "active")
+            else
+              @match.update!(white_guest_id: session[:guest_id], status: "active")
+            end
+          elsif black_open
+            if current_user
+              @match.update!(black_user_id: current_user.id, status: "active")
+            else
+              @match.update!(black_guest_id: session[:guest_id], status: "active")
+            end
           end
         end
       end
