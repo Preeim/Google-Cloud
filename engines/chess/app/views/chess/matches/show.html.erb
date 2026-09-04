@@ -126,126 +126,121 @@
 
 <!-- Note: In a real production deployment with Rails 7 importmaps, these would be pinned. 
      For this implementation plan, we embed the init script directly to demonstrate logic. -->
-<script>
-  document.addEventListener("turbo:load", function() {
-    const container = document.querySelector('.chess-game-container');
-    if (!container) return;
+<!-- Load ActionCable via ESM -->
+<script type="module">
+  import { createConsumer } from "https://cdn.skypack.dev/@rails/actioncable";
+  
+  const container = document.querySelector('.chess-game-container');
+  if (!container) return;
 
-    const matchId = container.dataset.matchId;
-    const isCompleted = container.dataset.status === 'completed';
+  const matchId = container.dataset.matchId;
+  const isCompleted = container.dataset.status === 'completed';
 
-    // Initialize chess logic
-    var game = new Chess();
-    var board = null;
-    
-    // Load existing PGN if available
-    var pgnText = document.getElementById('pgn-content').value;
-    if (pgnText) {
-      game.load_pgn(pgnText);
+  // Set player names properly
+  document.getElementById('user-name').innerText = "<%= current_user ? current_user.username : "Vendég ##{session[:guest_id].to_s[0..3]}" %>";
+  document.getElementById('opponent-name').innerText = "<%= @match.white_user_id == current_user&.id || @match.white_guest_id == session[:guest_id] ? @match.black_player_name : @match.white_player_name %>";
+
+  // Initialize chess logic
+  var game = new Chess();
+  var board = null;
+  
+  var pgnText = document.getElementById('pgn-content').value;
+  if (pgnText) {
+    game.load_pgn(pgnText);
+  }
+
+  function onDragStart (source, piece, position, orientation) {
+    if (isCompleted) return false;
+    if (game.game_over()) return false;
+    if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+      return false;
     }
+  }
 
-    function onDragStart (source, piece, position, orientation) {
-      if (isCompleted) return false;
-      // Do not pick up pieces if it's not our turn
-      // (Simplified check. Real check would verify if user color matches piece color)
-      if (game.game_over()) return false;
-      if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-          (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
-        return false;
-      }
-    }
-
-    function onDrop (source, target) {
-      var move = game.move({
-        from: source,
-        to: target,
-        promotion: 'q'
-      });
-
-      if (move === null) return 'snapback';
-
-      if (window.matchSubscription) {
-        window.matchSubscription.makeMove(move.san);
-      }
-      
-      updateStatus();
-    }
-
-    function onSnapEnd () {
-      board.position(game.fen());
-    }
-
-    function updateStatus () {
-      $('#pgn-content').val(game.pgn());
-    }
-
-    var config = {
-      pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-      draggable: !isCompleted,
-      position: game.fen(),
-      onDragStart: onDragStart,
-      onDrop: onDrop,
-      onSnapEnd: onSnapEnd
-    };
-    
-    board = Chessboard('chess-board', config);
-    updateStatus();
-
-    // Copy PGN
-    $('#btn-copy-pgn').on('click', function() {
-      navigator.clipboard.writeText($('#pgn-content').val());
-      alert('PGN vágólapra másolva!');
+  function onDrop (source, target) {
+    var move = game.move({
+      from: source,
+      to: target,
+      promotion: 'q'
     });
 
-    // Setup ActionCable
-    if (window.ActionCable) {
-      var consumer = window.ActionCable.createConsumer();
-      window.matchSubscription = consumer.subscriptions.create({ channel: "Chess::MatchChannel", match_id: matchId }, {
-        received: function(data) {
-          if (data.action === "move" || data.action === "takeback_accepted") {
-            game.load_pgn(data.pgn);
-            board.position(game.fen());
-            updateStatus();
-          } else if (data.action === "error") {
-            alert(data.message);
-            // Revert invalid move on client
-            game.undo();
-            board.position(game.fen());
-          } else if (data.action === "takeback_requested") {
-            if (confirm("Az ellenfél visszalépést kér. Elfogadod?")) {
-              this.perform("answer_takeback", { accepted: true });
-            } else {
-              this.perform("answer_takeback", { accepted: false });
-            }
-          } else if (data.action === "takeback_rejected") {
-            alert("Az ellenfél elutasította a visszalépést.");
-          } else if (data.action === "draw_offered") {
-            if (confirm("Az ellenfél döntetlent ajánl. Elfogadod?")) {
-              this.perform("accept_draw");
-            }
-          } else if (data.action === "game_over") {
-            alert("A játszma véget ért: " + data.reason);
-            location.reload();
-          }
-        },
-        makeMove: function(san_move) {
-          this.perform("make_move", { san_move: san_move });
-        }
-      });
+    if (move === null) return 'snapback';
 
-      // Bind buttons
-      $('#btn-resign').on('click', function() {
-        if(confirm("Biztosan feladod?")) window.matchSubscription.perform("resign");
-      });
-      $('#btn-draw').on('click', function() {
-        window.matchSubscription.perform("offer_draw");
-      });
-      $('#btn-takeback').on('click', function() {
-        window.matchSubscription.perform("request_takeback");
-      });
-    } else {
-      console.error("ActionCable is not available on window. Make sure it's loaded.");
+    if (window.matchSubscription) {
+      window.matchSubscription.perform("make_move", { san_move: move.san });
     }
+    
+    updateStatus();
+  }
+
+  function onSnapEnd () {
+    board.position(game.fen());
+  }
+
+  function updateStatus () {
+    $('#pgn-content').val(game.pgn());
+  }
+
+  var config = {
+    pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+    draggable: !isCompleted,
+    position: game.fen(),
+    onDragStart: onDragStart,
+    onDrop: onDrop,
+    onSnapEnd: onSnapEnd
+  };
+  
+  <% current_player_color = (@match.white_user_id == current_user&.id || @match.white_guest_id == session[:guest_id]) ? 'white' : 'black' %>
+  config.orientation = '<%= current_player_color %>';
+  
+  board = Chessboard('chess-board', config);
+  updateStatus();
+
+  $('#btn-copy-pgn').on('click', function() {
+    navigator.clipboard.writeText($('#pgn-content').val());
+    alert('PGN vágólapra másolva!');
+  });
+
+  // Setup ActionCable
+  var consumer = createConsumer();
+  window.matchSubscription = consumer.subscriptions.create({ channel: "Chess::MatchChannel", match_id: matchId }, {
+    received: function(data) {
+      if (data.action === "move" || data.action === "takeback_accepted") {
+        game.load_pgn(data.pgn);
+        board.position(game.fen());
+        updateStatus();
+      } else if (data.action === "error") {
+        alert(data.message);
+        game.undo();
+        board.position(game.fen());
+      } else if (data.action === "takeback_requested") {
+        if (confirm("Az ellenfél visszalépést kér. Elfogadod?")) {
+          this.perform("answer_takeback", { accepted: true });
+        } else {
+          this.perform("answer_takeback", { accepted: false });
+        }
+      } else if (data.action === "takeback_rejected") {
+        alert("Az ellenfél elutasította a visszalépést.");
+      } else if (data.action === "draw_offered") {
+        if (confirm("Az ellenfél döntetlent ajánl. Elfogadod?")) {
+          this.perform("accept_draw");
+        }
+      } else if (data.action === "game_over") {
+        alert("A játszma véget ért: " + data.reason);
+        location.reload();
+      }
+    }
+  });
+
+  $('#btn-resign').on('click', function() {
+    if(confirm("Biztosan feladod?")) window.matchSubscription.perform("resign");
+  });
+  $('#btn-draw').on('click', function() {
+    window.matchSubscription.perform("offer_draw");
+  });
+  $('#btn-takeback').on('click', function() {
+    window.matchSubscription.perform("request_takeback");
   });
 </script>
 

@@ -20,7 +20,7 @@ Rails.application.configure do
     policy.object_src  :none
 
     # Scriptek (plusz külső könyvtárak a sakk modulhoz)
-    policy.script_src  :self, :unsafe_inline, "https://cdnjs.cloudflare.com", "https://code.jquery.com", "https://unpkg.com"
+    policy.script_src  :self, :unsafe_inline, "https://cdnjs.cloudflare.com", "https://code.jquery.com", "https://unpkg.com", "https://cdn.skypack.dev"
 
     # Stílusok (plusz külső könyvtárak a sakk modulhoz)
     policy.style_src   :self, :unsafe_inline, "https://unpkg.com"
