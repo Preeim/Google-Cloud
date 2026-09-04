@@ -123,13 +123,10 @@
 <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@rails/actioncable@7.1.3/app/assets/javascripts/actioncable.js"></script>
 
-<!-- Note: In a real production deployment with Rails 7 importmaps, these would be pinned. 
-     For this implementation plan, we embed the init script directly to demonstrate logic. -->
-<!-- Load ActionCable via ESM -->
-<script type="module">
-  import { createConsumer } from "https://cdn.skypack.dev/@rails/actioncable";
-  
+<script>
+document.addEventListener("DOMContentLoaded", function() {
   const container = document.querySelector('.chess-game-container');
   if (!container) return;
 
@@ -203,7 +200,7 @@
   });
 
   // Setup ActionCable
-  var consumer = createConsumer();
+  var consumer = window.ActionCable ? window.ActionCable.createConsumer() : ActionCable.createConsumer();
   window.matchSubscription = consumer.subscriptions.create({ channel: "Chess::MatchChannel", match_id: matchId }, {
     received: function(data) {
       if (data.action === "move" || data.action === "takeback_accepted") {
@@ -242,5 +239,6 @@
   $('#btn-takeback').on('click', function() {
     window.matchSubscription.perform("request_takeback");
   });
+});
 </script>
 
