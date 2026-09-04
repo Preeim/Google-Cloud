@@ -9,6 +9,7 @@ Casino::Engine.routes.draw do
     member do
       post :bet
       post :spin
+      post :action
     end
   end
 

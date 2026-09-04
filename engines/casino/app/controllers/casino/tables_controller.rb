@@ -3,6 +3,7 @@ module Casino
     before_action :set_table
 
     def show
+      Casino::TableManager.check_or_start_timer(@table) if @table.game_type == "blackjack"
       @current_bets = @table.current_bets.includes(profile: :user).order(created_at: :desc)
       @state_data = @table.current_state_data
       @my_bets = @table.current_bets.where(profile: current_casino_profile)
@@ -32,6 +33,22 @@ module Casino
       end
     end
 
+    def action
+      act = params[:player_action]
+      res = Casino::TableManager.player_action(@table, current_casino_profile, act)
+
+      respond_to do |format|
+        format.json { render json: res }
+        format.html do
+          if res[:success]
+            redirect_to table_path(@table), notice: "Döntésed rögzítve: #{act == 'hit' ? 'Lapot kértél' : 'Megálltál'}."
+          else
+            redirect_to table_path(@table), alert: res[:error]
+          end
+        end
+      end
+    end
+
     def spin
       res = Casino::TableManager.resolve_round(@table)
 
@@ -41,23 +58,27 @@ module Casino
         end
         format.html do
           if res[:success]
-            outcome_text = case @table.game_type
-                           when "roulette"
-                             num = res[:outcome][:winning_number]
-                             col = res[:outcome][:color] == 'red' ? 'Piros' : (res[:outcome][:color] == 'black' ? 'Fekete' : 'Zöld (0)')
-                             "Nyertes szám: #{num} (#{col})"
-                           when "baccarat"
-                             outcome = res[:outcome][:result].to_s.upcase
-                             p_score = res[:outcome][:player_score]
-                             b_score = res[:outcome][:banker_score]
-                             "Eredmény: #{outcome} (Játékos: #{p_score} | Bankár: #{b_score})"
-                           when "blackjack"
-                             d_score = res[:outcome][:dealer_score]
-                             "Osztó pontszáma: #{d_score}"
-                           else
-                             res[:outcome].to_s
-                           end
-            redirect_to table_path(@table), notice: "A kör sikeresen lezárult! #{outcome_text}"
+            if @table.game_type == "blackjack" && @table.state == "player_turns"
+              redirect_to table_path(@table), notice: "A kártyák kiosztva! Döntsd el a felületen: kérsz még lapot (Hit) vagy megállsz (Stand)!"
+            else
+              outcome_text = case @table.game_type
+                             when "roulette"
+                               num = res[:outcome][:winning_number]
+                               col = res[:outcome][:color] == 'red' ? 'Piros' : (res[:outcome][:color] == 'black' ? 'Fekete' : 'Zöld (0)')
+                               "Nyertes szám: #{num} (#{col})"
+                             when "baccarat"
+                               outcome = res[:outcome][:result].to_s.upcase
+                               p_score = res[:outcome][:player_score]
+                               b_score = res[:outcome][:banker_score]
+                               "Eredmény: #{outcome} (Játékos: #{p_score} | Bankár: #{b_score})"
+                             when "blackjack"
+                               d_score = res[:outcome][:dealer_score]
+                               "Osztó pontszáma: #{d_score}"
+                             else
+                               res[:outcome].to_s
+                             end
+              redirect_to table_path(@table), notice: "A kör sikeresen lezárult! #{outcome_text}"
+            end
           else
             redirect_to table_path(@table), alert: res[:error]
           end
