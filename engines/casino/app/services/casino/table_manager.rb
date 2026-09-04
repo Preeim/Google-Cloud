@@ -97,9 +97,10 @@ module Casino
           p_cards = [deck.pop, deck.pop]
           score = BlackjackEngine.hand_value(p_cards)
           is_bj = BlackjackEngine.blackjack?(p_cards)
+          p_id = bet.casino_profile_id || bet.profile.id
 
-          players_data[bet.profile_id.to_s] = {
-            "profile_id" => bet.profile_id,
+          players_data[p_id.to_s] = {
+            "profile_id" => p_id,
             "username" => bet.profile.user.username,
             "seat" => bet.bet_type,
             "amount" => bet.amount,
@@ -221,7 +222,8 @@ module Casino
         current_bets = table.bets.where(round_number: table.round_number, status: "pending").includes(profile: :user)
 
         current_bets.each do |bet|
-          p_data = players[bet.profile_id.to_s]
+          p_id = bet.casino_profile_id || bet.profile.id
+          p_data = players[p_id.to_s]
           next unless p_data
 
           p_cards = p_data["cards"]

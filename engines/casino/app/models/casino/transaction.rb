@@ -1,6 +1,7 @@
 module Casino
   class Transaction < ApplicationRecord
     belongs_to :profile, class_name: "Casino::Profile", foreign_key: :casino_profile_id
+    alias_attribute :profile_id, :casino_profile_id
 
     validates :amount, presence: true
     validates :transaction_type, presence: true
