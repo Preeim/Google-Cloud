@@ -39,13 +39,14 @@
 </div>
 
 <!-- Modulok Gyorsnézet és Legutóbbi Audit -->
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+<!-- Modulok Gyorsnézet és Legutóbbi Audit -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 20px;">
   <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
       <h2 style="font-size: 1.1rem; font-weight: 700;">Regisztrált Alkalmazások</h2>
       <a href="/bank-admin/apps" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;">Kezelés</a>
     </div>
-    <table>
+    <table class="responsive-table">
       <thead>
         <tr>
           <th>Modul Neve</th>
@@ -56,9 +57,9 @@
       <tbody>
         <% @apps.each do |app| %>
           <tr>
-            <td><strong><%= app.name %></strong></td>
-            <td><code><%= app.mount_path %></code></td>
-            <td>
+            <td data-label="Modul"><strong><%= app.name %></strong></td>
+            <td data-label="Útvonal"><code><%= app.mount_path %></code></td>
+            <td data-label="Státusz">
               <span class="tag <%= app.state == 'active' ? 'tag-active' : 'tag-locked' %>">
                 <%= app.state.upcase %>
               </span>
@@ -74,7 +75,7 @@
       <h2 style="font-size: 1.1rem; font-weight: 700;">Legutóbbi Biztonsági Események</h2>
       <a href="/bank-admin/audit_logs" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;">Összes Napló</a>
     </div>
-    <table>
+    <table class="responsive-table">
       <thead>
         <tr>
           <th>Idő</th>
@@ -90,9 +91,9 @@
         <% else %>
           <% @recent_audit_logs.each do |log| %>
             <tr>
-              <td style="color: var(--text-muted); font-size: 0.85rem;"><%= log.created_at.strftime("%H:%M:%S") %></td>
-              <td><code><%= log.action %></code></td>
-              <td><%= log.actor&.username || "Rendszer" %></td>
+              <td data-label="Idő" style="color: var(--text-muted); font-size: 0.85rem;"><%= log.created_at.strftime("%H:%M:%S") %></td>
+              <td data-label="Esemény"><code><%= log.action %></code></td>
+              <td data-label="Aktor"><%= log.actor&.username || "Rendszer" %></td>
             </tr>
           <% end %>
         <% end %>

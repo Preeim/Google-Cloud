@@ -6,7 +6,7 @@
 </div>
 
 <div class="card">
-  <table>
+  <table class="responsive-table">
     <thead>
       <tr>
         <th>Időpont</th>
@@ -25,28 +25,28 @@
       <% else %>
         <% @audit_logs.each do |log| %>
           <tr>
-            <td style="color: var(--text-muted); font-size: 0.85rem; white-space: nowrap;">
+            <td data-label="Időpont" style="color: var(--text-muted); font-size: 0.85rem;">
               <%= log.created_at.strftime("%Y.%m.%d %H:%M:%S") %>
             </td>
-            <td><code><%= log.action %></code></td>
-            <td>
+            <td data-label="Művelet"><code><%= log.action %></code></td>
+            <td data-label="Aktor">
               <% if log.actor %>
                 <strong><%= log.actor.username %></strong>
               <% else %>
                 <span style="color: var(--text-muted);">Rendszer / Automata</span>
               <% end %>
             </td>
-            <td>
+            <td data-label="Célpont">
               <% if log.target_user %>
                 <%= log.target_user.username %>
               <% else %>
                 <span style="color: var(--text-muted);">-</span>
               <% end %>
             </td>
-            <td><code><%= log.ip_address || "-" %></code></td>
-            <td>
+            <td data-label="IP Cím"><code><%= log.ip_address || "-" %></code></td>
+            <td data-label="Metadata">
               <% if log.metadata_payload.present? %>
-                <pre style="margin: 0; font-size: 0.78rem; background: var(--bg-elevated); padding: 4px 8px; border-radius: 4px; max-width: 320px; overflow-x: auto; color: var(--text-muted);"><%= log.metadata_payload.to_json %></pre>
+                <pre style="margin: 0; font-size: 0.78rem; background: var(--bg-elevated); padding: 4px 8px; border-radius: 4px; max-width: 100%; overflow-x: auto; color: var(--text-muted);"><%= log.metadata_payload.to_json %></pre>
               <% else %>
                 <span style="color: var(--text-muted);">-</span>
               <% end %>

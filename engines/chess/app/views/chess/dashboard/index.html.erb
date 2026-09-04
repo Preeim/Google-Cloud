@@ -1,16 +1,45 @@
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+<style>
+  .chess-dash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+  }
+  .chess-dash-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 768px) {
+    .chess-dash-header {
+      flex-direction: column;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .chess-dash-header .btn {
+      width: 100%;
+    }
+    .chess-dash-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+  }
+</style>
+
+<div class="chess-dash-header">
   <div>
-    <h1 style="font-size: 1.8rem; font-weight: 800; color: var(--text-main);">Sakk Előszoba & Partik</h1>
+    <h1 style="font-size: clamp(1.4rem, 4vw, 1.8rem); font-weight: 800; color: var(--text-main);">Sakk Előszoba & Partik</h1>
     <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 4px;">Indíts új partit, vagy csatlakozz egy létező asztalhoz.</p>
   </div>
   <div>
-    <button class="btn btn-primary" onclick="alert('Új parti indítása funkció hamarosan elérhető!');">
-      <span>+</span> Új Parti Indítása
-    </button>
+    <a href="/chess/matches" class="btn btn-primary">
+      <span>+</span> Nyitott Partik Megtekintése
+    </a>
   </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+<div class="chess-dash-grid">
   <!-- Bal oldal: Sakktábla Előnézet és Lobby -->
   <div class="card">
     <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px;">Nyitott Partik & Várakozó Játékosok</h2>

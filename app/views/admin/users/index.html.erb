@@ -1,11 +1,11 @@
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
   <div>
-    <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text-main);">Felhasználók Felügyelete</h1>
-    <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 4px;">Fiókok kezelése, jogosultsági szintek és biztonsági feloldás</p>
+    <h1 style="font-size: clamp(1.3rem, 4vw, 1.6rem); font-weight: 700; color: var(--text-main);">Felhasználók Felügyelete</h1>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Fiókok kezelése, jogosultsági szintek és biztonsági feloldás</p>
   </div>
-  <div>
+  <div style="width: 100%; max-width: 360px;">
     <form action="/bank-admin/users" method="get" style="display: flex; gap: 8px;">
-      <input type="text" name="search" value="<%= params[:search] %>" placeholder="Keresés névre vagy e-mailre..." class="form-control" style="width: 260px; padding: 6px 12px; font-size: 0.88rem;">
+      <input type="text" name="search" value="<%= params[:search] %>" placeholder="Keresés névre vagy e-mailre..." class="form-control" style="flex: 1; padding: 7px 12px; font-size: 0.88rem;">
       <button type="submit" class="btn btn-secondary">Keresés</button>
       <% if params[:search].present? %>
         <a href="/bank-admin/users" class="btn btn-secondary">Törlés</a>
@@ -15,7 +15,7 @@
 </div>
 
 <div class="card">
-  <table>
+  <table class="responsive-table">
     <thead>
       <tr>
         <th>ID</th>
@@ -31,25 +31,25 @@
     <tbody>
       <% @users.each do |user| %>
         <tr>
-          <td><span style="color: var(--text-muted);">#<%= user.id %></span></td>
-          <td>
+          <td data-label="ID"><span style="color: var(--text-muted);">#<%= user.id %></span></td>
+          <td data-label="Felhasználó">
             <strong><%= user.username %></strong>
             <% if user == current_user %>
               <span class="tag tag-admin" style="margin-left: 6px;">Te</span>
             <% end %>
           </td>
-          <td><%= user.email %></td>
-          <td>
+          <td data-label="E-mail"><%= user.email %></td>
+          <td data-label="Szerepkör">
             <span class="tag <%= user.admin? ? 'tag-admin' : 'tag-user' %>">
               <%= user.role.upcase %>
             </span>
           </td>
-          <td>
+          <td data-label="Státusz">
             <span class="tag <%= user.active? ? 'tag-active' : 'tag-locked' %>">
               <%= user.status.upcase %>
             </span>
           </td>
-          <td>
+          <td data-label="Biztonság">
             <% if user.locked? %>
               <span class="tag tag-locked">ZÁROLVA</span>
               <span style="font-size: 0.8rem; color: var(--danger); display: block; margin-top: 2px;">
@@ -59,15 +59,15 @@
               <span style="color: var(--text-muted); font-size: 0.85rem;">Normál (<%= user.failed_logins_count %> hiba)</span>
             <% end %>
           </td>
-          <td style="color: var(--text-muted); font-size: 0.85rem;"><%= user.created_at.strftime("%Y.%m.%d") %></td>
-          <td style="text-align: right;">
-            <div style="display: inline-flex; gap: 6px;">
+          <td data-label="Regisztráció" style="color: var(--text-muted); font-size: 0.85rem;"><%= user.created_at.strftime("%Y.%m.%d") %></td>
+          <td data-label="Műveletek" style="text-align: right;">
+            <div style="display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
               <% if user.locked? %>
-                <%= button_to "Feloldás", unlock_admin_user_path(user), method: :post, class: "btn btn-success", style: "padding: 4px 10px; font-size: 0.8rem;" %>
+                <%= button_to "Feloldás", unlock_admin_user_path(user), method: :post, class: "btn btn-success", style: "padding: 5px 10px; font-size: 0.8rem;" %>
               <% end %>
-              <a href="/bank-admin/users/<%= user.id %>/edit" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;">Szerkesztés</a>
+              <a href="/bank-admin/users/<%= user.id %>/edit" class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;">Szerkesztés</a>
               <% unless user == current_user %>
-                <%= button_to "Törlés", admin_user_path(user), method: :delete, data: { confirm: "Biztosan törlöd a felhasználót (#{user.username})?" }, class: "btn btn-danger", style: "padding: 4px 10px; font-size: 0.8rem;" %>
+                <%= button_to "Törlés", admin_user_path(user), method: :delete, data: { confirm: "Biztosan törlöd a felhasználót (#{user.username})?" }, class: "btn btn-danger", style: "padding: 5px 10px; font-size: 0.8rem;" %>
               <% end %>
             </div>
           </td>

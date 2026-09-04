@@ -283,6 +283,28 @@
     border-radius: 4px;
     overflow: hidden;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    touch-action: none; /* Prevents accidental screen scrolling while dragging pieces */
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .square-selected {
+    background-color: rgba(56, 189, 248, 0.45) !important;
+    box-shadow: inset 0 0 6px 2px #38bdf8 !important;
+  }
+  .square-target-hint {
+    position: relative;
+  }
+  .square-target-hint::after {
+    content: '';
+    position: absolute;
+    width: 32%;
+    height: 32%;
+    background: rgba(56, 189, 248, 0.55);
+    border-radius: 50%;
+    top: 34%;
+    left: 34%;
+    pointer-events: none;
+    z-index: 10;
   }
   .sidebar-controls {
     width: 100%;
@@ -474,15 +496,42 @@
 
   @media (max-width: 768px) {
     .chess-game-container {
-      padding: 0.75rem 0.4rem;
-      gap: 1rem;
+      padding: 0.5rem 0.2rem;
+      gap: 0.75rem;
     }
-    .game-layout, .sidebar-controls {
-      padding: 0.85rem;
+    .game-layout {
+      padding: 0.5rem;
       max-width: 100%;
     }
+    .board-wrapper {
+      max-width: min(94vw, 54vh);
+    }
+    #chess-board {
+      max-width: min(94vw, 54vh);
+    }
+    .player-info {
+      padding: 0.4rem 0.6rem;
+      margin: 0.25rem 0;
+      font-size: 0.88rem;
+    }
     .player-clock {
-      font-size: 1.05rem;
+      font-size: 1rem;
+      padding: 0.15rem 0.45rem;
+      min-width: 52px;
+    }
+    .sidebar-controls {
+      padding: 0.75rem;
+      max-width: 100%;
+    }
+    .actions {
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+    .actions .btn {
+      flex: 1;
+      min-width: 100px;
+      padding: 0.65rem 0.5rem;
+      font-size: 0.85rem;
     }
   }
 </style>
@@ -667,8 +716,98 @@ document.addEventListener("DOMContentLoaded", function() {
     }, 250);
   }
 
+  // Tap-to-move and Selection Handling for Touch & Click
+  let selectedSquare = null;
+
+  function removeHighlights() {
+    $('#chess-board [data-square]').removeClass('square-selected square-target-hint');
+  }
+
+  function highlightSquare(square) {
+    removeHighlights();
+    $('#chess-board [data-square="' + square + '"]').addClass('square-selected');
+    try {
+      const legalMoves = game.moves({ square: square, verbose: true });
+      legalMoves.forEach(function(m) {
+        $('#chess-board [data-square="' + m.to + '"]').addClass('square-target-hint');
+      });
+    } catch (e) {}
+  }
+
+  function handleSquareTap(square) {
+    if (isCompleted || isSpectator || container.dataset.status !== 'active') return;
+    if (game.game_over()) return;
+
+    if (timeControlSeconds) {
+      if (myColor === 'white' && whiteTimeMs !== null && whiteTimeMs <= 0) return;
+      if (myColor === 'black' && blackTimeMs !== null && blackTimeMs <= 0) return;
+    }
+
+    const currentTurn = game.turn();
+    const myTurnKey = myColor === 'white' ? 'w' : (myColor === 'black' ? 'b' : null);
+    if (currentTurn !== myTurnKey) return;
+
+    const pieceOnSquare = game.get(square);
+
+    if (selectedSquare) {
+      if (selectedSquare === square) {
+        selectedSquare = null;
+        removeHighlights();
+        return;
+      }
+
+      var move = game.move({
+        from: selectedSquare,
+        to: square,
+        promotion: 'q'
+      });
+
+      if (move !== null) {
+        selectedSquare = null;
+        removeHighlights();
+        board.position(game.fen());
+        if (window.matchSubscription) {
+          window.matchSubscription.perform("make_move", { 
+            san_move: move.san,
+            fen: game.fen(),
+            pgn: game.pgn()
+          });
+        }
+        updateStatus();
+        return;
+      }
+
+      // If clicked another own piece, select it instead
+      if (pieceOnSquare && pieceOnSquare.color === currentTurn) {
+        selectedSquare = square;
+        highlightSquare(square);
+        return;
+      }
+
+      // Invalid move / empty square: cancel selection
+      selectedSquare = null;
+      removeHighlights();
+    } else {
+      if (pieceOnSquare && pieceOnSquare.color === currentTurn) {
+        selectedSquare = square;
+        highlightSquare(square);
+      }
+    }
+  }
+
+  // Click on board square for tap-to-move
+  $('#chess-board').on('click', '[data-square]', function(e) {
+    const square = $(this).data('square');
+    if (square) {
+      handleSquareTap(square);
+    }
+  });
+
   // Board Event Handlers
   function onDragStart (source, piece, position, orientation) {
+    removeHighlights();
+    selectedSquare = null;
+
     if (isCompleted || isSpectator) return false;
     if (container.dataset.status !== 'active') return false;
     if (game.game_over()) return false;
@@ -691,6 +830,9 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function onDrop (source, target) {
+    removeHighlights();
+    selectedSquare = null;
+
     var move = game.move({
       from: source,
       to: target,
@@ -761,7 +903,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // Responsive Resize
-  $(window).on('resize', function() {
+  $(window).on('resize orientationchange', function() {
     if (board) board.resize();
   });
 
@@ -869,8 +1011,10 @@ document.addEventListener("DOMContentLoaded", function() {
   window.matchSubscription = consumer.subscriptions.create({ channel: "Chess::MatchChannel", match_id: matchId }, {
     received: function(data) {
       if (data.action === "move" || data.action === "takeback_accepted") {
-        // Automatically dismiss any open prompt when a move or takeback is applied
+        // Automatically dismiss any open prompt and clear square selection
         hidePrompt();
+        removeHighlights();
+        selectedSquare = null;
         resetButtonCooldown('#btn-draw', 'Döntetlen Ajánlat');
         resetButtonCooldown('#btn-takeback', 'Visszalépés Kérése');
 

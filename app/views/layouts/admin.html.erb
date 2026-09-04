@@ -74,22 +74,108 @@
     .form-group label { display: block; font-size: 0.88rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
     .form-control { width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 14px; color: var(--text-main); font-size: 0.95rem; }
     .form-control:focus { outline: none; border-color: var(--admin-accent); }
+
+    /* Mobil Reszponzivitás & Kártyás Táblázatok */
+    @media (max-width: 768px) {
+      header.admin-header {
+        padding: 10px 14px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .admin-nav {
+        overflow-x: auto;
+        white-space: nowrap;
+        gap: 12px;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .admin-nav a {
+        font-size: 0.88rem;
+        padding: 4px 8px;
+        background: var(--bg-elevated);
+        border-radius: 6px;
+        border: 1px solid var(--border-subtle);
+      }
+      .admin-container {
+        padding: 0 12px;
+        margin: 14px auto;
+      }
+      .card {
+        padding: 16px;
+        border-radius: 10px;
+        margin-bottom: 16px;
+      }
+      .btn {
+        padding: 8px 12px;
+      }
+
+      /* Stacked Cards for Tables */
+      table.responsive-table, 
+      table.responsive-table thead, 
+      table.responsive-table tbody, 
+      table.responsive-table th, 
+      table.responsive-table td, 
+      table.responsive-table tr {
+        display: block;
+      }
+      table.responsive-table thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+      }
+      table.responsive-table tr {
+        background: var(--bg-canvas);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        margin-bottom: 14px;
+        padding: 10px 14px;
+      }
+      table.responsive-table td {
+        border: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        position: relative;
+        padding: 8px 0 8px 45%;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        text-align: right;
+      }
+      table.responsive-table td:last-child {
+        border-bottom: none;
+        padding-top: 10px;
+      }
+      table.responsive-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 42%;
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+      }
+    }
   </style>
 </head>
 <body>
   <header class="admin-header">
-    <div style="display: flex; align-items: center; gap: 16px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
       <a href="/bank-admin" class="admin-brand">
         🛡️ Bánk's Repository
       </a>
-      <span class="admin-badge">Adminisztrációs Központ</span>
+      <span class="admin-badge">Admin</span>
     </div>
     <nav class="admin-nav">
-      <a href="/bank-admin">Irányítópult</a>
-      <a href="/bank-admin/users">Felhasználók</a>
-      <a href="/bank-admin/apps">Modulok</a>
-      <a href="/bank-admin/audit_logs">Audit Napló</a>
-      <a href="/" class="back-link">← Vissza az Alkalmazáshoz</a>
+      <a href="/bank-admin" class="<%= 'active' if request.path == '/bank-admin' %>">Irányítópult</a>
+      <a href="/bank-admin/users" class="<%= 'active' if request.path.start_with?('/bank-admin/users') %>">Felhasználók</a>
+      <a href="/bank-admin/apps" class="<%= 'active' if request.path.start_with?('/bank-admin/apps') %>">Modulok</a>
+      <a href="/bank-admin/audit_logs" class="<%= 'active' if request.path.start_with?('/bank-admin/audit_logs') %>">Audit Napló</a>
+      <a href="/" class="back-link">← Főoldal</a>
     </nav>
   </header>
 

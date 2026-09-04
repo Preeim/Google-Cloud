@@ -1,19 +1,19 @@
-<div style="max-width: 440px; margin: 40px auto; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 28px;">
-  <h2 style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;">Bejelentkezés</h2>
-  <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 24px;">Add meg az azonosító adataidat a fiókod eléréséhez.</p>
+<div style="max-width: 440px; margin: 20px auto; width: 100%; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: clamp(18px, 5vw, 28px);">
+  <h2 style="font-size: clamp(1.3rem, 4vw, 1.5rem); font-weight: 700; margin-bottom: 8px;">Bejelentkezés</h2>
+  <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 20px;">Add meg az azonosító adataidat a fiókod eléréséhez.</p>
 
   <%= form_with url: login_path, method: :post, local: true do |f| %>
     <div style="margin-bottom: 16px;">
       <label style="display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted);">Felhasználónév vagy E-mail</label>
-      <%= f.text_field :login, required: true, autofocus: true, placeholder: "pl. h_gaborbank vagy bank@bankrepo.hu", style: "width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 14px; color: var(--text-main); font-size: 0.95rem;" %>
+      <%= f.text_field :login, required: true, autofocus: true, autocapitalize: "none", autocomplete: "username", placeholder: "pl. h_gaborbank vagy bank@bankrepo.hu", style: "width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 11px 14px; color: var(--text-main); font-size: 0.95rem;" %>
     </div>
 
     <div style="margin-bottom: 22px;">
       <label style="display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted);">Jelszó</label>
-      <%= f.password_field :password, required: true, placeholder: "••••••••", style: "width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 14px; color: var(--text-main); font-size: 0.95rem;" %>
+      <%= f.password_field :password, required: true, autocomplete: "current-password", placeholder: "••••••••", style: "width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 11px 14px; color: var(--text-main); font-size: 0.95rem;" %>
     </div>
 
-    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 11px; font-size: 0.95rem;">Bejelentkezés a Fiókba</button>
+    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem;">Bejelentkezés a Fiókba</button>
   <% end %>
 
   <div style="margin-top: 20px; text-align: center; font-size: 0.88rem; color: var(--text-muted);">

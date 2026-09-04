@@ -1,5 +1,5 @@
 <style>
-  .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+  .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; }
   .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 22px; }
   .card-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; }
   .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.95rem; }
@@ -18,18 +18,28 @@
   .event-entry .sender { color: var(--accent); font-weight: 600; }
   
   .control-group { display: flex; gap: 10px; margin-top: 14px; }
-  .input-text { flex: 1; background: #0b1120; border: 1px solid var(--card-border); border-radius: 6px; padding: 9px 12px; color: white; font-size: 0.9rem; outline: none; }
+  .input-text { flex: 1; min-width: 140px; background: #0b1120; border: 1px solid var(--card-border); border-radius: 6px; padding: 10px 12px; color: white; font-size: 0.9rem; outline: none; }
   .input-text:focus { border-color: var(--accent); }
   
   /* Users Table */
+  .table-scroll-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
   th { text-align: left; color: var(--text-muted); padding: 8px 6px; border-bottom: 1px solid var(--card-border); font-size: 0.8rem; text-transform: uppercase; }
   td { padding: 8px 6px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+  @media (max-width: 768px) {
+    .dashboard-grid { gap: 16px; }
+    .card { padding: 16px; border-radius: 10px; }
+    .card-title { font-size: 1.05rem; }
+    .stat-row { font-size: 0.88rem; }
+    .control-group { flex-direction: row; }
+    .control-group button { padding: 8px 16px; min-height: 42px; }
+  }
 </style>
 
-<div style="margin-bottom: 24px;">
-  <h1 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 6px;">System Diagnostics & Testing Console</h1>
-  <p style="color: var(--text-muted);">Real-time verification of MySQL Database, Action Cable WebSockets, and Server Environment.</p>
+<div style="margin-bottom: 20px;">
+  <h1 style="font-size: clamp(1.3rem, 4vw, 1.8rem); font-weight: 800; margin-bottom: 6px;">System Diagnostics & Testing Console</h1>
+  <p style="color: var(--text-muted); font-size: 0.92rem;">Real-time verification of MySQL Database, Action Cable WebSockets, and Server Environment.</p>
 </div>
 
 <div class="dashboard-grid">
@@ -61,20 +71,22 @@
       <div style="margin-top: 16px;">
         <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Recent Registered Users</div>
         <% if @recent_users.any? %>
-          <table>
-            <thead>
-              <tr><th>Username</th><th>Email</th><th>Created</th></tr>
-            </thead>
-            <tbody>
-              <% @recent_users.each do |u| %>
-                <tr>
-                  <td><strong><%= u.username %></strong></td>
-                  <td><%= u.email %></td>
-                  <td style="color: var(--text-muted);"><%= u.created_at.strftime("%b %d, %H:%M") %></td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
+          <div class="table-scroll-wrapper">
+            <table>
+              <thead>
+                <tr><th>Username</th><th>Email</th><th>Created</th></tr>
+              </thead>
+              <tbody>
+                <% @recent_users.each do |u| %>
+                  <tr>
+                    <td><strong><%= u.username %></strong></td>
+                    <td><%= u.email %></td>
+                    <td style="color: var(--text-muted);"><%= u.created_at.strftime("%b %d, %H:%M") %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
         <% else %>
           <p style="color: var(--text-muted); font-size: 0.9rem; font-style: italic;">No users registered yet. Click "Register" to create one!</p>
         <% end %>
