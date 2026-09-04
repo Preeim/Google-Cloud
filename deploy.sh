@@ -5,13 +5,8 @@ echo "====================================================="
 echo "   Starting Deployment on Google Cloud VM"
 echo "====================================================="
 
-# 1. Ensure Port 80 -> 3000 redirect is active
-if ! sudo iptables -t nat -C PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 3000 2>/dev/null; then
-    echo "[1/5] Setting up port 80 -> 3000 forwarding..."
-    sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 3000
-else
-    echo "[1/5] Port forwarding (80 -> 3000) already active."
-fi
+# Nginx handles port 80 & 443 proxying to port 3000
+
 
 # 2. Pull latest changes
 echo "[2/5] Pulling latest code from GitHub..."
