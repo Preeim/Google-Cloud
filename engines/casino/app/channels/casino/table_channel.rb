@@ -6,14 +6,16 @@ module Casino
       @table = Casino::Table.find_by(slug: params[:table_id]) || Casino::Table.find_by(id: params[:table_id])
       if @table
         stream_for @table
-        # Automatikus visszaszámláló ellenőrzése / indítása, ha játékos csatlakozott Blackjack asztalhoz
-        Casino::TableManager.check_or_start_timer(@table) if @table.game_type == "blackjack"
+
+        # Játékos online jelenlétének regisztrálása az asztalnál
+        Casino::TableManager.register_presence(@table.id, current_user.id)
 
         # Értesítés az asztalnak, hogy új játékos lépett be
         Casino::TableChannel.broadcast_to(@table, {
           type: "player_joined",
           user_id: current_user.id,
-          username: current_user.username
+          username: current_user.username,
+          online_count: Casino::TableManager.online_players_count(@table.id)
         })
       else
         reject
@@ -22,13 +24,18 @@ module Casino
 
     def unsubscribed
       if @table && current_user
+        # Játékos jelenlétének törlése
+        Casino::TableManager.unregister_presence(@table.id, current_user.id)
+
         Casino::TableChannel.broadcast_to(@table, {
           type: "player_left",
           user_id: current_user.id,
-          username: current_user.username
+          username: current_user.username,
+          online_count: Casino::TableManager.online_players_count(@table.id)
         })
       end
     end
+
 
     def place_bet(data)
       return unless authorized_user?
@@ -69,12 +76,14 @@ module Casino
       profile = Casino::Profile.find_by(user_id: current_user.id)
       return unless profile
 
-      # Csak admin vagy a körben aktív téttel rendelkező játékos indíthatja el
+      # Csak admin, a körben aktív téttel rendelkező játékos, vagy lejárt fogadási időzítő esetén indítható el
       has_active_bet = @table.current_bets.where(casino_profile_id: profile.id).exists?
-      unless current_user.admin? || has_active_bet
+      timer_expired = @table.betting_closes_at.present? && @table.betting_closes_at <= Time.current
+      unless current_user.admin? || has_active_bet || timer_expired
         transmit({ type: "resolve_response", success: false, error: "Nincs aktív téted ezen az asztalon a sorsolás indításához." })
         return
       end
+
 
       res = Casino::TableManager.resolve_round(@table)
       transmit({ type: "resolve_response", success: res[:success], error: res[:error] })

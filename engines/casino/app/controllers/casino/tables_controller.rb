@@ -3,11 +3,11 @@ module Casino
     before_action :set_table
 
     def show
-      Casino::TableManager.check_or_start_timer(@table) if @table.game_type == "blackjack"
       @current_bets = @table.current_bets.includes(profile: :user).order(created_at: :desc)
       @state_data = @table.current_state_data
       @my_bets = @table.current_bets.where(profile: current_casino_profile)
     end
+
 
     def bet
       bet_type = params[:bet_type]
@@ -71,9 +71,10 @@ module Casino
     end
 
     def spin
-      # Csak admin vagy a körben aktív téttel rendelkező játékos indíthatja el
+      # Csak admin, a körben aktív téttel rendelkező játékos, vagy lejárt fogadási időzítő esetén indítható el
       has_active_bet = @table.current_bets.where(casino_profile_id: current_casino_profile.id).exists?
-      unless current_user.admin? || has_active_bet
+      timer_expired = @table.betting_closes_at.present? && @table.betting_closes_at <= Time.current
+      unless current_user.admin? || has_active_bet || timer_expired
         respond_to do |format|
           format.json { render json: { success: false, error: "Nincs aktív téted ezen az asztalon a sorsolás indításához." }, status: :forbidden }
           format.html { redirect_to table_path(@table), alert: "Nincs aktív téted ezen az asztalon a sorsolás indításához." }
@@ -82,6 +83,7 @@ module Casino
       end
 
       res = Casino::TableManager.resolve_round(@table)
+
 
       respond_to do |format|
         format.json do

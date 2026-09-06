@@ -3,12 +3,49 @@ module Casino
     BETTING_DURATION_SECONDS = 20
     PLAYER_TURN_DURATION_SECONDS = 30
 
-    # Automatikusan elindítja a 20 másodperces fogadási visszaszámlálást, ha a játékos belép egy tétlen Blackjack asztalhoz
+    # Szálbiztos online játékos nyilvántartás asztalonként
+    @@presence = {}
+    @@presence_mutex = Mutex.new
+
+    def self.register_presence(table_id, user_id)
+      return unless table_id && user_id
+      @@presence_mutex.synchronize do
+        @@presence[table_id] ||= Hash.new(0)
+        @@presence[table_id][user_id] += 1
+      end
+    end
+
+    def self.unregister_presence(table_id, user_id)
+      return unless table_id && user_id
+      @@presence_mutex.synchronize do
+        return unless @@presence[table_id]
+        @@presence[table_id][user_id] -= 1
+        @@presence[table_id].delete(user_id) if @@presence[table_id][user_id] <= 0
+        @@presence.delete(table_id) if @@presence[table_id].empty?
+      end
+    end
+
+    def self.has_online_players?(table_id)
+      @@presence_mutex.synchronize do
+        @@presence[table_id].present? && @@presence[table_id].any? { |_uid, count| count > 0 }
+      end
+    end
+
+    def self.online_players_count(table_id)
+      @@presence_mutex.synchronize do
+        @@presence[table_id] ? @@presence[table_id].keys.size : 0
+      end
+    end
+
+    # Csak akkor indítunk visszaszámlálást, ha már van aktív tét az asztalon
     def self.check_or_start_timer(table)
       return unless table.game_type == "blackjack"
       return if %w[maintenance resolving player_turns].include?(table.state)
 
       table.with_lock do
+        # Csak akkor indítjuk el, ha van leadott tét az asztalon
+        return unless table.current_bets.exists?
+
         if table.state == "idle" || (table.betting_closes_at.present? && table.betting_closes_at <= Time.current)
           table.update!(
             state: "betting",
@@ -23,6 +60,7 @@ module Casino
         end
       end
     end
+
 
     def self.place_bet(table, profile, bet_type, amount)
       amount = amount.to_i
@@ -60,8 +98,10 @@ module Casino
           end
         end
 
-        # Ha pihenő állapotban volt, indítjuk a 20 mp visszaszámlálást
-        if table.state == "idle" || table.betting_closes_at.nil?
+        # Ha pihenő állapotban volt, vagy a korábbi számláló tét nélkül járt le: indítjuk az első tét miatti 20 mp visszaszámlálást
+        needs_timer = table.state == "idle" || table.betting_closes_at.nil? || (table.betting_closes_at <= Time.current && table.current_bets.empty?)
+
+        if needs_timer
           table.update!(
             state: "betting",
             betting_closes_at: BETTING_DURATION_SECONDS.seconds.from_now
@@ -91,6 +131,15 @@ module Casino
         )
       end
 
+      # Ha ez volt az első tét, kiküldjük a visszaszámlálás indító eseményt is
+      if needs_timer
+        Casino::TableChannel.broadcast_to(table, {
+          type: "timer_started",
+          seconds_remaining: BETTING_DURATION_SECONDS,
+          round_number: table.round_number
+        })
+      end
+
       # Valós idejű WebSocket értesítés az asztalnak
       Casino::TableChannel.broadcast_to(table, {
         type: "bet_placed",
@@ -102,6 +151,7 @@ module Casino
         round_number: table.round_number,
         seconds_remaining: table.seconds_remaining
       })
+
 
       { success: true, bet: bet, seconds_remaining: table.seconds_remaining }
     rescue => e
@@ -116,15 +166,32 @@ module Casino
 
         current_bets = table.bets.where(round_number: table.round_number, status: "pending").includes(profile: :user)
 
-        # Ha nem érkezett tét, visszaállunk készenlétbe
+        # Ha nem érkezett tét a fogadási idő alatt
         if current_bets.empty?
-          table.update!(state: "idle", betting_closes_at: nil)
-          Casino::TableChannel.broadcast_to(table, {
-            type: "table_idle",
-            message: "Nem érkezett tét, a dealer vár a játékosokra."
-          })
-          return { success: false, error: "Nincs aktív tét az asztalon.", idle: true }
+          if has_online_players?(table.id)
+            # A számláló végéig senki nem rakott semmit, de van online játékos -> újraindul a 20 mp
+            table.update!(
+              state: "betting",
+              betting_closes_at: BETTING_DURATION_SECONDS.seconds.from_now
+            )
+            Casino::TableChannel.broadcast_to(table, {
+              type: "timer_started",
+              seconds_remaining: BETTING_DURATION_SECONDS,
+              round_number: table.round_number,
+              message: "Nem érkezett tét, a fogadási idő újraindult!"
+            })
+            return { success: false, restarted: true, error: "Nem érkezett tét, a fogadási idő újraindult." }
+          else
+            # Nincs online játékos az asztalnál -> pihenő állapotba állunk
+            table.update!(state: "idle", betting_closes_at: nil)
+            Casino::TableChannel.broadcast_to(table, {
+              type: "table_idle",
+              message: "Nem érkezett tét, a dealer vár a játékosokra."
+            })
+            return { success: false, error: "Nincs aktív tét az asztalon.", idle: true }
+          end
         end
+
 
         # Ha a fogadási idő még ketyeg és nem minden szék foglalt
         if !force && table.betting_closes_at.present? && table.betting_closes_at > Time.current && current_bets.size < 3
@@ -367,10 +434,14 @@ module Casino
           payouts: payouts_summary
         }
 
+        has_online = has_online_players?(table.id)
+        next_state = has_online ? "betting" : "idle"
+        next_close = has_online ? (4 + BETTING_DURATION_SECONDS).seconds.from_now : nil
+
         table.update!(
-          state: "idle",
+          state: next_state,
           round_number: table.round_number + 1,
-          betting_closes_at: nil,
+          betting_closes_at: next_close,
           state_data: resolution_data.to_json
         )
 
@@ -382,8 +453,11 @@ module Casino
           dealer_cards: dealer_cards,
           dealer_score: dealer_score,
           winners: winner_announcements,
-          payouts: payouts_summary
+          payouts: payouts_summary,
+          next_round: has_online,
+          betting_duration: BETTING_DURATION_SECONDS
         })
+
 
         { success: true, outcome: resolution_data, winners: winner_announcements, payouts: payouts_summary }
       end
@@ -427,9 +501,28 @@ module Casino
         # Roulette és Baccarat sorsolás
         current_bets = table.bets.where(round_number: table.round_number, status: "pending").includes(profile: :user)
         if current_bets.empty?
-          table.update!(state: "idle", betting_closes_at: nil)
-          return { success: false, error: "Nincs aktív tét az asztalon.", idle: true }
+          if has_online_players?(table.id)
+            table.update!(
+              state: "betting",
+              betting_closes_at: BETTING_DURATION_SECONDS.seconds.from_now
+            )
+            Casino::TableChannel.broadcast_to(table, {
+              type: "timer_started",
+              seconds_remaining: BETTING_DURATION_SECONDS,
+              round_number: table.round_number,
+              message: "Nem érkezett tét, a fogadási idő újraindult!"
+            })
+            return { success: false, restarted: true, error: "Nem érkezett tét, a fogadási idő újraindult." }
+          else
+            table.update!(state: "idle", betting_closes_at: nil)
+            Casino::TableChannel.broadcast_to(table, {
+              type: "table_idle",
+              message: "Nem érkezett tét, az asztal várakozik a játékosokra."
+            })
+            return { success: false, error: "Nincs aktív tét az asztalon.", idle: true }
+          end
         end
+
 
         # Ha a fogadási idő még tart
         if !force && table.state == "betting" && table.betting_closes_at.present? && table.betting_closes_at > Time.current
@@ -482,10 +575,14 @@ module Casino
 
         resolution_data[:winners] = winner_announcements
 
+        has_online = has_online_players?(table.id)
+        next_state = has_online ? "betting" : "idle"
+        next_close = has_online ? (4 + BETTING_DURATION_SECONDS).seconds.from_now : nil
+
         table.update!(
-          state: "idle",
+          state: next_state,
           round_number: table.round_number + 1,
-          betting_closes_at: nil,
+          betting_closes_at: next_close,
           state_data: resolution_data.to_json
         )
 
@@ -495,8 +592,11 @@ module Casino
           game_type: table.game_type,
           outcome: resolution_data,
           winners: winner_announcements,
-          payouts: payouts_summary
+          payouts: payouts_summary,
+          next_round: has_online,
+          betting_duration: BETTING_DURATION_SECONDS
         })
+
 
         { success: true, outcome: resolution_data, winners: winner_announcements, payouts: payouts_summary }
       end

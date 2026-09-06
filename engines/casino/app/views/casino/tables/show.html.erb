@@ -751,6 +751,16 @@
               startTimer(data.seconds_remaining, "Fogadási Idő");
             }
 
+            // B/2) Asztal várakozási állapotba állt (nincs aktív tét)
+            else if (data.type === 'table_idle') {
+              if (countdownInterval) clearInterval(countdownInterval);
+              const timerLabel = document.getElementById('timer-label');
+              if (timerLabel) timerLabel.textContent = "Fogadási Idő";
+              timerElem.textContent = "Várakozás tétre";
+              timerElem.style.color = "var(--success)";
+            }
+
+
             // C) Blackjack lapok kiosztva (Oldal-újratöltés nélkül)
             else if (data.type === 'blackjack_cards_dealt') {
               startTimer(data.seconds_remaining, "Döntési Idő");
@@ -960,8 +970,13 @@
 
                 const timerLabel = document.getElementById('timer-label');
                 if (timerLabel) timerLabel.textContent = "Fogadási Idő";
-                timerElem.textContent = "Várakozás tétre";
-                timerElem.style.color = "var(--success)";
+                if (data.next_round) {
+                  startTimer(data.betting_duration || 20, "Fogadási Idő");
+                } else {
+                  timerElem.textContent = "Várakozás tétre";
+                  timerElem.style.color = "var(--success)";
+                }
+
 
                 // Saját tétek és élő napló ürítése a következő körre
                 const myBetsList = document.getElementById('my-bets-list');
