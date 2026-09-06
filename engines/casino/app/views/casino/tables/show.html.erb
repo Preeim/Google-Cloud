@@ -45,20 +45,21 @@
   </div>
 </div>
 
-<!-- Dinamikus Nyertesek Értesítési Sáv -->
-<div id="winners-banner" style="<%= @state_data['winners'].present? ? '' : 'display: none;' %> background: linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(217, 119, 6, 0.25) 100%); border: 2px solid var(--casino-gold); border-radius: 12px; padding: 14px 20px; margin-bottom: 20px; box-shadow: 0 0 20px rgba(251, 191, 36, 0.25);">
-  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
-    <span style="font-size: 1.3rem;">🎉</span>
-    <h3 style="color: #fef08a; font-size: 1.05rem; font-weight: 800; margin: 0;">Legutóbbi Nyeremények és Kör Eredmény</h3>
+<!-- Dinamikus Nyertesek Értesítési Sáv (Letisztult, minimalista stílus) -->
+<div id="winners-banner" style="<%= @state_data['winners'].present? ? '' : 'display: none;' %> background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;">
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+    <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #38bdf8;"></span>
+    <h4 style="color: #94a3b8; font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Legutóbbi Nyeremények és Kör Eredmény</h4>
   </div>
-  <div id="winners-list" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.95rem; font-weight: 600; color: #fff;">
+  <div id="winners-list" style="display: flex; flex-direction: column; gap: 4px; font-size: 0.88rem; color: #e2e8f0;">
     <% if @state_data["winners"].present? %>
       <% @state_data["winners"].each do |w| %>
-        <div style="padding: 4px 8px; background: rgba(0,0,0,0.25); border-radius: 6px;"><%= w %></div>
+        <div style="padding: 6px 10px; background: #1e293b; border-radius: 4px; border: 1px solid #334155; font-weight: 500;"><%= w %></div>
       <% end %>
     <% end %>
   </div>
 </div>
+
 
 <!-- ========================================================================== -->
 <!-- 1. JÁTÉKSPECIFIKUS ASZTAL FELÜLET                                           -->
@@ -932,10 +933,11 @@
                   list.innerHTML = '';
                   data.winners.forEach(w => {
                     const d = document.createElement('div');
-                    d.style.cssText = "padding: 4px 8px; background: rgba(0,0,0,0.25); border-radius: 6px;";
+                    d.style.cssText = "padding: 6px 10px; background: #1e293b; border-radius: 4px; border: 1px solid #334155; font-weight: 500;";
                     d.textContent = w;
                     list.appendChild(d);
                   });
+
                   banner.style.display = 'block';
                 }
               }
