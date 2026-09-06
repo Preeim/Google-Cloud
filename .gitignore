@@ -8,4 +8,6 @@
 /public/assets
 .byebug_history
 .env*
+.secret_key_base
+config/master.key
 

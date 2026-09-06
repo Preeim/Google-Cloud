@@ -19,6 +19,19 @@ bundle install
 # 4. Migrate database (creates if not exists, then runs migrations)
 echo "[4/5] Preparing database & migrations..."
 chmod +x bin/* || true
+
+# Ensure SECRET_KEY_BASE is available for production commands
+if [ -z "$SECRET_KEY_BASE" ]; then
+    if [ -f ".secret_key_base" ]; then
+        export SECRET_KEY_BASE=$(cat .secret_key_base | tr -d '\r\n')
+    else
+        GENERATED_SECRET=$(bundle exec ruby -e "require 'securerandom'; puts SecureRandom.hex(64)" 2>/dev/null || openssl rand -hex 64)
+        echo "$GENERATED_SECRET" > .secret_key_base
+        chmod 600 .secret_key_base
+        export SECRET_KEY_BASE="$GENERATED_SECRET"
+    fi
+fi
+
 RAILS_ENV=production bin/rails db:prepare
 
 # 5. Restart server

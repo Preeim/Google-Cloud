@@ -10,6 +10,11 @@ Rails.application.configure do
   # Eager loading: minden osztály betöltése a memóriába induláskor
   config.eager_load = true
 
+  # Titkosítási kulcs (secret_key_base) éles környezetben
+  config.secret_key_base = ENV["SECRET_KEY_BASE"].presence ||
+                           (File.exist?(Rails.root.join(".secret_key_base")) ? File.read(Rails.root.join(".secret_key_base")).strip.presence : nil) ||
+                           "a4b2c8e1f0d3e5a7b9c6d4e2f1a0b8c7d5e3f2a1b9c0d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7"
+
   # Részletes hibaüzenetek elrejtése a látogatók elől
   config.consider_all_requests_local = false
   config.action_controller.perform_caching = true
