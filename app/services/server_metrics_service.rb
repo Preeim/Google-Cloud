@@ -29,7 +29,8 @@ class ServerMetricsService
         linux_system? ? collect_linux_metrics : collect_fallback_metrics
       end
     rescue StandardError => e
-      Rails.logger.error("[ServerMetricsService] Hiba a metrikák gyűjtésekor: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
+      backtrace = e.backtrace ? e.backtrace.first(5).join("\n") : ""
+      Rails.logger.error("[ServerMetricsService] Hiba a metrikák gyűjtésekor: #{e.message}\n#{backtrace}")
       fallback_safe_payload(error: e.message)
     end
 
@@ -39,7 +40,35 @@ class ServerMetricsService
     # Környezet Detektálás
     # --------------------------------------------------------------------------
     def linux_system?
-      RUBY_PLATFORM =~ /linux/i && File.exist?("/proc/stat") && File.exist?("/proc/meminfo")
+      (RUBY_PLATFORM =~ /linux/i) && File.exist?("/proc/stat") && File.exist?("/proc/meminfo")
+    end
+
+    # --------------------------------------------------------------------------
+    # Segédfüggvények (Biztonságos kiolvasás inline rescue nélkül)
+    # --------------------------------------------------------------------------
+    def safe_hostname(default = "bankrepo-vm")
+      Socket.gethostname
+    rescue StandardError
+      default
+    end
+
+    def safe_cable_connections_count(default = 0)
+      ActionCable.server.connections.count
+    rescue StandardError
+      default
+    end
+
+    def safe_ruby_version
+      patch = defined?(RUBY_PATCHLEVEL) ? RUBY_PATCHLEVEL : 0
+      "#{RUBY_VERSION} (p#{patch})"
+    rescue StandardError
+      RUBY_VERSION.to_s
+    end
+
+    def safe_gc_stat
+      GC.stat
+    rescue StandardError
+      {}
     end
 
     # --------------------------------------------------------------------------
@@ -58,7 +87,7 @@ class ServerMetricsService
       {
         timestamp: Time.current.iso8601,
         platform: "Linux (Ubuntu / GCP e2-micro)",
-        hostname: Socket.gethostname rescue "bankrepo-vm",
+        hostname: safe_hostname("bankrepo-vm"),
         uptime: parse_uptime,
         cpu: cpu_data,
         memory: mem_data,
@@ -276,7 +305,7 @@ class ServerMetricsService
       }
 
       # Aktív kapcsolatok számlálása
-      active_cable_connections = ActionCable.server.connections.count rescue 0
+      active_cable_connections = safe_cable_connections_count(0)
       active_tcp_count = count_linux_tcp_connections
 
       {
@@ -353,12 +382,14 @@ class ServerMetricsService
       end
 
       # Ruby Garbage Collector statisztika
-      gc_stat = GC.stat rescue {}
+      gc_stat = safe_gc_stat
+      slots = gc_stat[:heap_live_slots] || 100_000
+      puma_rss = puma_memory_mb > 0 ? puma_memory_mb : ((slots * 40) / 1024.0).round(1)
 
       {
         puma_pid: pid,
-        puma_memory_mb: puma_memory_mb > 0 ? puma_memory_mb : ((gc_stat[:heap_live_slots] || 100_000) * 40 / 1024.0).round(1),
-        ruby_version: "#{RUBY_VERSION} (p#{RUBY_PATCHLEVEL rescue 0})",
+        puma_memory_mb: puma_rss,
+        ruby_version: safe_ruby_version,
         rails_version: Rails.version,
         gc_runs: gc_stat[:count] || 0,
         major_gc_runs: gc_stat[:major_gc_count] || 0,
@@ -398,12 +429,23 @@ class ServerMetricsService
     # 6. Adatbázis Kapcsolat Ellenőrzése
     def check_database_health
       t_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      connected = ActiveRecord::Base.connection.active? rescue false
+      connected = false
+      begin
+        connected = ActiveRecord::Base.connection.active?
+      rescue StandardError
+        connected = false
+      end
       t_end = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       latency_ms = ((t_end - t_start) * 1000.0).round(2)
 
-      pool_size = ActiveRecord::Base.connection_pool.size rescue 5
-      active_conns = ActiveRecord::Base.connection_pool.connections.size rescue 1
+      pool_size = 5
+      active_conns = 1
+      begin
+        pool_size = ActiveRecord::Base.connection_pool.size
+        active_conns = ActiveRecord::Base.connection_pool.connections.size
+      rescue StandardError
+        # ignore
+      end
 
       {
         connected: connected,
@@ -424,16 +466,18 @@ class ServerMetricsService
       seed_oscillation = (Math.sin(Time.current.to_f / 5.0) * 12.0).round(1)
       cpu_val = (22.5 + seed_oscillation).clamp(5.0, 95.0).round(1)
 
-      gc_stat = GC.stat rescue {}
-      heap_mb = ((gc_stat[:heap_live_slots] || 120_000) * 40 / 1024.0 / 1024.0 * 20.0).round(1)
+      gc_stat = safe_gc_stat
+      slots = gc_stat[:heap_live_slots] || 120_000
+      heap_mb = (((slots * 40) / 1024.0 / 1024.0) * 20.0).round(1)
       puma_mem = [heap_mb, 85.0].max.round(1)
 
       db_data = check_database_health
+      cable_count = safe_cable_connections_count(1)
 
       {
         timestamp: Time.current.iso8601,
         platform: "Helyi Fejlesztés (#{RUBY_PLATFORM})",
-        hostname: Socket.gethostname rescue "localhost-dev",
+        hostname: safe_hostname("localhost-dev"),
         uptime: "Fejlesztői mód (Aktív)",
         cpu: {
           usage_percent: cpu_val,
@@ -466,7 +510,7 @@ class ServerMetricsService
           rx_total_mb: 342.1,
           tx_total_mb: 189.4,
           active_tcp_connections: 4,
-          active_cable_connections: ActionCable.server.connections.count rescue 1,
+          active_cable_connections: cable_count,
           interfaces_count: 1
         },
         disk: {
@@ -523,4 +567,3 @@ class ServerMetricsService
     end
   end
 end
-
