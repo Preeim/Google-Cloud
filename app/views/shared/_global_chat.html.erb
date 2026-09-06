@@ -1,0 +1,831 @@
+﻿<%# ============================================================================== %>
+<%# Bánk''s Repository - Globális Chat Lebegő Widget (_global_chat.html.erb)         %>
+<%# ============================================================================== %>
+<%# Reszponzív, lebegő valós idejű chat felület ActionCable WebSocket szinkronnal.   %>
+<%# ============================================================================== %>
+
+<style>
+  /* -------------------------------------------------------------------------- */
+  /* Globális Chat Konténerek & Lebegő Gomb                                    */
+  /* -------------------------------------------------------------------------- */
+  .global-chat-trigger {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent) 0%, #0284c7 100%);
+    color: #0a0f1d;
+    border: none;
+    box-shadow: 0 8px 24px rgba(56, 189, 248, 0.35), 0 2px 6px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 990;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+  }
+  .global-chat-trigger:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow: 0 12px 30px rgba(56, 189, 248, 0.5), 0 4px 10px rgba(0, 0, 0, 0.5);
+  }
+  .global-chat-trigger:active {
+    transform: scale(0.96);
+  }
+  .global-chat-trigger svg {
+    width: 26px;
+    height: 26px;
+    stroke: #0a0f1d;
+    fill: none;
+    transition: transform 0.2s;
+  }
+
+  /* Olvasatlan üzenet badge */
+  .chat-unread-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    background: var(--danger);
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 800;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    border: 2px solid var(--bg-canvas);
+    box-shadow: 0 2px 8px rgba(244, 63, 94, 0.6);
+    animation: pulse-badge 2s infinite;
+  }
+  .chat-unread-badge.visible {
+    display: inline-flex;
+  }
+
+  @keyframes pulse-badge {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  /* -------------------------------------------------------------------------- */
+  /* Lebegő Chat Ablak (Window Panel)                                          */
+  /* -------------------------------------------------------------------------- */
+  .global-chat-panel {
+    position: fixed;
+    bottom: 90px;
+    right: 24px;
+    width: 380px;
+    height: 540px;
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 120px);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    z-index: 990;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.92) translateY(20px);
+    transform-origin: bottom right;
+    transition: opacity 0.22s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .global-chat-panel.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1) translateY(0);
+  }
+
+  /* Fejléc */
+  .chat-header {
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .chat-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 0.98rem;
+    color: var(--text-main);
+  }
+  .chat-status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--success);
+    background: rgba(16, 185, 129, 0.15);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .chat-status-indicator .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success);
+  }
+  .chat-status-indicator.offline {
+    color: var(--text-muted);
+    background: rgba(148, 163, 184, 0.15);
+  }
+  .chat-status-indicator.offline .dot {
+    background: var(--text-muted);
+    box-shadow: none;
+  }
+
+  .chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .chat-btn-icon {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .chat-btn-icon:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  /* Üzenetek Görgethető Területe */
+  .chat-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--bg-surface);
+    scroll-behavior: smooth;
+  }
+  .chat-body::-webkit-scrollbar {
+    width: 6px;
+  }
+  .chat-body::-webkit-scrollbar-thumb {
+    background: var(--border-subtle);
+    border-radius: 3px;
+  }
+  .chat-body::-webkit-scrollbar-thumb:hover {
+    background: var(--border-hover);
+  }
+
+  /* Üres és Betöltési Állapot */
+  .chat-empty-state, .chat-loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+    color: var(--text-muted);
+    gap: 10px;
+    padding: 20px;
+  }
+  .chat-empty-state svg {
+    width: 44px;
+    height: 44px;
+    stroke: var(--border-hover);
+  }
+
+  /* Egyedi Üzenet Kártya */
+  .chat-msg-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    animation: fadeInMsg 0.2s ease;
+    position: relative;
+  }
+  @keyframes fadeInMsg {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .chat-msg-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: #0a0f1d;
+    font-weight: 800;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .chat-msg-content-wrap {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg-canvas);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 8px 12px;
+    transition: border-color 0.15s;
+  }
+  .chat-msg-content-wrap:hover {
+    border-color: var(--border-hover);
+  }
+  .chat-msg-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .chat-msg-author {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+    text-decoration: none;
+  }
+  .chat-msg-author:hover {
+    color: var(--accent);
+  }
+  .chat-badge-role {
+    font-size: 0.65rem;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .chat-badge-admin {
+    background: rgba(168, 85, 247, 0.2);
+    color: var(--admin-accent);
+    border: 1px solid var(--admin-accent);
+  }
+  .chat-badge-mod {
+    background: rgba(56, 189, 248, 0.2);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .chat-msg-time {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .chat-msg-text {
+    font-size: 0.88rem;
+    color: var(--text-main);
+    line-height: 1.45;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  /* Törlés gomb moderátoroknak */
+  .chat-btn-delete {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.15s;
+  }
+  .chat-msg-row:hover .chat-btn-delete {
+    opacity: 0.8;
+  }
+  .chat-btn-delete:hover {
+    opacity: 1 !important;
+    color: var(--danger);
+    background: rgba(244, 63, 94, 0.15);
+  }
+
+  /* Lábléc / Beviteli Sáv */
+  .chat-footer {
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border-subtle);
+    padding: 10px 14px;
+    flex-shrink: 0;
+  }
+  .chat-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .chat-input {
+    flex: 1;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .chat-input:focus {
+    border-color: var(--accent);
+  }
+  .chat-send-btn {
+    background: var(--accent);
+    color: #0a0f1d;
+    border: none;
+    border-radius: 8px;
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .chat-send-btn:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+  }
+  .chat-send-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Vendég bejelentkezési figyelmeztető sáv */
+  .chat-guest-box {
+    text-align: center;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    padding: 6px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .chat-guest-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* Hiba és figyelmeztető csík */
+  .chat-alert-banner {
+    display: none;
+    background: rgba(244, 63, 94, 0.18);
+    border: 1px solid var(--danger);
+    color: #fb7185;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    margin-bottom: 8px;
+    animation: fadeInMsg 0.2s ease;
+  }
+  .chat-alert-banner.visible {
+    display: block;
+  }
+
+  /* Mobil Reszponzivitás */
+  @media (max-width: 600px) {
+    .global-chat-panel {
+      bottom: 0;
+      right: 0;
+      left: 0;
+      width: 100vw;
+      height: 80vh;
+      max-width: 100vw;
+      max-height: 80vh;
+      border-radius: 20px 20px 0 0;
+      border-bottom: none;
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.7);
+    }
+    .global-chat-trigger {
+      bottom: 18px;
+      right: 18px;
+      width: 48px;
+      height: 48px;
+    }
+    .global-chat-trigger svg {
+      width: 22px;
+      height: 22px;
+    }
+  }
+</style>
+
+<!-- 1. Lebegő Trigger Gomb -->
+<button type="button" class="global-chat-trigger" id="global-chat-btn" aria-label="Globális csevegés megnyitása">
+  <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+  </svg>
+  <span class="chat-unread-badge" id="chat-unread-badge">0</span>
+</button>
+
+<!-- 2. Lebegő Chat Panel -->
+<div class="global-chat-panel" id="global-chat-panel" role="dialog" aria-label="Globális Chat" aria-hidden="true">
+  <!-- Fejléc -->
+  <div class="chat-header">
+    <div class="chat-header-title">
+      <span>💬 Globális Chat</span>
+      <span class="chat-status-indicator" id="chat-ws-status">
+        <span class="dot"></span>
+        <span id="chat-ws-status-text">Élő</span>
+      </span>
+    </div>
+    <div class="chat-header-actions">
+      <button type="button" class="chat-btn-icon" id="chat-close-btn" aria-label="Chat bezárása">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Üzenetek Lista -->
+  <div class="chat-body" id="chat-messages-list">
+    <div class="chat-loading-state" id="chat-loading-placeholder">
+      <span>Üzenetek betöltése...</span>
+    </div>
+    <div class="chat-empty-state" id="chat-empty-placeholder" style="display: none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+        <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+      </svg>
+      <p>Még nincsenek üzenetek.<br>Légy te az első, aki hozzászól!</p>
+    </div>
+  </div>
+
+  <!-- Lábléc / Beviteli sáv -->
+  <div class="chat-footer">
+    <div class="chat-alert-banner" id="chat-alert-banner"></div>
+
+    <% if logged_in? %>
+      <form class="chat-form" id="chat-input-form" onsubmit="return false;">
+        <input type="text"
+               class="chat-input"
+               id="chat-message-input"
+               placeholder="Írj üzenetet... (Enter küld)"
+               maxlength="1000"
+               autocomplete="off">
+        <button type="submit" class="chat-send-btn" id="chat-send-btn" aria-label="Küldés">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+    <% else %>
+      <div class="chat-guest-box">
+        <span>Az üzenetküldéshez bejelentkezés szükséges.</span>
+        <div class="chat-guest-actions">
+          <a href="<%= app_login_path %>" class="btn btn-secondary" style="padding: 5px 12px; font-size: 0.8rem;">Bejelentkezés</a>
+          <a href="<%= app_register_path %>" class="btn btn-primary" style="padding: 5px 12px; font-size: 0.8rem;">Regisztráció</a>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- 3. Kliensoldali Valós Idejű Chat Szkript -->
+<script>
+  (function() {
+    // DOM Elemek
+    const triggerBtn = document.getElementById('global-chat-btn');
+    const closeBtn = document.getElementById('chat-close-btn');
+    const panel = document.getElementById('global-chat-panel');
+    const badge = document.getElementById('chat-unread-badge');
+    const messagesList = document.getElementById('chat-messages-list');
+    const loadingState = document.getElementById('chat-loading-placeholder');
+    const emptyState = document.getElementById('chat-empty-placeholder');
+    const inputForm = document.getElementById('chat-input-form');
+    const inputMsg = document.getElementById('chat-message-input');
+    const sendBtn = document.getElementById('chat-send-btn');
+    const statusIndicator = document.getElementById('chat-ws-status');
+    const statusText = document.getElementById('chat-ws-status-text');
+    const alertBanner = document.getElementById('chat-alert-banner');
+
+    let isPanelOpen = false;
+    let unreadCount = 0;
+    let channelSubscription = null;
+    let currentUser = <%= (logged_in? ? { id: current_user.id, is_admin: admin?, is_mod: moderator? }.to_json : "null").html_safe %>;
+    let messageIds = new Set();
+
+    // ------------------------------------------------------------------------
+    // Panel Állapotkezelés (Nyitás / Csukás)
+    // ------------------------------------------------------------------------
+    function toggleChatPanel() {
+      if (isPanelOpen) {
+        closeChatPanel();
+      } else {
+        openChatPanel();
+      }
+    }
+
+    function openChatPanel() {
+      isPanelOpen = true;
+      panel.classList.add('open');
+      panel.setAttribute('aria-hidden', 'false');
+      unreadCount = 0;
+      updateUnreadBadge();
+      scrollToBottom();
+      if (inputMsg) inputMsg.focus();
+    }
+
+    function closeChatPanel() {
+      isPanelOpen = false;
+      panel.classList.remove('open');
+      panel.setAttribute('aria-hidden', 'true');
+    }
+
+    function updateUnreadBadge() {
+      if (!badge) return;
+      if (unreadCount > 0) {
+        badge.innerText = unreadCount > 99 ? '99+' : unreadCount;
+        badge.classList.add('visible');
+      } else {
+        badge.classList.remove('visible');
+        badge.innerText = '0';
+      }
+    }
+
+    if (triggerBtn) triggerBtn.addEventListener('click', toggleChatPanel);
+    if (closeBtn) closeBtn.addEventListener('click', closeChatPanel);
+
+    // ESC gombra bezárás
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && isPanelOpen) {
+        closeChatPanel();
+      }
+    });
+
+    // ------------------------------------------------------------------------
+    // Görgetés és DOM Megjelenítés
+    // ------------------------------------------------------------------------
+    function scrollToBottom(force = true) {
+      if (!messagesList) return;
+      if (force) {
+        messagesList.scrollTop = messagesList.scrollHeight;
+        return;
+      }
+      // Ha a felhasználó a lista legaljához közel van (120px-en belül), akkor automatikusan gördítünk
+      const isNearBottom = messagesList.scrollHeight - messagesList.scrollTop - messagesList.clientHeight < 120;
+      if (isNearBottom) {
+        messagesList.scrollTop = messagesList.scrollHeight;
+      }
+    }
+
+    function showAlert(text) {
+      if (!alertBanner) return;
+      alertBanner.innerText = text;
+      alertBanner.classList.add('visible');
+      setTimeout(function() {
+        alertBanner.classList.remove('visible');
+      }, 4000);
+    }
+
+    function renderMessage(msg, isHistory = false) {
+      if (!messagesList || messageIds.has(msg.id)) return;
+      messageIds.add(msg.id);
+
+      if (loadingState) loadingState.style.display = 'none';
+      if (emptyState) emptyState.style.display = 'none';
+
+      const row = document.createElement('div');
+      row.className = 'chat-msg-row';
+      row.id = `chat-msg-${msg.id}`;
+      row.setAttribute('data-message-id', msg.id);
+
+      // Szerepkör címke (Admin / Mod)
+      let roleBadgeHtml = '';
+      if (msg.user.role === 'admin') {
+        roleBadgeHtml = '<span class="chat-badge-role chat-badge-admin">Admin</span>';
+      } else if (msg.user.role === 'moderator') {
+        roleBadgeHtml = '<span class="chat-badge-role chat-badge-mod">Mod</span>';
+      }
+
+      // Törlés gomb moderációhoz
+      let deleteBtnHtml = '';
+      const canDelete = msg.can_delete || (currentUser && (currentUser.is_admin || currentUser.is_mod || currentUser.id === msg.user.id));
+      if (canDelete) {
+        deleteBtnHtml = `
+          <button type="button" class="chat-btn-delete" title="Üzenet törlése" onclick="window.deleteGlobalChatMessage(${msg.id})">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
+        `;
+      }
+
+      row.innerHTML = `
+        <div class="chat-msg-avatar" style="background: ${msg.user.avatar_color || '#38bdf8'};">
+          ${msg.user.avatar_initials || 'U'}
+        </div>
+        <div class="chat-msg-content-wrap">
+          <div class="chat-msg-header">
+            <a href="${msg.user.profile_path}" class="chat-msg-author">
+              <span>${msg.user.display_name || msg.user.username}</span>
+              ${roleBadgeHtml}
+            </a>
+            <span class="chat-msg-time">${msg.formatted_time}</span>
+            ${deleteBtnHtml}
+          </div>
+          <div class="chat-msg-text">${msg.content}</div>
+        </div>
+      `;
+
+      messagesList.appendChild(row);
+
+      if (!isHistory) {
+        if (!isPanelOpen) {
+          unreadCount++;
+          updateUnreadBadge();
+        }
+        scrollToBottom(false);
+      }
+    }
+
+    function removeMessage(messageId) {
+      messageIds.delete(messageId);
+      const el = document.getElementById(`chat-msg-${messageId}`);
+      if (el) {
+        el.style.opacity = '0';
+        el.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          el.remove();
+          if (messageIds.size === 0 && emptyState) {
+            emptyState.style.display = 'flex';
+          }
+        }, 150);
+      }
+    }
+
+    // Globális törlési függvény meghívható az inline onclickből
+    window.deleteGlobalChatMessage = function(id) {
+      if (!confirm("Biztosan törlöd ezt az üzenetet?")) return;
+
+      if (channelSubscription && typeof channelSubscription.perform === 'function') {
+        channelSubscription.perform('delete_message', { message_id: id });
+      } else {
+        // REST fallback
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        fetch(`/chat_messages/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-Token': csrfToken,
+            'Accept': 'application/json'
+          }
+        }).catch(err => console.error(err));
+      }
+    };
+
+    // ------------------------------------------------------------------------
+    // ActionCable WebSocket Kapcsolódás
+    // ------------------------------------------------------------------------
+    function initWebSocket() {
+      if (typeof ActionCable === 'undefined') {
+        console.warn("ActionCable könyvtár nincs betöltve, fallback REST betöltés...");
+        loadHistoryFallback();
+        return;
+      }
+
+      const consumer = ActionCable.createConsumer('/cable');
+
+      channelSubscription = consumer.subscriptions.create({ channel: "GlobalChatChannel" }, {
+        connected: function() {
+          if (statusIndicator) {
+            statusIndicator.className = 'chat-status-indicator';
+            statusText.innerText = 'Élő';
+          }
+        },
+        disconnected: function() {
+          if (statusIndicator) {
+            statusIndicator.className = 'chat-status-indicator offline';
+            statusText.innerText = 'Újrakapcsolódás...';
+          }
+        },
+        received: function(data) {
+          if (!data) return;
+
+          if (data.action === 'initial_history') {
+            if (loadingState) loadingState.style.display = 'none';
+            if (Array.isArray(data.messages) && data.messages.length > 0) {
+              data.messages.forEach(m => renderMessage(m, true));
+              scrollToBottom(true);
+            } else if (emptyState) {
+              emptyState.style.display = 'flex';
+            }
+          } else if (data.action === 'new_message') {
+            renderMessage(data.message, false);
+          } else if (data.action === 'message_deleted') {
+            removeMessage(data.message_id);
+          } else if (data.action === 'error') {
+            showAlert(data.message || 'Hiba történt az üzenet feldolgozásakor.');
+          }
+        }
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // REST Fallback (ha a WebSocket nem elérhető)
+    // ------------------------------------------------------------------------
+    function loadHistoryFallback() {
+      fetch('/chat_messages', { headers: { 'Accept': 'application/json' } })
+        .then(r => r.json())
+        .then(data => {
+          if (loadingState) loadingState.style.display = 'none';
+          if (data.success && Array.isArray(data.messages) && data.messages.length > 0) {
+            data.messages.forEach(m => renderMessage(m, true));
+            scrollToBottom(true);
+          } else if (emptyState) {
+            emptyState.style.display = 'flex';
+          }
+        })
+        .catch(() => {
+          if (loadingState) loadingState.innerText = 'Nem sikerült betölteni az üzeneteket.';
+        });
+    }
+
+    // ------------------------------------------------------------------------
+    // Üzenetküldés Kezelő
+    // ------------------------------------------------------------------------
+    function sendMessage() {
+      if (!inputMsg) return;
+      const text = inputMsg.value.trim();
+      if (!text) return;
+
+      if (text.length > 1000) {
+        showAlert("Az üzenet legfeljebb 1000 karakter lehet!");
+        return;
+      }
+
+      if (channelSubscription && typeof channelSubscription.perform === 'function') {
+        channelSubscription.perform('speak', { content: text });
+        inputMsg.value = '';
+        inputMsg.focus();
+      } else {
+        // Fallback REST POST
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        fetch('/chat_messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ content: text })
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            inputMsg.value = '';
+            inputMsg.focus();
+          } else {
+            showAlert(data.error || 'Hiba történt a küldés során.');
+          }
+        })
+        .catch(() => {
+          showAlert('Nem sikerült elküldeni az üzenetet.');
+        });
+      }
+    }
+
+    if (inputForm) {
+      inputForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        sendMessage();
+      });
+    }
+
+    if (inputMsg) {
+      inputMsg.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendMessage();
+        }
+      });
+    }
+
+    // Inicializálás az oldal betöltésekor
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initWebSocket);
+    } else {
+      initWebSocket();
+    }
+  })();
+</script>

@@ -62,6 +62,16 @@ class Rack::Attack
   end
 
   # ----------------------------------------------------------------------------
+  # 4/B. Globális Chat Üzenetküldés Védelme (Spam és flood védelem)
+  # ----------------------------------------------------------------------------
+  # Max 30 üzenetküldési kérés percenként IP-nként a REST végponton
+  throttle("chat/messages/ip", limit: 30, period: 1.minute) do |req|
+    if req.post? && req.path == "/chat_messages"
+      req.ip
+    end
+  end
+
+  # ----------------------------------------------------------------------------
   # 5. Általános Kérésszám-korlátozás (Globális DoS és Scraper Védelem)
   # ----------------------------------------------------------------------------
   # Max 300 kérés percenként IP-nként (statikus assetek kivételével)

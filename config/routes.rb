@@ -28,6 +28,9 @@ Rails.application.routes.draw do
   patch  "/profile/:id",  to: "profiles#update", as: :update_user_profile
   get    "/users/:id",    to: "profiles#show"    # Kényelmi alias kompatibilitásért
 
+  # 3/C. Globális Chat REST Végpontok
+  resources :chat_messages, only: [:index, :create, :destroy]
+
   # 4. Védett Rendszergazdai Névtér (/bank-admin)
   namespace :admin, path: "bank-admin" do
     root to: "dashboard#index"
