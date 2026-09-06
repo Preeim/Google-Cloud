@@ -75,9 +75,158 @@
     0% { transform: scale(0.6); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
   }
+
+  /* Lebegő értesítési rendszer (In-game Toast Notification) */
+  #casino-toast-container {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+    max-width: 500px;
+    width: calc(100% - 32px);
+  }
+
+  .casino-toast {
+    pointer-events: auto;
+    background: #0f172a;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    animation: toastSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+
+  .casino-toast.toast-warning {
+    border: 1px solid #f59e0b;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(245, 158, 11, 0.25);
+  }
+
+  .casino-toast.toast-danger {
+    border: 1px solid #ef4444;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(239, 68, 68, 0.25);
+  }
+
+  .casino-toast.toast-info {
+    border: 1px solid #38bdf8;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(56, 189, 248, 0.25);
+  }
+
+  @keyframes toastSlideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-24px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .casino-toast-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .casino-toast-content {
+    flex: 1;
+  }
+
+  .casino-toast-title {
+    font-size: 0.98rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+    color: #f8fafc;
+  }
+
+  .casino-toast.toast-warning .casino-toast-title {
+    color: #fef08a;
+  }
+
+  .casino-toast.toast-danger .casino-toast-title {
+    color: #fca5a5;
+  }
+
+  .casino-toast.toast-info .casino-toast-title {
+    color: #7dd3fc;
+  }
+
+  .casino-toast-message {
+    font-size: 0.88rem;
+    color: #cbd5e1;
+    line-height: 1.45;
+  }
+
+  .casino-toast-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 7px 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .casino-toast-action-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    transform: translateY(-1px);
+  }
+
+  .casino-toast.toast-warning .casino-toast-action-btn {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+    color: #fef08a;
+  }
+  .casino-toast.toast-warning .casino-toast-action-btn:hover {
+    background: rgba(245, 158, 11, 0.3);
+  }
+
+  .casino-toast.toast-danger .casino-toast-action-btn {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+    color: #fca5a5;
+  }
+  .casino-toast.toast-danger .casino-toast-action-btn:hover {
+    background: rgba(239, 68, 68, 0.3);
+  }
+
+  .casino-toast-close {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px;
+    margin: -4px -4px 0 0;
+    transition: color 0.15s ease;
+  }
+
+  .casino-toast-close:hover {
+    color: #f8fafc;
+  }
 </style>
 
+<!-- Lebegő Toast Értesítési Konténer -->
+<div id="casino-toast-container" aria-live="polite"></div>
+
 <div class="card" style="background: #0d1527; border: 2px solid #1e293b; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 24px;">
+
 
   <% if @table.game_type == "roulette" %>
     <!-- ==================== EURÓPAI RULETT FELÜLET ==================== -->
@@ -480,11 +629,85 @@
   (function() {
     let currentSelectedBet = null;
     let currentSelectedAmount = 50;
+    const minBet = <%= @table.min_bet %>;
+    const maxBet = <%= @table.max_bet %>;
+    let userChips = <%= current_casino_profile&.chips || 0 %>;
     const tableSlug = "<%= @table.slug %>";
     const tableId = "<%= @table.id %>";
     const submitBtn = document.getElementById('btn-submit-bet');
     const selectedBetDisplay = document.getElementById('selected-bet-display');
     const timerElem = document.getElementById('countdown-timer');
+
+    // In-game Prémium Lebegő Értesítő Rendszer (Toast)
+    function showCasinoToast({ title, message, type = 'warning', icon = '⚠️', actionText = null, onAction = null, duration = 5000 }) {
+      const container = document.getElementById('casino-toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      toast.className = `casino-toast toast-${type}`;
+      toast.setAttribute('role', 'alert');
+
+      let actionBtnHtml = '';
+      if (actionText) {
+        actionBtnHtml = `<button type="button" class="casino-toast-action-btn">${actionText}</button>`;
+      }
+
+      toast.innerHTML = `
+        <div class="casino-toast-icon">${icon}</div>
+        <div class="casino-toast-content">
+          <div class="casino-toast-title">${title}</div>
+          <div class="casino-toast-message">${message}</div>
+          ${actionBtnHtml}
+        </div>
+        <button type="button" class="casino-toast-close" aria-label="Bezárás">&times;</button>
+      `;
+
+      if (actionText && onAction) {
+        const btn = toast.querySelector('.casino-toast-action-btn');
+        if (btn) {
+          btn.addEventListener('click', () => {
+            onAction();
+            dismissToast(toast);
+          });
+        }
+      }
+
+      const closeBtn = toast.querySelector('.casino-toast-close');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => dismissToast(toast));
+      }
+
+      container.appendChild(toast);
+
+      const timeoutId = setTimeout(() => {
+        dismissToast(toast);
+      }, duration);
+
+      function dismissToast(el) {
+        clearTimeout(timeoutId);
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-20px) scale(0.95)';
+        setTimeout(() => el.remove(), 250);
+      }
+    }
+
+    // Tétösszeg kiválasztása programozottan (gyorsgombokból)
+    function selectBetAmount(amt) {
+      currentSelectedAmount = amt;
+      document.querySelectorAll('.chip-select-btn').forEach(btn => {
+        const a = parseInt(btn.getAttribute('data-amount'), 10);
+        if (a === amt) {
+          btn.style.borderColor = '#fbbf24';
+          btn.classList.add('active');
+        } else {
+          btn.style.borderColor = '#475569';
+          btn.classList.remove('active');
+        }
+      });
+      if (currentSelectedBet && selectedBetDisplay) {
+        selectedBetDisplay.textContent = currentSelectedBet.toUpperCase() + " (" + currentSelectedAmount.toLocaleString() + " zseton)";
+      }
+    }
 
     // 1. Zseton választó gombok
     document.querySelectorAll('.chip-select-btn').forEach(btn => {
@@ -496,6 +719,9 @@
         this.style.borderColor = '#fbbf24';
         this.classList.add('active');
         currentSelectedAmount = parseInt(this.getAttribute('data-amount'), 10);
+        if (currentSelectedBet && selectedBetDisplay) {
+          selectedBetDisplay.textContent = currentSelectedBet.toUpperCase() + " (" + currentSelectedAmount.toLocaleString() + " zseton)";
+        }
       });
     });
 
@@ -512,7 +738,54 @@
 
     // 3. Tét elhelyezése
     submitBtn.addEventListener('click', function() {
-      if (!currentSelectedBet || currentSelectedAmount <= 0) return;
+      if (!currentSelectedBet) {
+        showCasinoToast({
+          type: 'warning',
+          icon: '🎯',
+          title: 'Válassz Fogadási Mezőt',
+          message: 'A tét elhelyezése előtt kérjük válassz egy mezőt vagy üres széket az asztalon!'
+        });
+        return;
+      }
+
+      // Kliensoldali elő-ellenőrzés: minimum tét
+      if (currentSelectedAmount < minBet) {
+        showCasinoToast({
+          type: 'warning',
+          icon: '⚠️',
+          title: 'Minimális Tét Szükséges',
+          message: `Ezen az asztalon a legkisebb megengedett tét <strong>${minBet.toLocaleString()} zseton</strong>. Kérjük válassz legalább ekkora tétet!`,
+          actionText: `Tét beállítása a minimumra: ${minBet.toLocaleString()} 🪙`,
+          onAction: () => selectBetAmount(minBet)
+        });
+        return;
+      }
+
+      // Kliensoldali elő-ellenőrzés: fedezethiány (nincs elég zseton)
+      if (currentSelectedAmount > userChips) {
+        showCasinoToast({
+          type: 'danger',
+          icon: '🪙',
+          title: 'Nincs Elég Zsetonod',
+          message: `A választott tét (<strong>${currentSelectedAmount.toLocaleString()} zseton</strong>) meghaladja a jelenlegi egyenlegedet (<strong>${userChips.toLocaleString()} zseton</strong>).`,
+          actionText: userChips >= minBet ? `Mindent felteszek (All-In): ${userChips.toLocaleString()} 🪙` : null,
+          onAction: userChips >= minBet ? () => selectBetAmount(userChips) : null
+        });
+        return;
+      }
+
+      // Kliensoldali elő-ellenőrzés: maximális tét
+      if (currentSelectedAmount > maxBet) {
+        showCasinoToast({
+          type: 'warning',
+          icon: '⚠️',
+          title: 'Maximális Tét Túllépve',
+          message: `Ezen az asztalon a legnagyobb megengedett tét <strong>${maxBet.toLocaleString()} zseton</strong>.`,
+          actionText: `Tét beállítása a maximumra: ${maxBet.toLocaleString()} 🪙`,
+          onAction: () => selectBetAmount(maxBet)
+        });
+        return;
+      }
 
       submitBtn.setAttribute('disabled', 'true');
       submitBtn.textContent = "Küldés...";
@@ -537,9 +810,10 @@
         submitBtn.textContent = "Tét Elhelyezése";
 
         if (data.success) {
+          userChips = data.chips !== undefined ? data.chips : (userChips - currentSelectedAmount);
           const headerChip = document.getElementById('player-chips-display');
-          if (headerChip && data.chips !== undefined) {
-            headerChip.textContent = data.chips.toLocaleString();
+          if (headerChip) {
+            headerChip.textContent = userChips.toLocaleString();
           }
 
           const myBetsList = document.getElementById('my-bets-list');
@@ -555,18 +829,50 @@
             startTimer(data.seconds_remaining, "Fogadási Idő");
           }
         } else {
-          submitBtn.removeAttribute('disabled');
-          submitBtn.textContent = "Tét Elhelyezése";
-          alert(data.error || "Hiba történt a tét elhelyezésekor.");
+          // Dizájnos hibamegjelenítés a szerver válasza alapján
+          if (data.error_code === 'below_min_bet' || data.error?.includes('minimum')) {
+            showCasinoToast({
+              type: 'warning',
+              icon: '⚠️',
+              title: 'Minimális Tét Szükséges',
+              message: data.error || `Ezen az asztalon a minimum tét ${minBet.toLocaleString()} zseton.`,
+              actionText: `Tét beállítása: ${minBet.toLocaleString()} 🪙`,
+              onAction: () => selectBetAmount(data.min_bet || minBet)
+            });
+          } else if (data.error_code === 'insufficient_chips' || data.error?.includes('zsetonod') || data.error?.includes('Fedezethiány')) {
+            const avail = data.available_chips !== undefined ? data.available_chips : userChips;
+            userChips = avail;
+            showCasinoToast({
+              type: 'danger',
+              icon: '🪙',
+              title: 'Nincs Elég Zsetonod',
+              message: data.error || `Nincs elég zseton az egyenlegeden (${avail.toLocaleString()} elérhető).`,
+              actionText: avail >= minBet ? `Maximális egyenleg: ${avail.toLocaleString()} 🪙` : null,
+              onAction: avail >= minBet ? () => selectBetAmount(avail) : null
+            });
+          } else {
+            showCasinoToast({
+              type: 'warning',
+              icon: '🛑',
+              title: 'Sikertelen Fogadás',
+              message: data.error || 'Hiba történt a tét elhelyezésekor.'
+            });
+          }
         }
-
       })
       .catch(err => {
         submitBtn.removeAttribute('disabled');
         submitBtn.textContent = "Tét Elhelyezése";
         console.error(err);
+        showCasinoToast({
+          type: 'danger',
+          icon: '🔌',
+          title: 'Hálózati Hiba',
+          message: 'Nem sikerült kommunikálni a játékszerverrel. Kérjük ellenőrizd az internetkapcsolatot!'
+        });
       });
     });
+
 
     // 4. Blackjack Játékos Döntések (Hit / Stand / Double)
     function attachBjActionListeners() {
@@ -588,9 +894,24 @@
           .then(res => res.json())
           .then(data => {
             if (!data.success) {
-              alert(data.error || "Hiba történt a döntés rögzítésekor.");
+              if (data.error_code === 'insufficient_chips' || data.error?.includes('zsetonod') || data.error?.includes('Fedezethiány')) {
+                showCasinoToast({
+                  type: 'danger',
+                  icon: '🪙',
+                  title: 'Nincs Elég Zsetonod a Duplázáshoz',
+                  message: data.error || 'Nincs elegendő zseton az egyenlegeden a tét megduplázásához.'
+                });
+              } else {
+                showCasinoToast({
+                  type: 'warning',
+                  icon: '⚠️',
+                  title: 'Érvénytelen Lépés',
+                  message: data.error || 'Hiba történt a döntés rögzítésekor.'
+                });
+              }
               document.querySelectorAll('.btn-bj-action').forEach(b => b.removeAttribute('disabled'));
-            } else {
+            }
+ else {
               const p = data.player;
               if (p && p.status === 'playing') {
                 if (p.cards && p.cards.length > 2) {
@@ -1028,17 +1349,28 @@
 
             // F) Kör törölve / visszaállítva az admin által
             else if (data.type === 'round_canceled') {
-              alert(data.message || "A kört az adminisztrátor visszaállította.");
-              window.location.reload();
+              showCasinoToast({
+                type: 'info',
+                icon: '🔄',
+                title: 'Kör Újraindítva',
+                message: data.message || "A kört az adminisztrátor visszaállította, a tétek visszajártak."
+              });
+              setTimeout(() => window.location.reload(), 1500);
             }
 
             // G) Asztal állapota módosult (pl. Karbantartás)
             else if (data.type === 'table_state_changed') {
-              alert(data.message);
+              showCasinoToast({
+                type: data.state === 'maintenance' ? 'danger' : 'info',
+                icon: data.state === 'maintenance' ? '🛠️' : '✅',
+                title: 'Asztal Állapot',
+                message: data.message
+              });
               if (data.state === 'maintenance') {
-                window.location.reload();
+                setTimeout(() => window.location.reload(), 1500);
               }
             }
+
           }
         }
       );

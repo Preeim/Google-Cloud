@@ -64,9 +64,9 @@ module Casino
 
     def self.place_bet(table, profile, bet_type, amount)
       amount = amount.to_i
-      return { success: false, error: "A tétnek pozitív számnak kell lennie." } if amount <= 0
-      return { success: false, error: "A tétnek minimum #{table.min_bet} zsetonnak kell lennie." } if amount < table.min_bet
-      return { success: false, error: "A tét legfeljebb #{table.max_bet} zseton lehet." } if amount > table.max_bet
+      return { success: false, error: "A tétnek pozitív számnak kell lennie.", error_code: "invalid_amount" } if amount <= 0
+      return { success: false, error: "A tétnek minimum #{table.min_bet} zsetonnak kell lennie.", error_code: "below_min_bet", min_bet: table.min_bet } if amount < table.min_bet
+      return { success: false, error: "A tét legfeljebb #{table.max_bet} zseton lehet.", error_code: "above_max_bet", max_bet: table.max_bet } if amount > table.max_bet
 
       bet_type_str = bet_type.to_s.downcase.strip
 
@@ -85,8 +85,9 @@ module Casino
 
       bet = nil
       needs_timer = false
-      table.with_lock do
+      insufficient_error = nil
 
+      table.with_lock do
         table.reload
         return { success: false, error: "Az asztal jelenleg karbantartás alatt áll." } if table.state == "maintenance"
         return { success: false, error: "A lapok már kiosztásra kerültek erre a körre." } if %w[player_turns resolving].include?(table.state)
@@ -114,7 +115,18 @@ module Casino
 
         # Zseton levonása zárolással és fedezet-ellenőrzéssel
         profile.with_lock do
-          raise "Fedezethiány: nincs elegendő zsetonod a fogadáshoz." unless profile.can_afford?(amount)
+          unless profile.can_afford?(amount)
+            insufficient_error = {
+              success: false,
+              error: "Nincs elegendő zsetonod a fogadáshoz! Elérhető egyenleged: #{profile.chips} zseton.",
+              error_code: "insufficient_chips",
+              available_chips: profile.chips,
+              required_amount: amount,
+              min_bet: table.min_bet
+            }
+            break
+          end
+
           profile.deduct_chips!(
             amount,
             transaction_type: "bet",
@@ -122,6 +134,8 @@ module Casino
             metadata: { table_id: table.id, round_number: table.round_number, bet_type: bet_type_str }
           )
         end
+
+        return insufficient_error if insufficient_error
 
         # Tét rögzítése
         bet = table.bets.create!(
@@ -132,6 +146,7 @@ module Casino
           status: "pending"
         )
       end
+
 
       # Ha ez volt az első tét, kiküldjük a visszaszámlálás indító eseményt is
       if needs_timer
@@ -295,7 +310,16 @@ module Casino
           orig_amount = player["amount"].to_i
 
           profile.with_lock do
-            return { success: false, error: "Nincs elég zsetonod a duplázáshoz (#{orig_amount} szükséges)." } unless profile.can_afford?(orig_amount)
+            unless profile.can_afford?(orig_amount)
+              return {
+                success: false,
+                error: "Nincs elég zsetonod a tét megduplázásához! Szükséges: #{orig_amount} zseton, elérhető: #{profile.chips} zseton.",
+                error_code: "insufficient_chips",
+                available_chips: profile.chips,
+                required_amount: orig_amount
+              }
+            end
+
 
             # Kiegészítő tét levonása zárolással
             profile.deduct_chips!(

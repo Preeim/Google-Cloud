@@ -28,8 +28,9 @@ module Casino
           if res[:success]
             render json: { success: true, chips: current_casino_profile.reload.chips, bet: res[:bet], seconds_remaining: res[:seconds_remaining] }
           else
-            render json: { success: false, error: res[:error] }, status: :unprocessable_entity
+            render json: res, status: :unprocessable_entity
           end
+
         end
         format.html do
           if res[:success]
