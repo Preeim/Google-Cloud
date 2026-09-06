@@ -222,9 +222,26 @@
       <div class="player-clock" id="opponent-clock">--:--</div>
     </div>
 
-    <!-- Center: Board -->
-    <div class="board-wrapper">
-      <div id="chess-board"></div>
+    <!-- Center: Board with SVG arrows layer and resize handle -->
+    <div class="board-wrapper" id="board-wrapper">
+      <div class="board-relative-container" id="board-relative-container">
+        <div id="chess-board"></div>
+        <svg id="chess-arrows-svg" class="chess-arrows-svg" viewBox="0 0 800 800" preserveAspectRatio="none">
+          <defs>
+            <marker id="arrowhead" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="rgba(251, 191, 36, 0.9)" />
+            </marker>
+          </defs>
+          <g id="svg-highlights-group"></g>
+          <g id="svg-arrows-group"></g>
+          <g id="svg-preview-group"></g>
+        </svg>
+        <div id="board-resizer" class="board-resizer" title="Tábla átméretezése (húzd a saroknál)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M22 22H20V20H22V22ZM22 18H20V16H22V18ZM18 22H16V20H18V22ZM18 18H16V16H18V18ZM14 22H12V20H14V22ZM22 14H20V12H22V14Z" opacity="0.8"/>
+          </svg>
+        </div>
+      </div>
     </div>
 
     <!-- Replay Controls (Visible for completed games or upon game over) -->
@@ -279,20 +296,24 @@
     </div>
 
     <div class="pgn-box">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <h4 style="margin: 0;">Lépések (PGN)</h4>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h4 style="margin: 0; display: flex; align-items: center; gap: 8px;">
+          <span>📜</span> Lépések
+          <button type="button" id="btn-live-state" class="btn-live-state" style="display: none;" title="Visszaugrás az élő állásra">⚡ Élő állás</button>
+        </h4>
         <button type="button" id="btn-open-pgn-modal" class="btn btn-secondary btn-sm" style="border-color: #38bdf8; color: #38bdf8; padding: 3px 8px; font-size: 0.78rem;">
           📜 Export & PGN
         </button>
       </div>
       <textarea id="pgn-content" readonly style="display: none;"><%= @match.pgn %></textarea>
-      <div id="pgn-quick-preview" class="pgn-quick-preview">
-        <% if @match.pgn.present? %>
-          <%= @match.pgn %>
-        <% else %>
-          <span style="color: #64748b; font-style: italic;">Még nem történt lépés.</span>
-        <% end %>
+
+      <!-- Strukturált Kétoszlopos Lépéslista -->
+      <div id="pgn-structured-container" class="pgn-structured-container">
+        <div id="pgn-structured-list" class="pgn-structured-list">
+          <div class="pgn-empty-text">Még nem történt lépés.</div>
+        </div>
       </div>
+
       <div style="display: flex; gap: 6px; margin-top: 8px;">
         <button type="button" id="btn-copy-pgn" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 0.8rem;">
           📋 Másolás
@@ -320,8 +341,11 @@
     gap: 1.5rem;
     padding: 1.5rem 1rem;
     color: #e2e8f0;
-    max-width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
     box-sizing: border-box;
+    --board-size: 450px;
+    --game-board-width: 480px;
   }
   .game-layout {
     display: flex;
@@ -332,12 +356,13 @@
     border-radius: 10px;
     border: 1px solid #1a243b;
     width: 100%;
-    max-width: 480px;
+    max-width: var(--game-board-width, 480px);
     box-sizing: border-box;
+    transition: max-width 0.05s ease;
   }
   .player-info {
     width: 100%;
-    max-width: 450px;
+    max-width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -397,14 +422,54 @@
   }
   .board-wrapper {
     width: 100%;
-    max-width: 450px;
+    max-width: var(--board-size, 450px);
     margin: 0 auto;
     display: flex;
     justify-content: center;
   }
+  .board-relative-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 1 / 1;
+  }
+  .chess-arrows-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .board-resizer {
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
+    background: #11192e;
+    border: 1px solid #23304d;
+    border-radius: 4px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: nwse-resize;
+    z-index: 35;
+    user-select: none;
+    touch-action: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .board-resizer:hover {
+    background: #1a243b;
+    color: #38bdf8;
+    border-color: #38bdf8;
+  }
   #chess-board {
     width: 100%;
-    max-width: 450px;
+    max-width: 100%;
     aspect-ratio: 1 / 1;
     border-radius: 4px;
     overflow: hidden;
@@ -416,6 +481,10 @@
   .square-selected {
     background-color: rgba(56, 189, 248, 0.45) !important;
     box-shadow: inset 0 0 6px 2px #38bdf8 !important;
+  }
+  .square-premove {
+    background-color: rgba(6, 182, 212, 0.45) !important;
+    box-shadow: inset 0 0 0 3px #06b6d4, inset 0 0 10px rgba(6, 182, 212, 0.6) !important;
   }
   .square-target-hint {
     position: relative;
@@ -431,6 +500,87 @@
     left: 34%;
     pointer-events: none;
     z-index: 10;
+  }
+  .pgn-structured-container {
+    width: 100%;
+    height: 165px;
+    overflow-y: auto;
+    background: #0a0f1d;
+    border: 1px solid #1a243b;
+    border-radius: 6px;
+    box-sizing: border-box;
+    scroll-behavior: smooth;
+  }
+  .pgn-structured-container::-webkit-scrollbar { width: 5px; }
+  .pgn-structured-container::-webkit-scrollbar-thumb { background: #23304d; border-radius: 3px; }
+  .pgn-structured-list {
+    width: 100%;
+  }
+  .pgn-empty-text {
+    color: #64748b;
+    font-style: italic;
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 2.5rem 1rem;
+  }
+  .pgn-live-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.85rem;
+  }
+  .pgn-live-row:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .pgn-live-row:hover {
+    background: rgba(56, 189, 248, 0.05);
+  }
+  .pgn-live-num {
+    width: 38px;
+    color: #64748b;
+    font-weight: 600;
+    padding: 0.35rem 0.5rem;
+    text-align: right;
+    user-select: none;
+    border-right: 1px solid #141c2e;
+  }
+  .pgn-live-cell {
+    padding: 0.35rem 0.65rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    user-select: none;
+    width: 44%;
+  }
+  .pgn-live-white {
+    color: #38bdf8;
+    font-weight: 600;
+  }
+  .pgn-live-black {
+    color: #e2e8f0;
+  }
+  .pgn-live-cell:hover {
+    background: rgba(56, 189, 248, 0.15);
+  }
+  .pgn-live-cell.active-ply {
+    background: rgba(251, 191, 36, 0.22);
+    color: #fbbf24 !important;
+    font-weight: 700;
+    border-radius: 3px;
+  }
+  .btn-live-state {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid #38bdf8;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-live-state:hover {
+    background: #38bdf8;
+    color: #0a0f1d;
   }
   .sidebar-controls {
     width: 100%;
@@ -783,6 +933,9 @@
     }
     #chess-board {
       max-width: min(94vw, 54vh);
+    }
+    .board-resizer {
+      display: none !important;
     }
     .player-info {
       padding: 0.4rem 0.6rem;
@@ -1179,8 +1332,11 @@ document.addEventListener("DOMContentLoaded", function() {
     }, 250);
   }
 
-  // Tap-to-move and Selection Handling for Touch & Click
+  // Tap-to-move, Selection & Premove Handling
   let selectedSquare = null;
+  let pendingPremove = null;
+  let selectedPremoveSource = null;
+  let currentBrowsedPlyIndex = null;
 
   function removeHighlights() {
     $('#chess-board [data-square]').removeClass('square-selected square-target-hint');
@@ -1197,6 +1353,46 @@ document.addEventListener("DOMContentLoaded", function() {
     } catch (e) {}
   }
 
+  function clearPremove() {
+    pendingPremove = null;
+    selectedPremoveSource = null;
+    $('#chess-board [data-square]').removeClass('square-premove');
+  }
+
+  function setPremove(from, to) {
+    clearPremove();
+    pendingPremove = { from: from, to: to, promotion: 'q' };
+    $('#chess-board [data-square="' + from + '"]').addClass('square-premove');
+    $('#chess-board [data-square="' + to + '"]').addClass('square-premove');
+    showChessToast({ title: "Premove beállítva", message: from.toUpperCase() + " ➔ " + to.toUpperCase(), type: "info", duration: 1800, icon: "⚡" });
+  }
+
+  function handlePremoveTap(square) {
+    const myPiecePrefix = myColor === 'white' ? 'w' : 'b';
+    const pieceOnSquare = game.get(square);
+
+    if (selectedPremoveSource) {
+      if (selectedPremoveSource === square) {
+        clearPremove();
+        removeHighlights();
+        return;
+      }
+      if (pieceOnSquare && pieceOnSquare.color === myPiecePrefix) {
+        selectedPremoveSource = square;
+        highlightSquare(square);
+        return;
+      }
+      setPremove(selectedPremoveSource, square);
+      selectedPremoveSource = null;
+      removeHighlights();
+    } else {
+      if (pieceOnSquare && pieceOnSquare.color === myPiecePrefix) {
+        selectedPremoveSource = square;
+        highlightSquare(square);
+      }
+    }
+  }
+
   function handleSquareTap(square) {
     if (isCompleted || isSpectator || container.dataset.status !== 'active') return;
     if (game.game_over()) return;
@@ -1206,9 +1402,21 @@ document.addEventListener("DOMContentLoaded", function() {
       if (myColor === 'black' && blackTimeMs !== null && blackTimeMs <= 0) return;
     }
 
+    // Ha épp korábbi lépést néz vissza a felhasználó, ugrunk vissza az élő állásra
+    if (currentBrowsedPlyIndex !== null) {
+      currentBrowsedPlyIndex = null;
+      board.position(game.fen(), false);
+      updateStructuredPgnList();
+    }
+
     const currentTurn = game.turn();
     const myTurnKey = myColor === 'white' ? 'w' : (myColor === 'black' ? 'b' : null);
-    if (currentTurn !== myTurnKey) return;
+    const isMyTurn = currentTurn === myTurnKey;
+
+    if (!isMyTurn) {
+      handlePremoveTap(square);
+      return;
+    }
 
     const pieceOnSquare = game.get(square);
 
@@ -1228,6 +1436,7 @@ document.addEventListener("DOMContentLoaded", function() {
       if (move !== null) {
         selectedSquare = null;
         removeHighlights();
+        clearPremove();
         board.position(game.fen());
         if (window.matchSubscription) {
           window.matchSubscription.perform("make_move", { 
@@ -1240,14 +1449,13 @@ document.addEventListener("DOMContentLoaded", function() {
         return;
       }
 
-      // If clicked another own piece, select it instead
+      // Ha másik saját bábura kattintott
       if (pieceOnSquare && pieceOnSquare.color === currentTurn) {
         selectedSquare = square;
         highlightSquare(square);
         return;
       }
 
-      // Invalid move / empty square: cancel selection
       selectedSquare = null;
       removeHighlights();
     } else {
@@ -1258,7 +1466,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
 
-  // Click on board square for tap-to-move
+  // Kattintás mezőre (tap-to-move és tap-to-premove)
   $('#chess-board').on('click', '[data-square]', function(e) {
     const square = $(this).data('square');
     if (square) {
@@ -1266,7 +1474,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   });
 
-  // Board Event Handlers
+  // Tábla Drag & Drop Eseménykezelők
   function onDragStart (source, piece, position, orientation) {
     removeHighlights();
     selectedSquare = null;
@@ -1275,17 +1483,31 @@ document.addEventListener("DOMContentLoaded", function() {
     if (container.dataset.status !== 'active') return false;
     if (game.game_over()) return false;
     
-    // Check if player's time has run out
+    // Időellenőrzés
     if (timeControlSeconds) {
       if (myColor === 'white' && whiteTimeMs !== null && whiteTimeMs <= 0) return false;
       if (myColor === 'black' && blackTimeMs !== null && blackTimeMs <= 0) return false;
     }
 
-    // Check turn
-    if (myColor === 'white' && game.turn() === 'b') return false;
-    if (myColor === 'black' && game.turn() === 'w') return false;
+    // Ha korábbi állást böngészett, visszaállunk az élő állásra
+    if (currentBrowsedPlyIndex !== null) {
+      currentBrowsedPlyIndex = null;
+      board.position(game.fen(), false);
+      updateStructuredPgnList();
+    }
 
-    // Do not pick up opponent pieces
+    const myPiecePrefix = myColor === 'white' ? 'w' : 'b';
+    const isMyTurn = game.turn() === myPiecePrefix;
+
+    if (!isMyTurn) {
+      // Premove esetén csak saját bábut engedünk felvenni
+      if (!piece.startsWith(myPiecePrefix)) {
+        return false;
+      }
+      return true;
+    }
+
+    // Saját kör: ellenfél bábuját nem vehetjük fel
     if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
         (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
       return false;
@@ -1296,6 +1518,17 @@ document.addEventListener("DOMContentLoaded", function() {
     removeHighlights();
     selectedSquare = null;
 
+    if (source === target) return 'snapback';
+
+    const myPiecePrefix = myColor === 'white' ? 'w' : 'b';
+    const isMyTurn = game.turn() === myPiecePrefix;
+
+    if (!isMyTurn) {
+      // Premove rögzítése és a bábu visszahúzása az eredeti helyére a táblán
+      setPremove(source, target);
+      return 'snapback';
+    }
+
     var move = game.move({
       from: source,
       to: target,
@@ -1303,6 +1536,8 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     if (move === null) return 'snapback';
+
+    clearPremove();
 
     if (window.matchSubscription) {
       window.matchSubscription.perform("make_move", { 
@@ -1322,11 +1557,75 @@ document.addEventListener("DOMContentLoaded", function() {
   function updateStatus () {
     var pgnVal = game.pgn() || '';
     $('#pgn-content').val(pgnVal);
-    if ($('#pgn-quick-preview').length) {
-      $('#pgn-quick-preview').text(pgnVal && pgnVal.trim().length > 0 ? pgnVal : "Még nem történt lépés.");
-    }
     updateTurnIndicator();
+    updateStructuredPgnList();
     updatePgnModalContent();
+    renderArrowsAndHighlights();
+  }
+
+  function updateStructuredPgnList() {
+    var $list = $('#pgn-structured-list');
+    if (!$list.length) return;
+
+    var history = game.history({ verbose: true });
+    if (!history || history.length === 0) {
+      $list.html('<div class="pgn-empty-text">Még nem történt lépés.</div>');
+      $('#btn-live-state').hide();
+      return;
+    }
+
+    var html = '<table class="pgn-live-table"><tbody>';
+    for (var i = 0; i < history.length; i += 2) {
+      var moveNum = Math.floor(i / 2) + 1;
+      var whitePly = history[i];
+      var blackPly = history[i + 1];
+
+      var isWhiteActive = (currentBrowsedPlyIndex === i) || (currentBrowsedPlyIndex === null && i === history.length - 1);
+      var isBlackActive = (currentBrowsedPlyIndex === i + 1) || (currentBrowsedPlyIndex === null && (i + 1) === history.length - 1);
+
+      html += '<tr class="pgn-live-row">';
+      html += '<td class="pgn-live-num">' + moveNum + '.</td>';
+      html += '<td class="pgn-live-cell pgn-live-white ' + (isWhiteActive ? 'active-ply' : '') + '" data-ply="' + i + '">' + (whitePly ? whitePly.san : '') + '</td>';
+      html += '<td class="pgn-live-cell pgn-live-black ' + (isBlackActive ? 'active-ply' : '') + '" data-ply="' + (i + 1) + '">' + (blackPly ? blackPly.san : '') + '</td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    $list.html(html);
+
+    if (currentBrowsedPlyIndex !== null) {
+      $('#btn-live-state').show();
+    } else {
+      $('#btn-live-state').hide();
+      var containerEl = document.getElementById('pgn-structured-container');
+      if (containerEl) {
+        containerEl.scrollTop = containerEl.scrollHeight;
+      }
+    }
+  }
+
+  $(document).on('click', '.pgn-live-cell', function() {
+    var ply = parseInt($(this).data('ply'), 10);
+    if (isNaN(ply)) return;
+    browseToPly(ply);
+  });
+
+  $('#btn-live-state').on('click', function() {
+    currentBrowsedPlyIndex = null;
+    board.position(game.fen(), false);
+    updateStructuredPgnList();
+  });
+
+  function browseToPly(plyIndex) {
+    currentBrowsedPlyIndex = plyIndex;
+    var tempGame = new Chess();
+    var history = game.history();
+
+    for (var i = 0; i <= plyIndex && i < history.length; i++) {
+      tempGame.move(history[i]);
+    }
+
+    board.position(tempGame.fen(), false);
+    updateStructuredPgnList();
   }
 
   function updateTurnIndicator() {
@@ -1442,11 +1741,257 @@ document.addEventListener("DOMContentLoaded", function() {
   // Responsive Resize
   $(window).on('resize orientationchange', function() {
     if (board) board.resize();
+    renderArrowsAndHighlights();
   });
 
   // Replay init if already completed
   if (isCompleted) {
     buildReplayPositions();
+  }
+
+  // ==========================================
+  // SVG Nyilak és Mezőkijelölések Kezelése
+  // ==========================================
+  let drawnArrows = [];
+  let highlightedSquares = new Set();
+  let rightClickStartSquare = null;
+  let isRightClicking = false;
+
+  function getSquareFromEvent(e) {
+    const boardEl = document.getElementById('chess-board');
+    if (!boardEl) return null;
+    const rect = boardEl.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (x < 0 || x > rect.width || y < 0 || y > rect.height) return null;
+
+    const col = Math.floor((x / rect.width) * 8);
+    const row = Math.floor((y / rect.height) * 8);
+
+    if (col < 0 || col > 7 || row < 0 || row > 7) return null;
+
+    const orientation = board ? board.orientation() : (myColor === 'black' ? 'black' : 'white');
+    if (orientation === 'white') {
+      const file = 'abcdefgh'[col];
+      const rank = 8 - row;
+      return file + rank;
+    } else {
+      const file = 'abcdefgh'[7 - col];
+      const rank = row + 1;
+      return file + rank;
+    }
+  }
+
+  function squareToCoords(square) {
+    if (!square || square.length < 2) return null;
+    const file = square[0];
+    const rank = parseInt(square[1], 10);
+    const fileIdx = 'abcdefgh'.indexOf(file);
+    if (fileIdx === -1 || isNaN(rank)) return null;
+
+    const orientation = board ? board.orientation() : (myColor === 'black' ? 'black' : 'white');
+    let col, row;
+    if (orientation === 'white') {
+      col = fileIdx;
+      row = 8 - rank;
+    } else {
+      col = 7 - fileIdx;
+      row = rank - 1;
+    }
+    return {
+      x: col * 100,
+      y: row * 100,
+      cx: col * 100 + 50,
+      cy: row * 100 + 50
+    };
+  }
+
+  function renderArrowsAndHighlights() {
+    const $hl = $('#svg-highlights-group');
+    const $ar = $('#svg-arrows-group');
+    $hl.empty();
+    $ar.empty();
+
+    highlightedSquares.forEach(function(sq) {
+      const coords = squareToCoords(sq);
+      if (coords) {
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute("x", coords.x);
+        rect.setAttribute("y", coords.y);
+        rect.setAttribute("width", "100");
+        rect.setAttribute("height", "100");
+        rect.setAttribute("fill", "rgba(251, 191, 36, 0.4)");
+        rect.setAttribute("rx", "6");
+        rect.setAttribute("ry", "6");
+        $hl.append(rect);
+      }
+    });
+
+    drawnArrows.forEach(function(arr) {
+      const c1 = squareToCoords(arr.from);
+      const c2 = squareToCoords(arr.to);
+      if (c1 && c2) {
+        renderSingleArrow($ar, c1.cx, c1.cy, c2.cx, c2.cy);
+      }
+    });
+  }
+
+  function renderSingleArrow($container, x1, y1, x2, y2) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const endX = x2 - Math.cos(angle) * 26;
+    const endY = y2 - Math.sin(angle) * 26;
+    const startX = x1 + Math.cos(angle) * 16;
+    const startY = y1 + Math.sin(angle) * 16;
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", startX);
+    line.setAttribute("y1", startY);
+    line.setAttribute("x2", endX);
+    line.setAttribute("y2", endY);
+    line.setAttribute("stroke", "rgba(251, 191, 36, 0.9)");
+    line.setAttribute("stroke-width", "16");
+    line.setAttribute("stroke-linecap", "round");
+    line.setAttribute("marker-end", "url(#arrowhead)");
+    $container.append(line);
+  }
+
+  function renderPreviewArrow(fromSq, toSq) {
+    const $prev = $('#svg-preview-group');
+    $prev.empty();
+    const c1 = squareToCoords(fromSq);
+    const c2 = squareToCoords(toSq);
+    if (c1 && c2) {
+      renderSingleArrow($prev, c1.cx, c1.cy, c2.cx, c2.cy);
+    }
+  }
+
+  function clearArrowsAndHighlights() {
+    drawnArrows = [];
+    highlightedSquares.clear();
+    $('#svg-highlights-group').empty();
+    $('#svg-arrows-group').empty();
+    $('#svg-preview-group').empty();
+  }
+
+  // Jobb klikk kezelése a tábla felületén
+  $('#board-relative-container').on('contextmenu', function(e) {
+    e.preventDefault();
+    return false;
+  });
+
+  $('#board-relative-container').on('mousedown', function(e) {
+    if (e.button === 2) {
+      e.preventDefault();
+      if (pendingPremove) {
+        clearPremove();
+        showChessToast({ title: "Premove törölve", message: "Az előzetes lépés visszavonva.", type: "info", duration: 1500, icon: "↩️" });
+      }
+      const sq = getSquareFromEvent(e);
+      if (sq) {
+        isRightClicking = true;
+        rightClickStartSquare = sq;
+      }
+    } else if (e.button === 0) {
+      clearArrowsAndHighlights();
+    }
+  });
+
+  $(window).on('mousemove', function(e) {
+    if (!isRightClicking || !rightClickStartSquare) return;
+    const currentSq = getSquareFromEvent(e);
+    if (currentSq && currentSq !== rightClickStartSquare) {
+      renderPreviewArrow(rightClickStartSquare, currentSq);
+    } else {
+      $('#svg-preview-group').empty();
+    }
+  });
+
+  $(window).on('mouseup', function(e) {
+    if (!isRightClicking) return;
+    if (e.button === 2) {
+      isRightClicking = false;
+      const endSquare = getSquareFromEvent(e);
+      $('#svg-preview-group').empty();
+
+      if (rightClickStartSquare && endSquare) {
+        if (rightClickStartSquare === endSquare) {
+          if (highlightedSquares.has(endSquare)) {
+            highlightedSquares.delete(endSquare);
+          } else {
+            highlightedSquares.add(endSquare);
+          }
+        } else {
+          const existingIdx = drawnArrows.findIndex(a => a.from === rightClickStartSquare && a.to === endSquare);
+          if (existingIdx !== -1) {
+            drawnArrows.splice(existingIdx, 1);
+          } else {
+            drawnArrows.push({ from: rightClickStartSquare, to: endSquare });
+          }
+        }
+        renderArrowsAndHighlights();
+      }
+      rightClickStartSquare = null;
+    }
+  });
+
+  // ==========================================
+  // PC Tábla Átméretezés (Board Resize)
+  // ==========================================
+  function applyBoardSize(size) {
+    size = Math.max(320, Math.min(820, size));
+    const container = document.querySelector('.chess-game-container');
+    if (container) {
+      container.style.setProperty('--board-size', size + 'px');
+      container.style.setProperty('--game-board-width', (size + 30) + 'px');
+    }
+    if (board) {
+      board.resize();
+    }
+    renderArrowsAndHighlights();
+  }
+
+  let isResizingBoard = false;
+  let resizeStartX = 0;
+  let resizeStartWidth = 450;
+
+  $('#board-resizer').on('mousedown touchstart', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizingBoard = true;
+    resizeStartX = e.type.startsWith('touch') ? e.originalEvent.touches[0].clientX : e.clientX;
+    resizeStartWidth = $('#chess-board').width() || 450;
+    $('body').css('cursor', 'nwse-resize').css('user-select', 'none');
+  });
+
+  $(window).on('mousemove touchmove', function(e) {
+    if (!isResizingBoard) return;
+    const clientX = e.type.startsWith('touch') ? e.originalEvent.touches[0].clientX : e.clientX;
+    const delta = clientX - resizeStartX;
+    const newWidth = Math.round(resizeStartWidth + delta);
+    applyBoardSize(newWidth);
+  });
+
+  $(window).on('mouseup touchend', function(e) {
+    if (isResizingBoard) {
+      isResizingBoard = false;
+      $('body').css('cursor', '').css('user-select', '');
+      const finalWidth = $('#chess-board').width();
+      if (finalWidth) {
+        localStorage.setItem('chess_board_size', finalWidth);
+      }
+    }
+  });
+
+  // Korábban mentett méret betöltése PC nézetben
+  if (window.innerWidth > 768) {
+    const saved = localStorage.getItem('chess_board_size');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 320 && parsed <= 820) {
+        applyBoardSize(parsed);
+      }
+    }
   }
 
   // Ensure share link input uses current browser origin
@@ -1797,6 +2342,40 @@ document.addEventListener("DOMContentLoaded", function() {
           isCompleted = true;
           container.dataset.status = "completed";
           if (clockInterval) clearInterval(clockInterval);
+          clearPremove();
+        } else {
+          // Ha volt beállított premove, és most a mi körünk jön, azonnal végrehajtjuk
+          const myPiecePrefix = myColor === 'white' ? 'w' : 'b';
+          if (pendingPremove && game.turn() === myPiecePrefix && !isCompleted) {
+            const premove = pendingPremove;
+            clearPremove();
+
+            const moveResult = game.move({
+              from: premove.from,
+              to: premove.to,
+              promotion: premove.promotion || 'q'
+            });
+
+            if (moveResult !== null) {
+              board.position(game.fen());
+              if (window.matchSubscription) {
+                window.matchSubscription.perform("make_move", {
+                  san_move: moveResult.san,
+                  fen: game.fen(),
+                  pgn: game.pgn()
+                });
+              }
+              updateStatus();
+            } else {
+              showChessToast({
+                title: "Premove törölve",
+                message: "A tervezett lépés a megváltozott állásban nem szabályos.",
+                type: "warning",
+                duration: 2500,
+                icon: "⚠️"
+              });
+            }
+          }
         }
       } else if (data.action === "error") {
         showChessToast({ title: "Szabálytalan lépés", message: data.message, type: "danger", icon: "⚠️" });
@@ -1841,6 +2420,8 @@ document.addEventListener("DOMContentLoaded", function() {
         container.dataset.status = "completed";
         if (clockInterval) clearInterval(clockInterval);
         hidePrompt();
+        clearPremove();
+        clearArrowsAndHighlights();
 
         config.draggable = false;
         board.position(game.fen());
