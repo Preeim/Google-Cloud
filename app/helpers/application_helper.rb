@@ -34,6 +34,17 @@ module ApplicationHelper
     end
   end
 
+  # Elérhető alkalmazások lekérdezése navigációhoz
+  def nav_apps
+    if defined?(AppDefinition)
+      (respond_to?(:admin?) && admin? rescue false) ? AppDefinition.order(:name) : AppDefinition.available_to_users.order(:name)
+    else
+      []
+    end
+  rescue
+    []
+  end
+
   # Modul jelvényének és ikonjának feloldása az aktuális útvonal alapján
   def current_module_info
     path = (respond_to?(:request) && request.respond_to?(:path)) ? request.path : "/"

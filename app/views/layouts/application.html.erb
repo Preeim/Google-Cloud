@@ -118,6 +118,7 @@
   <!-- Fő Elrendezés: Oldalsáv + Színpad -->
   <div class="app-container">
     <aside>
+      <% current_apps = (respond_to?(:nav_apps) ? nav_apps : nil) || ((admin? rescue false) ? AppDefinition.order(:name) : AppDefinition.available_to_users.order(:name) rescue []) %>
       <div class="sidebar-card">
         <div class="sidebar-title">Alkalmazások & Eszközök</div>
         <ul class="nav-list">
@@ -133,7 +134,7 @@
               </a>
             </li>
           <% end %>
-          <% nav_apps.each do |app| %>
+          <% current_apps.each do |app| %>
             <% 
               app_icon = case app.slug
                          when "chess" then "♟️"
