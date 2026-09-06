@@ -67,7 +67,25 @@ blackjack.state = "idle"
 blackjack.save!
 puts "  [+] Kaszinó asztalok konfigurálva: Rulett, Baccarat, Blackjack"
 
-# 4. Teszt / Vendég fiók létrehozása a fejlesztéshez
+# 4. Harmadik Beépülő Modul: Közösségi Rajzvászon (Canvas Engine) regisztrálása
+canvas_app = AppDefinition.find_or_initialize_by(slug: "canvas")
+canvas_app.name = "Közösségi Rajzvászon"
+canvas_app.description = "Valós idejű több felhasználós rajzvászon WebSocket szinkronizációval, simított görbékkel és képexporttal."
+canvas_app.mount_path = "/canvas"
+canvas_app.state = "active"
+canvas_app.icon_identifier = "canvas"
+canvas_app.is_default_accessible = true
+canvas_app.requires_login = false # Vendégek néző módban beléphetnek
+canvas_app.save!
+puts "  [+] Modul regisztrálva: #{canvas_app.name} (#{canvas_app.mount_path}) [Státusz: #{canvas_app.state}]"
+
+# Kezdő rajztábla inicializálása
+if defined?(Canvas::Board)
+  Canvas::Board.default_board
+  puts "  [+] Alapértelmezett közösségi rajztábla inicializálva"
+end
+
+# 5. Teszt / Vendég fiók létrehozása a fejlesztéshez
 demo_user = User.find_or_initialize_by(username: "demo_user")
 demo_user.email = "demo@bankrepo.hu"
 demo_user.password = "DemoPass123!"

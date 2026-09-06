@@ -1,0 +1,773 @@
+<%
+  can_draw_board = can_draw?(@board)
+  is_admin = current_user&.admin? || false
+%>
+
+<div class="whiteboard-wrapper">
+  <!-- 1. Felső jelenléti és állapotsáv -->
+  <div class="presence-bar">
+    <div class="presence-title">
+      <span>👥 Aktív Résztvevők:</span>
+      <span class="presence-count" id="active-count">0</span>
+    </div>
+    <div class="presence-list" id="presence-list">
+      <!-- Dinamikusan feltöltve WebSocket jelenlétből -->
+    </div>
+  </div>
+
+  <!-- 2. Eszköztár (Toolbar) -->
+  <div class="whiteboard-toolbar <%= 'toolbar-disabled' unless can_draw_board %>" id="canvas-toolbar">
+    <!-- Eszközök: Ecset & Radír -->
+    <div class="tool-group">
+      <button type="button" class="tool-btn active" id="tool-brush" data-tool="brush" title="Ecset (B billentyű)">
+        <span>✏️</span>
+        <span class="tool-label">Ecset</span>
+      </button>
+      <button type="button" class="tool-btn" id="tool-eraser" data-tool="eraser" title="Radír (E billentyű)">
+        <span>🧹</span>
+        <span class="tool-label">Radír</span>
+      </button>
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <!-- Színpaletta -->
+    <div class="tool-group color-palette-group">
+      <div class="swatches" id="color-swatches">
+        <button type="button" class="color-swatch active" data-color="#38bdf8" style="background: #38bdf8;" title="Világoskék"></button>
+        <button type="button" class="color-swatch" data-color="#f43f5e" style="background: #f43f5e;" title="Piros"></button>
+        <button type="button" class="color-swatch" data-color="#10b981" style="background: #10b981;" title="Zöld"></button>
+        <button type="button" class="color-swatch" data-color="#f59e0b" style="background: #f59e0b;" title="Sárga"></button>
+        <button type="button" class="color-swatch" data-color="#a855f7" style="background: #a855f7;" title="Lila"></button>
+        <button type="button" class="color-swatch" data-color="#ffffff" style="background: #ffffff;" title="Fehér"></button>
+        <button type="button" class="color-swatch" data-color="#0a0f1d" style="background: #0a0f1d; border-color: #64748b;" title="Sötét"></button>
+      </div>
+      <div class="custom-color-wrapper">
+        <input type="color" id="custom-color-picker" value="#38bdf8" title="Egyedi szín választása">
+      </div>
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <!-- Vonalvastagság állítás -->
+    <div class="tool-group size-group">
+      <span class="size-label">Méret:</span>
+      <input type="range" id="brush-size-slider" min="1" max="40" value="4" class="brush-slider">
+      <span class="size-val" id="brush-size-val">4px</span>
+      <div class="brush-preview-dot" id="brush-preview-dot" style="width: 4px; height: 4px; background: #38bdf8;"></div>
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <!-- Műveletek: Export / Letöltés -->
+    <div class="tool-group action-group">
+      <button type="button" class="btn btn-secondary" id="btn-export-png" title="Vászon letöltése nagyfelbontású PNG képként">
+        <span>💾</span>
+        <span>Export (PNG)</span>
+      </button>
+
+      <% if is_admin %>
+        <div class="toolbar-divider"></div>
+        <button type="button" class="btn btn-admin" id="btn-toggle-freeze" title="Tábla zárolása vagy feloldása">
+          <span id="freeze-icon"><%= @board.is_frozen? ? "🔓" : "🔒" %></span>
+          <span id="freeze-text"><%= @board.is_frozen? ? "Feloldás" : "Zárolás" %></span>
+        </button>
+        <button type="button" class="btn btn-danger" id="btn-admin-clear" title="A teljes rajzvászon azonnali ürítése mindenkinél">
+          <span>🗑️</span>
+          <span>Tábla törlése</span>
+        </button>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- 3. Értesítés zárolt állapotról vagy néző módról -->
+  <% unless can_draw_board %>
+    <div class="read-only-banner" id="read-only-banner">
+      <% if @board.is_frozen? %>
+        🔒 <strong>A rajzvászon jelenleg le van zárva.</strong> Csak a rendszergazdák rajzolhatnak, a többi felhasználó néző módban követheti.
+      <% else %>
+        👁️ <strong>Néző (Read-Only) üzemmódban vagy.</strong> A rajzoláshoz kérjük, <a href="/login" style="color: var(--accent); font-weight: 700;">jelentkezz be</a>!
+      <% end %>
+    </div>
+  <% end %>
+
+  <!-- 4. Rajzvászon Színpad -->
+  <div class="canvas-stage-wrapper">
+    <div class="canvas-aspect-box">
+      <canvas id="whiteboard" width="1600" height="900"></canvas>
+    </div>
+  </div>
+</div>
+
+<style>
+  .whiteboard-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  /* Jelenléti sáv */
+  .presence-bar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    overflow-x: auto;
+  }
+  .presence-title {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .presence-count {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 2px 7px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .presence-list {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 0;
+  }
+  .user-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 3px 10px 3px 4px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+  .user-pill-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.68rem;
+    color: #0a0f1d;
+  }
+  .user-pill-draw-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+  .user-pill-view-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+
+  /* Eszköztár (Toolbar) */
+  .whiteboard-toolbar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 8px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  }
+  .toolbar-disabled {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .tool-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toolbar-divider {
+    width: 1px;
+    height: 26px;
+    background: var(--border-subtle);
+  }
+  .tool-btn {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 7px 12px;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 0.86rem;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .tool-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .tool-btn.active {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Színpaletta */
+  .color-palette-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .swatches {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .color-swatch {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.15s;
+  }
+  .color-swatch:hover {
+    transform: scale(1.15);
+  }
+  .color-swatch.active {
+    border-color: var(--text-main);
+    transform: scale(1.18);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+  }
+  .custom-color-wrapper {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 1px solid var(--border-subtle);
+  }
+  .custom-color-wrapper input[type="color"] {
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+  }
+
+  /* Ecsetméret */
+  .size-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .size-label {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .size-val {
+    font-size: 0.82rem;
+    color: var(--text-main);
+    font-weight: 700;
+    min-width: 30px;
+  }
+  .brush-slider {
+    width: 90px;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+  .brush-preview-dot {
+    border-radius: 50%;
+    margin-left: 4px;
+    transition: all 0.15s;
+  }
+
+  /* Read-only banner */
+  .read-only-banner {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid var(--warning);
+    color: #fcd34d;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    text-align: center;
+  }
+
+  /* Rajzvászon és színpad */
+  .canvas-stage-wrapper {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+  .canvas-aspect-box {
+    width: 100%;
+    max-width: 1600px;
+    aspect-ratio: 16 / 9;
+    position: relative;
+    background: #0d1322;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+  }
+  canvas#whiteboard {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    touch-action: none; /* Megakadályozza az érintéses görgetést rajzolás közben */
+    cursor: crosshair;
+  }
+
+  @media (max-width: 900px) {
+    .whiteboard-toolbar {
+      gap: 10px;
+      padding: 10px;
+    }
+    .tool-label {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const canvas = document.getElementById("whiteboard");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+  const virtualWidth = 1600;
+  const virtualHeight = 900;
+
+  // Állapotok
+  let currentTool = "brush";
+  let currentColor = "#38bdf8";
+  let currentWidth = 4;
+  let isDrawing = false;
+  let canDraw = <%= can_draw_board ? 'true' : 'false' %>;
+  let isFrozen = <%= @board.is_frozen? ? 'true' : 'false' %>;
+  let currentStrokePoints = [];
+  let currentTempId = null;
+  let lastStreamTime = 0;
+  const STREAM_INTERVAL = 25; // 25 ms kötegelési időablak
+
+  // Más felhasználók éppen folyó élő vonalai (temp_id -> { tool, color, width, lastPoint })
+  const peerLiveStrokes = new Map();
+
+  // Tábla háttérszínének beállítása
+  function clearSurface() {
+    ctx.fillStyle = "#0d1322";
+    ctx.fillRect(0, 0, virtualWidth, virtualHeight);
+  }
+  clearSurface();
+
+  // Koordináta konverzió a képernyőről a fix 1600x900-as virtuális rendszerbe
+  function getVirtualCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = virtualWidth / rect.width;
+    const scaleY = virtualHeight / rect.height;
+    return {
+      x: Math.round((e.clientX - rect.left) * scaleX),
+      y: Math.round((e.clientY - rect.top) * scaleY)
+    };
+  }
+
+  // Vonal rajzolása két vagy több pont között (simított kvadratikus Bézier)
+  function drawSegment(p1, p2, color, width, tool) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    if (tool === "eraser") {
+      ctx.strokeStyle = "#0d1322";
+      ctx.lineWidth = width * 3;
+    } else {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+    }
+
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Teljes pontsorozat kirajzolása simított görbével
+  function drawFullStroke(points, color, width, tool) {
+    if (!points || points.length < 2) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    if (tool === "eraser") {
+      ctx.strokeStyle = "#0d1322";
+      ctx.lineWidth = width * 3;
+    } else {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+    }
+
+    ctx.moveTo(points[0][0], points[0][1]);
+
+    if (points.length === 2) {
+      ctx.lineTo(points[1][0], points[1][1]);
+    } else {
+      for (let i = 1; i < points.length - 1; i++) {
+        const midX = (points[i][0] + points[i + 1][0]) / 2;
+        const midY = (points[i][1] + points[i + 1][1]) / 2;
+        ctx.quadraticCurveTo(points[i][0], points[i][1], midX, midY);
+      }
+      const last = points[points.length - 1];
+      ctx.lineTo(last[0], last[1]);
+    }
+
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // UI Elemek
+  const brushBtn = document.getElementById("tool-brush");
+  const eraserBtn = document.getElementById("tool-eraser");
+  const swatches = document.querySelectorAll(".color-swatch");
+  const customColorInput = document.getElementById("custom-color-picker");
+  const sizeSlider = document.getElementById("brush-size-slider");
+  const sizeVal = document.getElementById("brush-size-val");
+  const previewDot = document.getElementById("brush-preview-dot");
+  const exportBtn = document.getElementById("btn-export-png");
+  const freezeBtn = document.getElementById("btn-toggle-freeze");
+  const clearBtn = document.getElementById("btn-admin-clear");
+  const toolbar = document.getElementById("canvas-toolbar");
+  const frozenBadge = document.getElementById("frozen-status-badge");
+  const socketBadge = document.getElementById("socket-status-badge");
+
+  function updatePreview() {
+    if (previewDot) {
+      previewDot.style.width = Math.min(24, Math.max(3, currentWidth)) + "px";
+      previewDot.style.height = Math.min(24, Math.max(3, currentWidth)) + "px";
+      previewDot.style.background = currentTool === "eraser" ? "#ffffff" : currentColor;
+    }
+  }
+
+  // Eszközváltás
+  if (brushBtn && eraserBtn) {
+    brushBtn.addEventListener("click", () => {
+      currentTool = "brush";
+      brushBtn.classList.add("active");
+      eraserBtn.classList.remove("active");
+      updatePreview();
+    });
+
+    eraserBtn.addEventListener("click", () => {
+      currentTool = "eraser";
+      eraserBtn.classList.add("active");
+      brushBtn.classList.remove("active");
+      updatePreview();
+    });
+  }
+
+  // Gyorsbillentyűk: B (Brush), E (Eraser)
+  document.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+    if (e.key === "b" || e.key === "B") brushBtn?.click();
+    if (e.key === "e" || e.key === "E") eraserBtn?.click();
+  });
+
+  // Színpaletta kezelés
+  swatches.forEach(swatch => {
+    swatch.addEventListener("click", () => {
+      currentColor = swatch.getAttribute("data-color");
+      swatches.forEach(s => s.classList.remove("active"));
+      swatch.classList.add("active");
+      if (customColorInput) customColorInput.value = currentColor;
+      if (currentTool === "eraser") brushBtn?.click();
+      updatePreview();
+    });
+  });
+
+  if (customColorInput) {
+    customColorInput.addEventListener("input", (e) => {
+      currentColor = e.target.value;
+      swatches.forEach(s => s.classList.remove("active"));
+      if (currentTool === "eraser") brushBtn?.click();
+      updatePreview();
+    });
+  }
+
+  // Ecsetméret csúszka
+  if (sizeSlider && sizeVal) {
+    sizeSlider.addEventListener("input", (e) => {
+      currentWidth = parseInt(e.target.value, 10);
+      sizeVal.textContent = currentWidth + "px";
+      updatePreview();
+    });
+  }
+
+  // PNG Export
+  if (exportBtn) {
+    exportBtn.addEventListener("click", () => {
+      const link = document.createElement("a");
+      link.download = `kozossegi-rajzvaszon-${new Date().toISOString().slice(0,10)}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+  }
+
+  // ActionCable WebSocket Kapcsolat Létesítése
+  const consumer = ActionCable.createConsumer("/cable");
+  const channel = consumer.subscriptions.create({ channel: "Canvas::BoardChannel" }, {
+    connected() {
+      if (socketBadge) {
+        socketBadge.textContent = "● Csatlakozva";
+        socketBadge.className = "badge-live";
+      }
+    },
+    disconnected() {
+      if (socketBadge) {
+        socketBadge.textContent = "○ Kapcsolat megszakadt";
+        socketBadge.className = "badge-frozen";
+      }
+    },
+    received(data) {
+      handleSocketMessage(data);
+    }
+  });
+
+  // Bejövő WebSocket üzenetek feldolgozása
+  function handleSocketMessage(data) {
+    switch (data.type) {
+      case "initial_state":
+        clearSurface();
+        isFrozen = data.is_frozen;
+        updateFrozenUI(isFrozen);
+
+        // Ha van snapshot kép, betöltjük
+        if (data.snapshot) {
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0);
+            renderStrokes(data.strokes || []);
+          };
+          img.src = data.snapshot;
+        } else {
+          renderStrokes(data.strokes || []);
+        }
+
+        if (data.active_users) updatePresenceUI(data.active_users);
+        break;
+
+      case "presence_update":
+        if (data.active_users) updatePresenceUI(data.active_users);
+        break;
+
+      case "stroke_start":
+        // Másik felhasználó elkezdett egy vonalat
+        peerLiveStrokes.set(data.temp_id, {
+          tool: data.tool,
+          color: data.color,
+          width: data.width,
+          lastPoint: { x: data.start_point[0], y: data.start_point[1] }
+        });
+        break;
+
+      case "stroke_stream":
+        // Másik felhasználó kötegelt pontjai érkeztek meg
+        const peerStroke = peerLiveStrokes.get(data.temp_id);
+        if (peerStroke && data.points && data.points.length > 0) {
+          for (const pt of data.points) {
+            const nextPoint = { x: pt[0], y: pt[1] };
+            drawSegment(peerStroke.lastPoint, nextPoint, peerStroke.color, peerStroke.width, peerStroke.tool);
+            peerStroke.lastPoint = nextPoint;
+          }
+        }
+        break;
+
+      case "stroke_finished":
+        // Vonal lezárva
+        peerLiveStrokes.delete(data.temp_id);
+        break;
+
+      case "board_cleared":
+        clearSurface();
+        peerLiveStrokes.clear();
+        break;
+
+      case "freeze_toggled":
+        isFrozen = data.is_frozen;
+        updateFrozenUI(isFrozen);
+        break;
+    }
+  }
+
+  function renderStrokes(strokes) {
+    for (const s of strokes) {
+      drawFullStroke(s.points, s.color, s.width, s.tool);
+    }
+  }
+
+  function updateFrozenUI(frozen) {
+    if (frozenBadge) {
+      frozenBadge.style.display = frozen ? "inline-flex" : "none";
+    }
+    const isUserAdmin = <%= is_admin ? 'true' : 'false' %>;
+    if (!isUserAdmin) {
+      canDraw = !frozen && <%= logged_in? ? 'true' : 'false' %>;
+      if (toolbar) {
+        if (!canDraw) toolbar.classList.add("toolbar-disabled");
+        else toolbar.classList.remove("toolbar-disabled");
+      }
+    }
+    if (freezeBtn) {
+      const icon = document.getElementById("freeze-icon");
+      const text = document.getElementById("freeze-text");
+      if (icon) icon.textContent = frozen ? "🔓" : "🔒";
+      if (text) text.textContent = frozen ? "Feloldás" : "Zárolás";
+    }
+  }
+
+  function updatePresenceUI(users) {
+    const presenceList = document.getElementById("presence-list");
+    const activeCount = document.getElementById("active-count");
+    if (!presenceList) return;
+
+    presenceList.innerHTML = "";
+    if (activeCount) activeCount.textContent = users.length;
+
+    users.forEach(u => {
+      const pill = document.createElement("div");
+      pill.className = "user-pill";
+      pill.innerHTML = `
+        <span class="user-pill-avatar" style="background: ${u.avatar_color || '#38bdf8'};">${u.avatar_initials || 'U'}</span>
+        <span style="font-weight: 600; color: var(--text-main);">${u.username}</span>
+        ${u.can_draw ? '<span class="user-pill-draw-dot" title="Rajzoló"></span>' : '<span class="user-pill-view-dot" title="Néző"></span>'}
+      `;
+      presenceList.appendChild(pill);
+    });
+  }
+
+  // Pointer Eseménykezelés (Egér, Érintőképernyő, Tolleszköz)
+  canvas.addEventListener("pointerdown", (e) => {
+    if (!canDraw || isDrawing) return;
+    canvas.setPointerCapture(e.pointerId);
+
+    isDrawing = true;
+    currentTempId = "stroke_" + Math.random().toString(36).substring(2, 9) + "_" + Date.now();
+    const pt = getVirtualCoords(e);
+    currentStrokePoints = [[pt.x, pt.y]];
+    lastStreamTime = performance.now();
+
+    // Első pont WebSocket küldése
+    channel.perform("start_stroke", {
+      temp_id: currentTempId,
+      tool: currentTool,
+      color: currentColor,
+      width: currentWidth,
+      point: [pt.x, pt.y]
+    });
+  });
+
+  let batchedPoints = [];
+
+  canvas.addEventListener("pointermove", (e) => {
+    if (!isDrawing) return;
+
+    const pt = getVirtualCoords(e);
+    const lastPt = currentStrokePoints[currentStrokePoints.length - 1];
+
+    // Helyi azonnali rajzolás a zéró késleltetéshez
+    drawSegment({ x: lastPt[0], y: lastPt[1] }, pt, currentColor, currentWidth, currentTool);
+
+    currentStrokePoints.push([pt.x, pt.y]);
+    batchedPoints.push([pt.x, pt.y]);
+
+    // Throttling: 25 ms-onként küldjük az összegyűlt pontokat a WebSocket csatornára
+    const now = performance.now();
+    if (now - lastStreamTime >= STREAM_INTERVAL && batchedPoints.length > 0) {
+      channel.perform("stream_points", {
+        temp_id: currentTempId,
+        points: batchedPoints
+      });
+      batchedPoints = [];
+      lastStreamTime = now;
+    }
+  });
+
+  function finishDrawing(e) {
+    if (!isDrawing) return;
+    isDrawing = false;
+
+    if (e && e.pointerId) {
+      try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+    }
+
+    // Maradék kötegelt pontok elküldése
+    if (batchedPoints.length > 0) {
+      channel.perform("stream_points", {
+        temp_id: currentTempId,
+        points: batchedPoints
+      });
+      batchedPoints = [];
+    }
+
+    // Teljes vonal lezárása és végleges perzisztálása
+    channel.perform("finish_stroke", {
+      temp_id: currentTempId,
+      tool: currentTool,
+      color: currentColor,
+      width: currentWidth,
+      points: currentStrokePoints
+    });
+
+    currentStrokePoints = [];
+    currentTempId = null;
+  }
+
+  canvas.addEventListener("pointerup", finishDrawing);
+  canvas.addEventListener("pointercancel", finishDrawing);
+
+  // Adminisztrátori Gombok Eseménykezelői
+  <% if is_admin %>
+    if (freezeBtn) {
+      freezeBtn.addEventListener("click", () => {
+        channel.perform("toggle_freeze", {});
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        if (confirm("Biztosan törölni szeretnéd a teljes rajzvásznat? Ez minden rajzot véglegesen eltávolít!")) {
+          channel.perform("clear_board", {});
+        }
+      });
+    }
+  <% end %>
+});
+</script>

@@ -44,6 +44,7 @@ The server runs Ruby 3.3.0, which has a known syntax parser bug regarding "anony
 - **Casino Simulator (`engines/casino`):** Modular casino platform featuring European Roulette, Punto Banco Baccarat, and multiplayer Blackjack with live hit/stand controls, 10,000 starting chips, audit transactions (`casino_transactions`), and admin controls.
   - Tables: `casino_profiles`, `casino_tables`, `casino_bets`, `casino_transactions`.
 - **Server Monitoring & System Health (`/bank-admin/server_metrics`, `/admin/system`):** Real-time hardware and network metrics dashboard with ActionCable WebSocket broadcasting, Linux `/proc` telemetry, non-blocking service object, Chart.js time-series graphs, and local Windows fallback.
+- **Collaborative Real-time Canvas (`engines/canvas`):** Multi-user shared whiteboard with ActionCable WebSocket streaming, 15–30 ms coordinate throttling/batching, smoothed quadratic Bézier curves, MySQL persistence (`canvas_boards`, `canvas_strokes`), PNG high-res export, responsive 1600x900 virtual coordinates, live presence list, spectator/drawing permission gates, and admin controls (board freeze, clear board).
 
 ## 📌 Versioning & Git Commit Policy
 - Always commit and push changes to git (`main` branch) immediately when finishing tasks.

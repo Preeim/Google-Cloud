@@ -58,6 +58,7 @@ Rails.application.routes.draw do
   # 5. Izolált Moduláris Webalkalmazások (Rails Engines)
   mount Chess::Engine => "/chess", as: :chess_app
   mount Casino::Engine => "/casino", as: :casino_app
+  mount Canvas::Engine => "/canvas", as: :canvas_app
 
   # 6. WebSocket Action Cable Végpont
   mount ActionCable.server => "/cable"
