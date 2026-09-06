@@ -1,0 +1,64 @@
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+  <div>
+    <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text-main);">Beépülő Modulok & Alkalmazások</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 4px;">Modulok státusza (pl. Sakk karbantartási mód), hozzáférési beállítások</p>
+  </div>
+</div>
+
+<div class="card">
+  <table class="responsive-table">
+    <thead>
+      <tr>
+        <th>Modul Neve</th>
+        <th>Azonosító (Slug)</th>
+        <th>Csatolási Útvonal</th>
+        <th>Elérhetőségi Státusz</th>
+        <th>Vendég Elérés</th>
+        <th>Alapértelmezett Elérés</th>
+        <th style="text-align: right;">Műveletek</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @apps.each do |app| %>
+        <tr>
+          <td data-label="Modul"><strong><%= app.name %></strong></td>
+          <td data-label="Azonosító"><code><%= app.slug %></code></td>
+          <td data-label="Útvonal"><code><%= app.mount_path %></code></td>
+          <td data-label="Státusz">
+            <span class="tag <%= app.state == 'active' ? 'tag-active' : (app.state == 'maintenance' ? 'tag-locked' : 'tag-user') %>">
+              <%= app.state.upcase %>
+            </span>
+          </td>
+          <td data-label="Vendég">
+            <% if app.requires_login? %>
+              <span class="tag tag-locked">Bejelentkezéshez kötött</span>
+            <% else %>
+              <span class="tag tag-active">Vendégeknek nyitott</span>
+            <% end %>
+          </td>
+          <td data-label="Alapértelmezés">
+            <%= app.is_default_accessible? ? "✓ Minden tagnak" : "🔒 Egyéni engedélyhez kötött" %>
+          </td>
+          <td data-label="Műveletek" style="text-align: right;">
+            <div style="display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+              <% if app.state_active? %>
+                <%= button_to toggle_admin_app_path(app), method: :post, class: "btn btn-danger", style: "padding: 5px 10px; font-size: 0.8rem;", data: { turbo_confirm: "Biztosan kikapcsolod a(z) #{app.name} modult? A rendszer automatikus biztonsági mentést készít az adatokról a háttértárra!" } do %>
+                  <span>🔴 Kikapcsolás</span>
+                <% end %>
+              <% else %>
+                <%= button_to toggle_admin_app_path(app), method: :post, class: "btn btn-primary", style: "padding: 5px 10px; font-size: 0.8rem;" do %>
+                  <span>🟢 Bekapcsolás</span>
+                <% end %>
+              <% end %>
+              <% if app.slug == "chess" %>
+                <a href="/chess/admin" class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.8rem; border-color: var(--admin-accent); color: var(--admin-accent);">⚙️ Sakk Admin</a>
+              <% end %>
+              <a href="/bank-admin/apps/<%= app.id %>/edit" class="btn btn-secondary" style="padding: 5px 10px; font-size: 0.8rem;">Beállítások</a>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+

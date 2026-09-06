@@ -1,0 +1,18 @@
+<div style="max-width: 600px; margin: 60px auto; text-align: center; padding: 32px 24px; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px;">
+  <div style="font-size: 3rem; margin-bottom: 16px;">🛠️</div>
+  <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">
+    <%= @disabled_app&.name || "A Modul" %> Jelenleg Nem Elérhető
+  </h1>
+  <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.6; margin-bottom: 24px;">
+    Ez a modul átmenetileg karbantartás vagy frissítés alatt áll a rendszergazda által. 
+    Kérjük, nézz vissza később!
+  </p>
+
+  <div style="display: flex; justify-content: center; gap: 12px;">
+    <a href="/" class="btn btn-primary">← Vissza a Főoldalra</a>
+    <% if logged_in? && admin? %>
+      <a href="/bank-admin/apps" class="btn btn-secondary">Admin Modulkezelő</a>
+    <% end %>
+  </div>
+</div>
+
