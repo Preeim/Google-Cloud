@@ -17,15 +17,25 @@ module ApplicationHelper
     elsif fallback.present?
       fallback
     else
-      path = (respond_to?(:request) && request.respond_to?(:path)) ? request.path : "/"
-      if path.start_with?("/casino/")
-        "/casino"
-      elsif path.start_with?("/chess/")
+      path = (respond_to?(:request) && request.respond_to?(:path)) ? request.path.to_s : "/"
+      if path.start_with?("/chess/admin/") && path != "/chess/admin" && path != "/chess/admin/"
+        "/chess/admin"
+      elsif path == "/chess/admin" || path == "/chess/admin/"
         "/chess"
-      elsif path.start_with?("/canvas/")
-        "/canvas"
-      elsif path.start_with?("/bank-admin/")
+      elsif path.start_with?("/casino/admin/") && path != "/casino/admin" && path != "/casino/admin/"
+        "/casino/admin"
+      elsif path == "/casino/admin" || path == "/casino/admin/"
+        "/casino"
+      elsif path.start_with?("/bank-admin/") && path != "/bank-admin" && path != "/bank-admin/"
         "/bank-admin"
+      elsif path == "/bank-admin" || path == "/bank-admin/"
+        "/"
+      elsif path.start_with?("/casino/") && path != "/casino" && path != "/casino/"
+        "/casino"
+      elsif path.start_with?("/chess/") && path != "/chess" && path != "/chess/"
+        "/chess"
+      elsif path.start_with?("/canvas/") && path != "/canvas" && path != "/canvas/"
+        "/canvas"
       elsif path != "/" && path != ""
         "/"
       else

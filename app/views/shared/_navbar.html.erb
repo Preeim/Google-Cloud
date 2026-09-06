@@ -28,14 +28,24 @@
                              end
 
         if resolved_back_path.blank?
-          if curr_path.start_with?("/casino/") && curr_path != "/casino"
-            resolved_back_path = "/casino"
-          elsif curr_path.start_with?("/chess/") && curr_path != "/chess"
+          if curr_path.start_with?("/chess/admin/") && curr_path != "/chess/admin" && curr_path != "/chess/admin/"
+            resolved_back_path = "/chess/admin"
+          elsif curr_path == "/chess/admin" || curr_path == "/chess/admin/"
             resolved_back_path = "/chess"
-          elsif curr_path.start_with?("/canvas/") && curr_path != "/canvas"
-            resolved_back_path = "/canvas"
-          elsif curr_path.start_with?("/bank-admin/") && curr_path != "/bank-admin"
+          elsif curr_path.start_with?("/casino/admin/") && curr_path != "/casino/admin" && curr_path != "/casino/admin/"
+            resolved_back_path = "/casino/admin"
+          elsif curr_path == "/casino/admin" || curr_path == "/casino/admin/"
+            resolved_back_path = "/casino"
+          elsif curr_path.start_with?("/bank-admin/") && curr_path != "/bank-admin" && curr_path != "/bank-admin/"
             resolved_back_path = "/bank-admin"
+          elsif curr_path == "/bank-admin" || curr_path == "/bank-admin/"
+            resolved_back_path = "/"
+          elsif curr_path.start_with?("/casino/") && curr_path != "/casino" && curr_path != "/casino/"
+            resolved_back_path = "/casino"
+          elsif curr_path.start_with?("/chess/") && curr_path != "/chess" && curr_path != "/chess/"
+            resolved_back_path = "/chess"
+          elsif curr_path.start_with?("/canvas/") && curr_path != "/canvas" && curr_path != "/canvas/"
+            resolved_back_path = "/canvas"
           elsif curr_path != "/" && curr_path != ""
             resolved_back_path = "/"
           end
@@ -46,8 +56,7 @@
         <a href="<%= resolved_back_path %>" 
            class="nav-back-btn" 
            id="nav-global-back-btn" 
-           title="Visszalépés"
-           onclick="if (window.history.length > 1 && document.referrer && document.referrer !== window.location.href && document.referrer.indexOf(window.location.host) !== -1) { window.history.back(); return false; }">
+           title="Visszalépés">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
@@ -745,16 +754,7 @@
         }
       });
 
-      // Vissza gomb intelligens navigáció
-      const backBtn = document.getElementById('nav-global-back-btn');
-      if (backBtn) {
-        backBtn.addEventListener('click', function(e) {
-          if (window.history.length > 1 && document.referrer && document.referrer !== window.location.href && document.referrer.indexOf(window.location.host) !== -1) {
-            e.preventDefault();
-            window.history.back();
-          }
-        });
-      }
+
     }
 
     if (document.readyState === 'loading') {
