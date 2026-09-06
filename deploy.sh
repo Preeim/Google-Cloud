@@ -47,15 +47,16 @@ fi
 mkdir -p log
 
 echo "Starting Rails in background (logs -> log/server.log)..."
-RAILS_ENV=production nohup bin/rails server -e production -b 127.0.0.1 -p 3000 > log/server.log 2>&1 &
+RAILS_ENV=production nohup bin/rails server -e production -b 0.0.0.0 -p 3000 > log/server.log 2>&1 &
 
-sleep 3
+sleep 5
 if pgrep -f "puma.*3000" > /dev/null; then
     echo "====================================================="
     echo "   Deployment Complete! Live site is up and running."
     echo "====================================================="
 else
     echo "====================================================="
-    echo "   Notice: Check log/server.log for startup status."
+    echo "   Warning: Server may still be booting or failed. Log:"
     echo "====================================================="
+    tail -n 30 log/server.log || true
 fi
