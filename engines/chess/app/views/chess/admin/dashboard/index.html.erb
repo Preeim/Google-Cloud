@@ -1,0 +1,96 @@
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+  <div>
+    <h1 style="font-size: 1.6rem; font-weight: 700; color: var(--text-main);">Sakk Modul Áttekintés & Statisztika</h1>
+    <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 4px;">Játszmák valós idejű állapota és modul-konfiguráció</p>
+  </div>
+  <div style="display: flex; gap: 10px;">
+    <%= link_to "⚙️ Modul Beállítások", admin_settings_path, class: "btn btn-secondary" %>
+    <%= link_to "📋 Meccs Adatbázis", admin_matches_path, class: "btn btn-primary" %>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Összes Játszma</div>
+    <div class="stat-val"><%= @total_matches %></div>
+  </div>
+  <div class="stat-card" style="border-color: rgba(251, 191, 36, 0.4);">
+    <div class="stat-label" style="color: var(--chess-gold);">Várakozó Kihívások</div>
+    <div class="stat-val" style="color: var(--chess-gold);"><%= @pending_matches_count %></div>
+  </div>
+  <div class="stat-card" style="border-color: rgba(16, 185, 129, 0.4);">
+    <div class="stat-label" style="color: var(--success);">Folyamatban Lévő</div>
+    <div class="stat-val" style="color: var(--success);"><%= @active_matches_count %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Befejezett / Lezárt</div>
+    <div class="stat-val"><%= @completed_matches_count %></div>
+  </div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Világos Győzelmek</div>
+    <div class="stat-val" style="color: #f1f5f9;">⚪ <%= @white_wins %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Sötét Győzelmek</div>
+    <div class="stat-val" style="color: #94a3b8;">⚫ <%= @black_wins %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Döntetlenek</div>
+    <div class="stat-val" style="color: var(--accent);">🤝 <%= @draws %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Megszakított Játszmák</div>
+    <div class="stat-val" style="color: var(--danger);">🚫 <%= @aborted_matches_count %></div>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+    <h2 style="font-size: 1.15rem; font-weight: 700;">Legutóbbi Játszmák</h2>
+    <%= link_to "Összes Megtekintése →", admin_matches_path, style: "color: var(--accent); text-decoration: none; font-size: 0.9rem;" %>
+  </div>
+
+  <% if @recent_matches.any? %>
+    <table class="responsive-table">
+      <thead>
+        <tr>
+          <th>Azonosító</th>
+          <th>Játékosok</th>
+          <th>Státusz</th>
+          <th>Időkorlát</th>
+          <th>Kezdés</th>
+          <th style="text-align: right;">Műveletek</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @recent_matches.each do |match| %>
+          <tr>
+            <td data-label="Azonosító"><code>#<%= match.uuid.split('-').first %></code></td>
+            <td data-label="Játékosok"><strong><%= match.white_player_name %></strong> vs <strong><%= match.black_player_name %></strong></td>
+            <td data-label="Státusz">
+              <span class="tag tag-<%= match.status %>"><%= match.status.upcase %></span>
+              <% if match.winner.present? %>
+                <small style="color: var(--text-muted); margin-left: 4px;">(Nyertes: <%= match.winner %>)</small>
+              <% end %>
+            </td>
+            <td data-label="Időkorlát"><%= match.time_control ? "#{match.time_control / 60} perc" : "Végtelen" %></td>
+            <td data-label="Kezdés"><%= match.created_at.strftime("%Y-%m-%d %H:%M") %></td>
+            <td data-label="Műveletek" style="text-align: right;">
+              <div style="display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+                <%= link_to "Megnyitás", match_path(match.uuid), class: "btn btn-secondary", style: "padding: 5px 10px; font-size: 0.8rem;" %>
+                <% if match.active? || match.pending? %>
+                  <%= button_to "Leállítás", abort_admin_match_path(match.uuid), method: :post, class: "btn btn-danger", style: "padding: 5px 10px; font-size: 0.8rem;", data: { turbo_confirm: "Biztosan leállítod a meccset?" } %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p style="color: var(--text-muted); font-style: italic; margin-top: 12px;">Még nincs rögzített játszma a rendszerben.</p>
+  <% end %>
+</div>

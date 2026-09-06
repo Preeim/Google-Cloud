@@ -1,0 +1,197 @@
+<div style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+    <div>
+      <h1 style="font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;">
+        🎰 Grand Casino Élő Termek
+      </h1>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 6px;">
+        Csatlakozz a valós idejű multiplayer asztalokhoz, kövesd a többi játékos tétjeit és nyerj zsetonokat!
+      </p>
+    </div>
+
+    <!-- Felhasználó Gyors Profil Kártya -->
+    <div style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 20px; display: flex; align-items: center; gap: 20px;">
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Egyenleg</div>
+        <div style="font-size: 1.4rem; font-weight: 800; color: #fef08a;">🪙 <%= number_with_delimiter(@profile.chips) %></div>
+      </div>
+      <div style="border-left: 1px solid var(--border-subtle); height: 36px;"></div>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Játszott Körök</div>
+        <div style="font-size: 1.2rem; font-weight: 700; color: var(--text-main);"><%= @profile.total_rounds_played %></div>
+      </div>
+      <div style="border-left: 1px solid var(--border-subtle); height: 36px;"></div>
+      <div>
+        <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Nyert Körök</div>
+        <div style="font-size: 1.2rem; font-weight: 700; color: var(--success);"><%= @profile.total_won_rounds %></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+  <!-- Bal oldal: Asztalok listája kategóriánként -->
+  <div style="display: flex; flex-direction: column; gap: 24px;">
+
+    <!-- 1. Európai Rulett Asztalok -->
+    <div class="card" style="border-color: rgba(239, 68, 68, 0.3); background: linear-gradient(145deg, #11192e 0%, #1e1320 100%);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.8rem;">🎡</span>
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Európai Rulett (0-36)</h2>
+            <p style="font-size: 0.82rem; color: var(--text-muted);">Egykerekes, zéró házielőny-minimalizált rulett teljes fogadási mezővel és szorzókkal.</p>
+          </div>
+        </div>
+        <span class="tag tag-active">ÉLŐ MULTIPLAYER</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+        <% @roulette_tables.each do |table| %>
+          <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <strong style="color: var(--text-main); font-size: 1.05rem;"><%= table.name %></strong>
+                <span style="font-size: 0.78rem; color: var(--casino-gold);">Kör #<%= table.round_number %></span>
+              </div>
+              <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+                Téthatár: <strong style="color: var(--text-main);"><%= table.min_bet %> - <%= number_with_delimiter(table.max_bet) %></strong> zseton
+              </div>
+            </div>
+            <%= link_to table_path(table.slug), class: "btn btn-gold", style: "width: 100%;" do %>
+              Csatlakozás az Asztalhoz →
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- 2. Punto Banco Baccarat Asztalok -->
+    <div class="card" style="border-color: rgba(56, 189, 248, 0.3); background: linear-gradient(145deg, #11192e 0%, #102035 100%);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.8rem;">🎴</span>
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Punto Banco Baccarat</h2>
+            <p style="font-size: 0.82rem; color: var(--text-muted);">Player (1:1), Banker (0.95:1) és Tie (8:1) fogadások hivatalos nemzetközi kártyaszabályokkal.</p>
+          </div>
+        </div>
+        <span class="tag tag-active">ÉLŐ MULTIPLAYER</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+        <% @baccarat_tables.each do |table| %>
+          <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <strong style="color: var(--text-main); font-size: 1.05rem;"><%= table.name %></strong>
+                <span style="font-size: 0.78rem; color: var(--accent);">Kör #<%= table.round_number %></span>
+              </div>
+              <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+                Téthatár: <strong style="color: var(--text-main);"><%= table.min_bet %> - <%= number_with_delimiter(table.max_bet) %></strong> zseton
+              </div>
+            </div>
+            <%= link_to table_path(table.slug), class: "btn btn-primary", style: "width: 100%; font-weight: 700;" do %>
+              Csatlakozás az Asztalhoz →
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- 3. Élő Blackjack Asztalok -->
+    <div class="card" style="border-color: rgba(16, 185, 129, 0.3); background: linear-gradient(145deg, #11192e 0%, #102922 100%);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.8rem;">🃏</span>
+          <div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);">Multiplayer Blackjack (21)</h2>
+            <p style="font-size: 0.82rem; color: var(--text-muted);">Többüléses asztalok, 3:2 Blackjack kifizetés, osztó 17-nél kötelezően megáll.</p>
+          </div>
+        </div>
+        <span class="tag tag-active">ÉLŐ MULTIPLAYER</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+        <% @blackjack_tables.each do |table| %>
+          <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <strong style="color: var(--text-main); font-size: 1.05rem;"><%= table.name %></strong>
+                <span style="font-size: 0.78rem; color: var(--success);">Kör #<%= table.round_number %></span>
+              </div>
+              <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px;">
+                Téthatár: <strong style="color: var(--text-main);"><%= table.min_bet %> - <%= number_with_delimiter(table.max_bet) %></strong> zseton
+              </div>
+            </div>
+            <%= link_to table_path(table.slug), class: "btn btn-secondary", style: "width: 100%; border-color: var(--success); color: #34d399; font-weight: 700;" do %>
+              Csatlakozás az Asztalhoz →
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Jobb oldal: Ranglista előnézet & Saját előzmények -->
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    <!-- Mini Ranglista Kártya -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+          <span>🏆</span> Top Játékosok
+        </h3>
+        <%= link_to "Teljes Ranglista →", leaderboards_path, style: "font-size: 0.78rem; color: var(--accent); text-decoration: none;" %>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <% @top_players.each_with_index do |p, idx| %>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--bg-elevated); border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-weight: 800; font-size: 0.9rem; color: <%= idx == 0 ? '#fbbf24' : (idx == 1 ? '#94a3b8' : (idx == 2 ? '#d97706' : 'var(--text-muted)')) %>;">
+                #<%= idx + 1 %>
+              </span>
+              <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-main);"><%= p.user.username %></span>
+            </div>
+            <span style="font-size: 0.88rem; font-weight: 700; color: #fef08a;">
+              🪙 <%= number_with_delimiter(p.chips) %>
+            </span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Legutóbbi Téteid -->
+    <div class="card">
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 6px;">
+        <span>📜</span> Legutóbbi Fogadásaid
+      </h3>
+
+      <% if @recent_bets.any? %>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <% @recent_bets.each do |b| %>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: var(--bg-elevated); border-radius: 8px; font-size: 0.85rem;">
+              <div>
+                <strong style="color: var(--text-main);"><%= b.bet_type.upcase %></strong>
+                <span style="color: var(--text-muted); font-size: 0.75rem;">(<%= b.table.name %>)</span>
+              </div>
+              <div>
+                <% if b.status == "won" %>
+                  <span style="color: var(--success); font-weight: 700;">+<%= number_with_delimiter(b.payout) %></span>
+                <% elsif b.status == "lost" %>
+                  <span style="color: var(--danger); font-weight: 600;">-<%= number_with_delimiter(b.amount) %></span>
+                <% else %>
+                  <span style="color: var(--casino-gold); font-weight: 600;">Függőben</span>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">Még nem adtál le fogadást. Válassz egy asztalt a játékhoz!</p>
+      <% end %>
+    </div>
+  </div>
+</div>
+
