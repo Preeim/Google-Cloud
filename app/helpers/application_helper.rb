@@ -2,8 +2,8 @@ module ApplicationHelper
   # Dinamikus oldal cím beállítása vagy lekérése
   def page_title(title = nil)
     if title.present?
-      content_for(:title, title)
-    elsif content_for?(:title)
+      content_for(:title, title) if respond_to?(:content_for)
+    elsif respond_to?(:content_for?) && content_for?(:title)
       content_for(:title)
     else
       default_page_title
@@ -12,12 +12,12 @@ module ApplicationHelper
 
   # Automatikus visszalépési útvonal meghatározása
   def page_back_url(fallback = nil)
-    if content_for?(:back_url)
+    if respond_to?(:content_for?) && content_for?(:back_url)
       content_for(:back_url)
     elsif fallback.present?
       fallback
     else
-      path = request.path
+      path = (respond_to?(:request) && request.respond_to?(:path)) ? request.path : "/"
       if path.start_with?("/casino/")
         "/casino"
       elsif path.start_with?("/chess/")
@@ -36,7 +36,7 @@ module ApplicationHelper
 
   # Modul jelvényének és ikonjának feloldása az aktuális útvonal alapján
   def current_module_info
-    path = request.path
+    path = (respond_to?(:request) && request.respond_to?(:path)) ? request.path : "/"
     if path.start_with?("/chess/admin")
       { name: "Sakk Admin", icon: "♟️", badge_class: "badge-admin", color: "var(--chess-gold, #fbbf24)" }
     elsif path.start_with?("/chess")
@@ -61,7 +61,7 @@ module ApplicationHelper
   private
 
   def default_page_title
-    path = request.path
+    path = (respond_to?(:request) && request.respond_to?(:path)) ? request.path : "/"
     if path == "/"
       "Kezdőlap"
     elsif path.start_with?("/chess/admin")
@@ -89,4 +89,3 @@ module ApplicationHelper
     end
   end
 end
-
