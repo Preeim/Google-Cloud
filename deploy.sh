@@ -32,25 +32,27 @@ if [ -z "$SECRET_KEY_BASE" ]; then
     fi
 fi
 
-RAILS_ENV=production bin/rails db:prepare
+# Run database migrations
+RAILS_ENV=production bundle exec rails db:prepare
 
 # 5. Restart server
 echo "[5/5] Restarting Rails server..."
-PID=$(pgrep -f "puma.*3000" || true)
+PID=$(pgrep -f "puma.*3000" || pgrep -f "rails.*3000" || true)
 if [ -n "$PID" ]; then
     echo "Stopping current server process (PID: $PID)..."
-    kill -9 $PID || true
+    kill -9 $PID 2>/dev/null || true
     sleep 2
 fi
 
-# Ensure log directory exists
-mkdir -p log
+# Ensure log and pids directory exist and remove stale server.pid
+mkdir -p log tmp/pids
+rm -f tmp/pids/server.pid
 
 echo "Starting Rails in background (logs -> log/server.log)..."
-RAILS_ENV=production nohup bin/rails server -e production -b 0.0.0.0 -p 3000 > log/server.log 2>&1 &
+RAILS_ENV=production nohup bundle exec rails server -e production -b 0.0.0.0 -p 3000 > log/server.log 2>&1 &
 
-sleep 5
-if pgrep -f "puma.*3000" > /dev/null; then
+sleep 4
+if pgrep -f "puma.*3000" > /dev/null || pgrep -f "rails.*3000" > /dev/null; then
     echo "====================================================="
     echo "   Deployment Complete! Live site is up and running."
     echo "====================================================="
@@ -58,5 +60,5 @@ else
     echo "====================================================="
     echo "   Warning: Server may still be booting or failed. Log:"
     echo "====================================================="
-    tail -n 30 log/server.log || true
+    tail -n 35 log/server.log || true
 fi

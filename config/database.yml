@@ -17,5 +17,5 @@ test:
 
 production:
   <<: *default
-  database: hub_production
+  database: <%= ENV.fetch("DATABASE_NAME", "hub_production") %>
 
