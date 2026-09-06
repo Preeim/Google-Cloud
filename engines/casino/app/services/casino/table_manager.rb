@@ -84,7 +84,9 @@ module Casino
       end
 
       bet = nil
+      needs_timer = false
       table.with_lock do
+
         table.reload
         return { success: false, error: "Az asztal jelenleg karbantartás alatt áll." } if table.state == "maintenance"
         return { success: false, error: "A lapok már kiosztásra kerültek erre a körre." } if %w[player_turns resolving].include?(table.state)

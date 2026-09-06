@@ -552,11 +552,14 @@
           myBetsList.prepend(row);
 
           if (data.seconds_remaining && data.seconds_remaining > 0) {
-            startTimer(data.seconds_remaining);
+            startTimer(data.seconds_remaining, "Fogadási Idő");
           }
         } else {
+          submitBtn.removeAttribute('disabled');
+          submitBtn.textContent = "Tét Elhelyezése";
           alert(data.error || "Hiba történt a tét elhelyezésekor.");
         }
+
       })
       .catch(err => {
         submitBtn.removeAttribute('disabled');
