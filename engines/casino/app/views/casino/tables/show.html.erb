@@ -586,6 +586,15 @@
             if (!data.success) {
               alert(data.error || "Hiba történt a döntés rögzítésekor.");
               document.querySelectorAll('.btn-bj-action').forEach(b => b.removeAttribute('disabled'));
+            } else {
+              const p = data.player;
+              if (p && p.status === 'playing') {
+                if (p.cards && p.cards.length > 2) {
+                  const doubleBtn = document.querySelector('.btn-bj-action[data-action="double"]');
+                  if (doubleBtn) doubleBtn.remove();
+                }
+                document.querySelectorAll('.btn-bj-action').forEach(b => b.removeAttribute('disabled'));
+              }
             }
           })
           .catch(err => {
@@ -849,10 +858,19 @@
                   data.cards.forEach(c => cardsElem.appendChild(createCardElement(c)));
                 }
 
-                // Ha az aktuális játékos megállt vagy besokallt, gombok eltávolítása
-                if (String(data.profile_id) === currentProfileId && ['stood', 'busted', 'blackjack'].includes(data.status)) {
-                  const actionsContainer = document.getElementById('my-bj-actions');
-                  if (actionsContainer) actionsContainer.remove();
+                // Ha az aktuális játékos döntése volt:
+                if (String(data.profile_id) === currentProfileId) {
+                  if (['stood', 'busted', 'blackjack'].includes(data.status)) {
+                    const actionsContainer = document.getElementById('my-bj-actions');
+                    if (actionsContainer) actionsContainer.remove();
+                  } else {
+                    // Még játékban van: gombok újraengedélyezése és Double eltávolítása ha már > 2 lap
+                    if (data.cards && data.cards.length > 2) {
+                      const doubleBtn = document.querySelector('.btn-bj-action[data-action="double"]');
+                      if (doubleBtn) doubleBtn.remove();
+                    }
+                    document.querySelectorAll('.btn-bj-action').forEach(b => b.removeAttribute('disabled'));
+                  }
                 }
               }
             }
