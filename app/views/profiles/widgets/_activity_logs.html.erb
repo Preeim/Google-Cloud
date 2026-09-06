@@ -6,12 +6,12 @@
         <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-canvas); border: 1px solid var(--border-subtle); padding: 9px 12px; border-radius: 6px; font-size: 0.85rem;">
           <div style="display: flex; align-items: center; gap: 10px;">
             <span style="font-size: 1.1rem;">
-              <% case log.action.to_s %>
-              <% when /login/ then %>🔑
-              <% when /lock/ then %>🔒
-              <% when /update/ then %>✏️
-              <% else %>📝
-              <% end %>
+              <%= case log.action.to_s
+                  when /login/ then "🔑"
+                  when /lock/ then "🔒"
+                  when /update/ then "✏️"
+                  else "📝"
+                  end %>
             </span>
             <div>
               <strong style="color: var(--text-main);"><%= log.action.to_s.humanize %></strong>
