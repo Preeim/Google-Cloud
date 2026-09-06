@@ -195,22 +195,27 @@ module Chess
     end
 
     def current_user_or_guest_id
-      current_user&.id || guest_id
+      current_user&.id || effective_guest_id
+    end
+
+    def effective_guest_id
+      (guest_id.presence || params[:guest_id].presence).to_s
     end
 
     def current_player_color
-      if @match.white_user_id.present? && current_user.present? && @match.white_user_id == current_user.id
-        return "white"
+      # 1. Bejelentkezett felhasználó vizsgálata
+      if current_user.present?
+        return "white" if @match.white_user_id.present? && @match.white_user_id == current_user.id
+        return "black" if @match.black_user_id.present? && @match.black_user_id == current_user.id
       end
-      if @match.black_user_id.present? && current_user.present? && @match.black_user_id == current_user.id
-        return "black"
+
+      # 2. Vendég azonosító vizsgálata (Connection azonosító vagy feliratkozási paraméter)
+      gid = effective_guest_id
+      if gid.present?
+        return "white" if @match.white_guest_id.present? && @match.white_guest_id.to_s == gid
+        return "black" if @match.black_guest_id.present? && @match.black_guest_id.to_s == gid
       end
-      if @match.white_guest_id.present? && guest_id.present? && @match.white_guest_id.to_s == guest_id.to_s
-        return "white"
-      end
-      if @match.black_guest_id.present? && guest_id.present? && @match.black_guest_id.to_s == guest_id.to_s
-        return "black"
-      end
+
       "spectator"
     end
   end

@@ -63,7 +63,8 @@
      data-white-time="<%= white_time_now %>"
      data-black-time="<%= black_time_now %>"
      data-last-move-at="<%= @match.last_move_at ? (@match.last_move_at.to_f * 1000).to_i : '' %>"
-     data-my-color="<%= my_color %>">
+     data-my-color="<%= my_color %>"
+     data-guest-id="<%= session[:guest_id] %>">
 
   <!-- Floating Toast Notification Container -->
   <div id="chess-toast-container" class="chess-toast-container"></div>
@@ -81,6 +82,85 @@
       <div class="chess-modal-actions" id="chess-modal-actions">
         <button type="button" class="btn btn-secondary" id="chess-modal-btn-cancel" style="display: none;">Mégse</button>
         <button type="button" class="btn btn-primary" id="chess-modal-btn-action">Rendben</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formázott PGN Modal Ablak (Dialog) -->
+  <div id="pgn-modal-overlay" class="chess-modal-overlay" style="display: none;">
+    <div class="pgn-modal-card">
+      <div class="pgn-modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.35rem;">📜</span>
+          <h3 style="margin: 0; font-size: 1.15rem; color: #f8fafc;">Játszma PGN Jegyzőkönyv</h3>
+        </div>
+        <button type="button" class="chess-toast-close" id="btn-close-pgn-modal" style="font-size: 1.4rem; cursor: pointer;" title="Bezárás">&times;</button>
+      </div>
+
+      <!-- PGN Metaadat Kártya -->
+      <div class="pgn-meta-grid">
+        <div class="pgn-meta-item">
+          <span class="pgn-meta-label">Esemény:</span>
+          <span class="pgn-meta-val">Bánk's Repository Sakk</span>
+        </div>
+        <div class="pgn-meta-item">
+          <span class="pgn-meta-label">Helyszín:</span>
+          <span class="pgn-meta-val">bankrepo.hu</span>
+        </div>
+        <div class="pgn-meta-item">
+          <span class="pgn-meta-label">Dátum:</span>
+          <span class="pgn-meta-val"><%= @match.created_at.strftime("%Y.%m.%d") %></span>
+        </div>
+        <div class="pgn-meta-item">
+          <span class="pgn-meta-label">Időkorlát:</span>
+          <span class="pgn-meta-val"><%= @match.time_control.present? ? "#{@match.time_control / 60} perc" : "Nincs korlát" %></span>
+        </div>
+        <div class="pgn-meta-item">
+          <span class="pgn-meta-label">Világos:</span>
+          <span class="pgn-meta-val" id="pgn-meta-white" style="color: #38bdf8;"><%= @match.white_player_name %></span>
+        </div>
+        <div class="pgn-meta-item">
+          <span class="pgn-meta-label">Sötét:</span>
+          <span class="pgn-meta-val" id="pgn-meta-black" style="color: #a855f7;"><%= @match.black_player_name %></span>
+        </div>
+        <div class="pgn-meta-item">
+          <span class="pgn-meta-label">Eredmény:</span>
+          <span class="pgn-meta-val" id="pgn-meta-result" style="font-weight: 800; color: #fbbf24;">
+            <%= @match.completed? ? (@match.winner == 'white' ? '1-0' : (@match.winner == 'black' ? '0-1' : '1/2-1/2')) : '*' %>
+          </span>
+        </div>
+        <div class="pgn-meta-item">
+          <span class="pgn-meta-label">Azonosító:</span>
+          <span class="pgn-meta-val" style="font-family: monospace; font-size: 0.8rem;"><%= @match.uuid[0..7] %></span>
+        </div>
+      </div>
+
+      <!-- Tab Váltó -->
+      <div class="pgn-tabs">
+        <button type="button" class="pgn-tab-btn active" id="tab-btn-formatted">📋 Formázott Lépések</button>
+        <button type="button" class="pgn-tab-btn" id="tab-btn-raw">📝 Nyers PGN Szöveg</button>
+      </div>
+
+      <!-- 1. Formázott Lépéslista Panel -->
+      <div id="pgn-panel-formatted" class="pgn-tab-content active">
+        <div id="pgn-moves-table-wrap" class="pgn-moves-table-wrap"></div>
+      </div>
+
+      <!-- 2. Nyers PGN Szöveg Panel -->
+      <div id="pgn-panel-raw" class="pgn-tab-content">
+        <textarea id="pgn-raw-textarea" class="pgn-raw-textarea" readonly></textarea>
+      </div>
+
+      <!-- Akciógombok -->
+      <div class="pgn-modal-actions">
+        <button type="button" id="btn-modal-copy-pgn" class="btn btn-secondary">
+          <span id="copy-btn-icon">📋</span>
+          <span id="copy-btn-label">Másolás Vágólapra</span>
+        </button>
+        <button type="button" id="btn-modal-download-pgn" class="btn btn-primary">
+          <span>💾</span>
+          <span>Letöltés (.pgn)</span>
+        </button>
       </div>
     </div>
   </div>
@@ -199,9 +279,28 @@
     </div>
 
     <div class="pgn-box">
-      <h4>Lépések (PGN)</h4>
-      <textarea id="pgn-content" readonly><%= @match.pgn %></textarea>
-      <button type="button" id="btn-copy-pgn" class="btn btn-secondary">PGN Másolása</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <h4 style="margin: 0;">Lépések (PGN)</h4>
+        <button type="button" id="btn-open-pgn-modal" class="btn btn-secondary btn-sm" style="border-color: #38bdf8; color: #38bdf8; padding: 3px 8px; font-size: 0.78rem;">
+          📜 Export & PGN
+        </button>
+      </div>
+      <textarea id="pgn-content" readonly style="display: none;"><%= @match.pgn %></textarea>
+      <div id="pgn-quick-preview" class="pgn-quick-preview">
+        <% if @match.pgn.present? %>
+          <%= @match.pgn %>
+        <% else %>
+          <span style="color: #64748b; font-style: italic;">Még nem történt lépés.</span>
+        <% end %>
+      </div>
+      <div style="display: flex; gap: 6px; margin-top: 8px;">
+        <button type="button" id="btn-copy-pgn" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 0.8rem;">
+          📋 Másolás
+        </button>
+        <button type="button" id="btn-quick-download-pgn" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 0.8rem;">
+          💾 Letöltés
+        </button>
+      </div>
     </div>
 
     <div class="match-meta-box">
@@ -498,21 +597,166 @@
     margin-top: 0.5rem;
   }
 
-  .pgn-box textarea {
+  .pgn-quick-preview {
     width: 100%;
-    height: 140px;
+    max-height: 90px;
+    overflow-y: auto;
     background: #0a0f1d;
     color: #94a3b8;
     border: 1px solid #1a243b;
-    padding: 0.5rem;
-    font-family: monospace;
-    font-size: 0.85rem;
-    resize: none;
-    border-radius: 4px;
+    padding: 0.5rem 0.65rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    border-radius: 6px;
     box-sizing: border-box;
-    margin-top: 0.4rem;
-    word-break: break-all;
-    overflow-x: hidden;
+    word-break: break-word;
+  }
+  .pgn-quick-preview::-webkit-scrollbar { width: 4px; }
+  .pgn-quick-preview::-webkit-scrollbar-thumb { background: #23304d; border-radius: 2px; }
+
+  /* PGN Modal Kártya és Belső Elemek */
+  .pgn-modal-card {
+    background: #11192e;
+    border: 1px solid #23304d;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.8), 0 0 25px rgba(56, 189, 248, 0.15);
+    border-radius: 14px;
+    padding: 1.5rem;
+    max-width: 580px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    animation: chessModalZoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .pgn-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #1a243b;
+    padding-bottom: 0.75rem;
+  }
+  .pgn-meta-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 1rem;
+    background: #0a0f1d;
+    border: 1px solid #1a243b;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.82rem;
+  }
+  .pgn-meta-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+  }
+  .pgn-meta-label {
+    color: #64748b;
+    font-weight: 500;
+  }
+  .pgn-meta-val {
+    color: #e2e8f0;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pgn-tabs {
+    display: flex;
+    gap: 0.4rem;
+    border-bottom: 1px solid #1a243b;
+    padding-bottom: 0.4rem;
+  }
+  .pgn-tab-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pgn-tab-btn:hover {
+    color: #f1f5f9;
+    background: #1a243b;
+  }
+  .pgn-tab-btn.active {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+  .pgn-tab-content {
+    display: none;
+    flex: 1;
+    min-height: 180px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .pgn-tab-content.active {
+    display: block;
+  }
+  .pgn-moves-table-wrap {
+    background: #0a0f1d;
+    border: 1px solid #1a243b;
+    border-radius: 8px;
+    padding: 0.5rem;
+    max-height: 250px;
+    overflow-y: auto;
+  }
+  .pgn-moves-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.86rem;
+  }
+  .pgn-moves-table tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .pgn-moves-table td {
+    padding: 0.35rem 0.6rem;
+    border-bottom: 1px solid #141c2e;
+  }
+  .pgn-move-num {
+    color: #64748b;
+    width: 40px;
+    font-weight: 600;
+    user-select: none;
+  }
+  .pgn-move-white {
+    color: #38bdf8;
+    font-weight: 600;
+  }
+  .pgn-move-black {
+    color: #cbd5e1;
+  }
+  .pgn-raw-textarea {
+    width: 100%;
+    height: 220px;
+    background: #0a0f1d;
+    color: #a5f3fc;
+    border: 1px solid #1a243b;
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    resize: none;
+    box-sizing: border-box;
+  }
+  .pgn-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #1a243b;
   }
   .match-meta-box {
     background: #0a0f1d;
@@ -1076,8 +1320,13 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function updateStatus () {
-    $('#pgn-content').val(game.pgn());
+    var pgnVal = game.pgn() || '';
+    $('#pgn-content').val(pgnVal);
+    if ($('#pgn-quick-preview').length) {
+      $('#pgn-quick-preview').text(pgnVal && pgnVal.trim().length > 0 ? pgnVal : "Még nem történt lépés.");
+    }
     updateTurnIndicator();
+    updatePgnModalContent();
   }
 
   function updateTurnIndicator() {
@@ -1104,16 +1353,85 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
 
+  // PGN Jegyzőkönyv és Modal Előállítás
+  function generateFullPgnText() {
+    var whiteName = $('#opponent-role-label').text().includes('Világos') ? $('#opponent-name').text().trim() : $('#user-name').text().trim();
+    var blackName = $('#opponent-role-label').text().includes('Sötét') ? $('#opponent-name').text().trim() : $('#user-name').text().trim();
+    if (myColor === 'black') {
+      whiteName = $('#opponent-name').text().trim();
+      blackName = $('#user-name').text().trim();
+    } else if (myColor === 'white') {
+      whiteName = $('#user-name').text().trim();
+      blackName = $('#opponent-name').text().trim();
+    }
+
+    var res = '*';
+    if (isCompleted) {
+      var winnerVal = container.dataset.winner;
+      if (winnerVal === 'white') res = '1-0';
+      else if (winnerVal === 'black') res = '0-1';
+      else if (winnerVal === 'draw') res = '1/2-1/2';
+    }
+
+    var createdDate = container.dataset.date || new Date().toISOString().slice(0, 10).replace(/-/g, '.');
+    var tags = [
+      '[Event "Bánk\'s Repository Sakk"]',
+      '[Site "bankrepo.hu"]',
+      '[Date "' + createdDate + '"]',
+      '[Round "1"]',
+      '[White "' + (whiteName || 'Világos') + '"]',
+      '[Black "' + (blackName || 'Sötét') + '"]',
+      '[Result "' + res + '"]',
+      timeControlSeconds ? '[TimeControl "' + timeControlSeconds + '"]' : '[TimeControl "-"]',
+      '[FEN "' + game.fen() + '"]'
+    ];
+
+    var pgnMoves = game.pgn() || '';
+    var cleanMoves = pgnMoves.replace(/\[.*?\]\s*/g, '').trim();
+    return tags.join('\n') + '\n\n' + (cleanMoves.length > 0 ? cleanMoves + ' ' + res : res);
+  }
+
+  function updatePgnModalContent() {
+    var pgnHistory = game.history({ verbose: true });
+    var $tableWrap = $('#pgn-moves-table-wrap');
+    var fullPgn = generateFullPgnText();
+    $('#pgn-raw-textarea').val(fullPgn);
+
+    if (!$tableWrap.length) return;
+
+    if (!pgnHistory || pgnHistory.length === 0) {
+      $tableWrap.html('<div style="color: #64748b; text-align: center; padding: 2.5rem 1rem; font-style: italic;">Még nincsenek rögzített lépések ebben a játszmában.</div>');
+      return;
+    }
+
+    var html = '<table class="pgn-moves-table"><tbody>';
+    for (var i = 0; i < pgnHistory.length; i += 2) {
+      var moveNum = Math.floor(i / 2) + 1;
+      var whiteMove = pgnHistory[i] ? pgnHistory[i].san : '';
+      var blackMove = pgnHistory[i + 1] ? pgnHistory[i + 1].san : '';
+      html += '<tr>';
+      html += '<td class="pgn-move-num">' + moveNum + '.</td>';
+      html += '<td class="pgn-move-white">' + whiteMove + '</td>';
+      html += '<td class="pgn-move-black">' + (blackMove || '') + '</td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+    $tableWrap.html(html);
+  }
+
+  // Tábla konfiguráció: ha a játékos sötéttel van, automatikusan forduljon meg (Board Flip)
+  var targetOrientation = (myColor === 'black') ? 'black' : 'white';
+
   var config = {
     pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
     draggable: !isCompleted && !isSpectator && (container.dataset.status === 'active'),
     position: game.fen(),
+    orientation: targetOrientation,
     onDragStart: onDragStart,
     onDrop: onDrop,
     onSnapEnd: onSnapEnd
   };
   
-  config.orientation = isSpectator ? 'white' : myColor;
   board = Chessboard('chess-board', config);
   updateStatus();
   renderClocks();
@@ -1137,11 +1455,118 @@ document.addEventListener("DOMContentLoaded", function() {
     shareInput.value = window.location.origin + "<%= match_path(@match.uuid, join: true) %>";
   }
 
+  // PGN Modal Kezelők
+  $('#btn-open-pgn-modal').on('click', function() {
+    updatePgnModalContent();
+    $('#pgn-modal-overlay').css('display', 'flex');
+  });
+
+  $('#btn-close-pgn-modal').on('click', function() {
+    $('#pgn-modal-overlay').hide();
+  });
+
+  $(document).on('keydown', function(e) {
+    if (e.key === 'Escape' && $('#pgn-modal-overlay').is(':visible')) {
+      $('#pgn-modal-overlay').hide();
+    }
+  });
+
+  $('#tab-btn-formatted').on('click', function() {
+    $('.pgn-tab-btn').removeClass('active');
+    $('.pgn-tab-content').removeClass('active');
+    $(this).addClass('active');
+    $('#pgn-panel-formatted').addClass('active');
+  });
+
+  $('#tab-btn-raw').on('click', function() {
+    $('.pgn-tab-btn').removeClass('active');
+    $('.pgn-tab-content').removeClass('active');
+    $(this).addClass('active');
+    $('#pgn-panel-raw').addClass('active');
+  });
+
+  function copyPgnToClipboard($btn) {
+    var fullPgn = generateFullPgnText();
+    var originalHtml = $btn ? $btn.html() : null;
+
+    function onCopied() {
+      showChessToast({ title: "Sikeres másolás", message: "A teljes PGN jegyzőkönyv a vágólapra másolva!", type: "success", icon: "📋" });
+      if ($btn) {
+        $btn.html('<span>✓</span> <span>Másolva!</span>').prop('disabled', true);
+        setTimeout(function() {
+          $btn.html(originalHtml).prop('disabled', false);
+        }, 2200);
+      }
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(fullPgn).then(onCopied).catch(function() {
+        fallbackCopyText(fullPgn, "A teljes PGN jegyzőkönyv a vágólapra másolva!");
+      });
+    } else {
+      fallbackCopyText(fullPgn, "A teljes PGN jegyzőkönyv a vágólapra másolva!");
+    }
+  }
+
+  $('#btn-copy-pgn, #btn-modal-copy-pgn').on('click', function() {
+    copyPgnToClipboard($(this));
+  });
+
+  function downloadPgnFile() {
+    var fullPgn = generateFullPgnText();
+    var blob = new Blob([fullPgn], { type: 'application/x-chess-pgn;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var filename = 'game-' + matchId.substring(0, 8) + '.pgn';
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }, 100);
+    showChessToast({ title: "Fájl letöltve", message: filename + " sikeresen letöltve!", type: "success", icon: "💾" });
+  }
+
+  $('#btn-quick-download-pgn, #btn-modal-download-pgn').on('click', downloadPgnFile);
+
+  // Copy Invitation Link with clipboard API & execCommand fallback
+  $('#btn-copy-link').on('click', function() {
+    var copyText = document.getElementById("share-link-input");
+    if (!copyText) return;
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(copyText.value).then(function() {
+        showChessToast({ title: "Sikeres másolás", message: "Meccs linkje a vágólapra másolva!", type: "success", icon: "🔗" });
+      }).catch(function() {
+        fallbackCopyText(copyText.value, "Meccs linkje a vágólapra másolva!");
+      });
+    } else {
+      fallbackCopyText(copyText.value, "Meccs linkje a vágólapra másolva!");
+    }
+  });
+
+  function fallbackCopyText(text, successMsg) {
+    var tempInput = document.createElement("textarea");
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    try {
+      document.execCommand("copy");
+      showChessToast({ title: "Sikeres másolás", message: successMsg, type: "success", icon: "📋" });
+    } catch (err) {
+      showChessToast({ title: "Másolási hiba", message: "Másolás sikertelen, kérlek jelöld ki manuálisan.", type: "warning", icon: "⚠️" });
+    }
+    document.body.removeChild(tempInput);
+  }
+
   // Chess in-game Toast Notification System
   function showChessToast(options) {
     var title = options.title || "Értesítés";
     var message = options.message || "";
-    var type = options.type || "info"; // "success", "warning", "danger", "info"
+    var type = options.type || "info";
     var duration = options.duration !== undefined ? options.duration : 4000;
     var icon = options.icon;
     if (!icon) {
@@ -1184,7 +1609,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
 
-  // Chess in-game Modal Dialog (e.g. Challenge Cancelled)
+  // Chess in-game Modal Dialog
   var modalCountdownTimer = null;
   function showChessModal(options) {
     var title = options.title || "Értesítés";
@@ -1243,7 +1668,6 @@ document.addEventListener("DOMContentLoaded", function() {
     $('#chess-modal-overlay').css('display', 'flex');
   }
 
-  // Chess in-game Confirmation Modal
   function showChessConfirm(options) {
     var title = options.title || "Megerősítés";
     var message = options.message || "";
@@ -1283,51 +1707,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     $('#chess-modal-overlay').css('display', 'flex');
-  }
-
-  // Copy PGN with clipboard API & execCommand fallback
-  $('#btn-copy-pgn').on('click', function() {
-    var pgnVal = $('#pgn-content').val();
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(pgnVal).then(function() {
-        showChessToast({ title: "Sikeres másolás", message: "PGN lépések a vágólapra másolva!", type: "success", icon: "📋" });
-      }).catch(function() {
-        fallbackCopyText(pgnVal, 'PGN lépések a vágólapra másolva!');
-      });
-    } else {
-      fallbackCopyText(pgnVal, 'PGN lépések a vágólapra másolva!');
-    }
-  });
-
-  // Copy Invitation Link with clipboard API & execCommand fallback
-  $('#btn-copy-link').on('click', function() {
-    var copyText = document.getElementById("share-link-input");
-    if (!copyText) return;
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(copyText.value).then(function() {
-        showChessToast({ title: "Sikeres másolás", message: "Meccs linkje a vágólapra másolva!", type: "success", icon: "🔗" });
-      }).catch(function() {
-        fallbackCopyText(copyText.value, "Meccs linkje a vágólapra másolva!");
-      });
-    } else {
-      fallbackCopyText(copyText.value, "Meccs linkje a vágólapra másolva!");
-    }
-  });
-
-  function fallbackCopyText(text, successMsg) {
-    var tempInput = document.createElement("textarea");
-    tempInput.value = text;
-    document.body.appendChild(tempInput);
-    tempInput.select();
-    try {
-      document.execCommand("copy");
-      showChessToast({ title: "Sikeres másolás", message: successMsg, type: "success", icon: "📋" });
-    } catch (err) {
-      showChessToast({ title: "Másolási hiba", message: "Másolás sikertelen, kérlek jelöld ki manuálisan.", type: "warning", icon: "⚠️" });
-    }
-    document.body.removeChild(tempInput);
   }
 
   // Prompt helper with auto-dismiss timeout
@@ -1373,29 +1752,46 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 
-  // Setup ActionCable
+  // ActionCable Kapcsolat Vendég azonosító átadásával
+  var guestId = container.dataset.guestId || '';
   var consumer = window.ActionCable ? window.ActionCable.createConsumer() : ActionCable.createConsumer();
-  window.matchSubscription = consumer.subscriptions.create({ channel: "Chess::MatchChannel", match_id: matchId }, {
+  window.matchSubscription = consumer.subscriptions.create({ 
+    channel: "Chess::MatchChannel", 
+    match_id: matchId,
+    guest_id: guestId 
+  }, {
     received: function(data) {
       if (data.action === "move" || data.action === "takeback_accepted") {
-        // Automatically dismiss any open prompt and clear square selection
         hidePrompt();
         removeHighlights();
         selectedSquare = null;
         resetButtonCooldown('#btn-draw', 'Döntetlen Ajánlat');
         resetButtonCooldown('#btn-takeback', 'Visszalépés Kérése');
 
+        // PGN betöltése és játékállapot újraszámítása
+        game.reset();
         if (data.pgn && data.pgn.trim().length > 0) {
           game.load_pgn(data.pgn);
-        } else {
-          game.reset();
         }
-        board.position(data.fen || game.fen());
+
+        // Visszalépés esetén a PGN-ből kiszámított pontos FEN-re állítjuk a bábukat (nem ugrik alapállásba!)
+        var targetFen = game.fen();
+        if (data.fen && data.action === "move") {
+          targetFen = data.fen;
+        } else if (data.fen && data.action === "takeback_accepted" && data.fen.indexOf("8/8/8/8") === -1) {
+          targetFen = data.fen;
+        }
+
+        board.position(targetFen, true);
         updateStatus();
 
         if (data.white_time_left !== undefined) whiteTimeMs = data.white_time_left;
         if (data.black_time_left !== undefined) blackTimeMs = data.black_time_left;
         renderClocks();
+
+        if (data.action === "takeback_accepted") {
+          showChessToast({ title: "Visszalépés elfogadva", message: "A játszma sikeresen visszalépett az előző pozícióra.", type: "info", icon: "↩️" });
+        }
 
         if (data.status === "completed") {
           isCompleted = true;
@@ -1446,21 +1842,17 @@ document.addEventListener("DOMContentLoaded", function() {
         if (clockInterval) clearInterval(clockInterval);
         hidePrompt();
 
-        // Lock Board
         config.draggable = false;
         board.position(game.fen());
 
-        // Update UI
         $('#status-display').text("BEFEJEZŐDÖTT").removeClass('status-active status-pending').addClass('status-completed');
         $('#active-actions-container').hide();
         $('#prompt-card').hide();
 
-        // Show Game Over Banner
         $('#banner-title').text("Játszma véget ért");
         $('#banner-reason').text(data.reason);
         $('#game-over-banner').slideDown();
 
-        // Activate Replay
         $('#replay-panel').slideDown();
         buildReplayPositions();
       } else if (data.action === "match_started") {

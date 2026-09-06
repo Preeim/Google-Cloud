@@ -1,4 +1,4 @@
-﻿<%# ============================================================================== %>
+<%# ============================================================================== %>
 <%# Bánk''s Repository - Globális Chat Lebegő Widget (_global_chat.html.erb)         %>
 <%# ============================================================================== %>
 <%# Reszponzív, lebegő valós idejű chat felület ActionCable WebSocket szinkronnal.   %>
@@ -504,32 +504,40 @@
 <!-- 3. Kliensoldali Valós Idejű Chat Szkript -->
 <script>
   (function() {
-    // DOM Elemek
-    const triggerBtn = document.getElementById('global-chat-btn');
-    const closeBtn = document.getElementById('chat-close-btn');
-    const panel = document.getElementById('global-chat-panel');
-    const badge = document.getElementById('chat-unread-badge');
-    const messagesList = document.getElementById('chat-messages-list');
-    const loadingState = document.getElementById('chat-loading-placeholder');
-    const emptyState = document.getElementById('chat-empty-placeholder');
-    const inputForm = document.getElementById('chat-input-form');
-    const inputMsg = document.getElementById('chat-message-input');
-    const sendBtn = document.getElementById('chat-send-btn');
-    const statusIndicator = document.getElementById('chat-ws-status');
-    const statusText = document.getElementById('chat-ws-status-text');
-    const alertBanner = document.getElementById('chat-alert-banner');
+    // Globális állapottár (oldalváltások és Turbo navigáció között perzisztens)
+    window._globalChatState = window._globalChatState || {
+      isOpen: false,
+      unreadCount: 0,
+      messages: [],
+      messageIds: new Set(),
+      subscription: null
+    };
 
-    let isPanelOpen = false;
-    let unreadCount = 0;
-    let channelSubscription = null;
     let currentUser = <%= (logged_in? ? { id: current_user.id, is_admin: admin?, is_mod: moderator? }.to_json : "null").html_safe %>;
-    let messageIds = new Set();
+
+    function getElements() {
+      return {
+        triggerBtn: document.getElementById('global-chat-btn'),
+        closeBtn: document.getElementById('chat-close-btn'),
+        panel: document.getElementById('global-chat-panel'),
+        badge: document.getElementById('chat-unread-badge'),
+        messagesList: document.getElementById('chat-messages-list'),
+        loadingState: document.getElementById('chat-loading-placeholder'),
+        emptyState: document.getElementById('chat-empty-placeholder'),
+        inputForm: document.getElementById('chat-input-form'),
+        inputMsg: document.getElementById('chat-message-input'),
+        sendBtn: document.getElementById('chat-send-btn'),
+        statusIndicator: document.getElementById('chat-ws-status'),
+        statusText: document.getElementById('chat-ws-status-text'),
+        alertBanner: document.getElementById('chat-alert-banner')
+      };
+    }
 
     // ------------------------------------------------------------------------
     // Panel Állapotkezelés (Nyitás / Csukás)
     // ------------------------------------------------------------------------
     function toggleChatPanel() {
-      if (isPanelOpen) {
+      if (window._globalChatState.isOpen) {
         closeChatPanel();
       } else {
         openChatPanel();
@@ -537,80 +545,78 @@
     }
 
     function openChatPanel() {
-      isPanelOpen = true;
-      panel.classList.add('open');
-      panel.setAttribute('aria-hidden', 'false');
-      unreadCount = 0;
+      window._globalChatState.isOpen = true;
+      const els = getElements();
+      if (els.panel) {
+        els.panel.classList.add('open');
+        els.panel.setAttribute('aria-hidden', 'false');
+      }
+      window._globalChatState.unreadCount = 0;
       updateUnreadBadge();
       scrollToBottom();
-      if (inputMsg) inputMsg.focus();
+      if (els.inputMsg) els.inputMsg.focus();
     }
 
     function closeChatPanel() {
-      isPanelOpen = false;
-      panel.classList.remove('open');
-      panel.setAttribute('aria-hidden', 'true');
+      window._globalChatState.isOpen = false;
+      const els = getElements();
+      if (els.panel) {
+        els.panel.classList.remove('open');
+        els.panel.setAttribute('aria-hidden', 'true');
+      }
     }
 
     function updateUnreadBadge() {
-      if (!badge) return;
-      if (unreadCount > 0) {
-        badge.innerText = unreadCount > 99 ? '99+' : unreadCount;
-        badge.classList.add('visible');
+      const els = getElements();
+      if (!els.badge) return;
+      const count = window._globalChatState.unreadCount;
+      if (count > 0) {
+        els.badge.innerText = count > 99 ? '99+' : count;
+        els.badge.classList.add('visible');
       } else {
-        badge.classList.remove('visible');
-        badge.innerText = '0';
+        els.badge.classList.remove('visible');
+        els.badge.innerText = '0';
       }
     }
 
-    if (triggerBtn) triggerBtn.addEventListener('click', toggleChatPanel);
-    if (closeBtn) closeBtn.addEventListener('click', closeChatPanel);
-
-    // ESC gombra bezárás
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && isPanelOpen) {
-        closeChatPanel();
-      }
-    });
-
-    // ------------------------------------------------------------------------
-    // Görgetés és DOM Megjelenítés
-    // ------------------------------------------------------------------------
     function scrollToBottom(force = true) {
-      if (!messagesList) return;
+      const els = getElements();
+      if (!els.messagesList) return;
       if (force) {
-        messagesList.scrollTop = messagesList.scrollHeight;
+        els.messagesList.scrollTop = els.messagesList.scrollHeight;
         return;
       }
-      // Ha a felhasználó a lista legaljához közel van (120px-en belül), akkor automatikusan gördítünk
-      const isNearBottom = messagesList.scrollHeight - messagesList.scrollTop - messagesList.clientHeight < 120;
+      const isNearBottom = els.messagesList.scrollHeight - els.messagesList.scrollTop - els.messagesList.clientHeight < 120;
       if (isNearBottom) {
-        messagesList.scrollTop = messagesList.scrollHeight;
+        els.messagesList.scrollTop = els.messagesList.scrollHeight;
       }
     }
 
     function showAlert(text) {
-      if (!alertBanner) return;
-      alertBanner.innerText = text;
-      alertBanner.classList.add('visible');
+      const els = getElements();
+      if (!els.alertBanner) return;
+      els.alertBanner.innerText = text;
+      els.alertBanner.classList.add('visible');
       setTimeout(function() {
-        alertBanner.classList.remove('visible');
+        els.alertBanner.classList.remove('visible');
       }, 4000);
     }
 
     function renderMessage(msg, isHistory = false) {
-      if (!messagesList || messageIds.has(msg.id)) return;
-      messageIds.add(msg.id);
+      const els = getElements();
+      if (!els.messagesList) return;
 
-      if (loadingState) loadingState.style.display = 'none';
-      if (emptyState) emptyState.style.display = 'none';
+      if (els.loadingState) els.loadingState.style.display = 'none';
+      if (els.emptyState) els.emptyState.style.display = 'none';
+
+      // Ha a DOM-ban már szerepel, ne fűzzük hozzá még egyszer
+      if (document.getElementById(`chat-msg-${msg.id}`)) return;
 
       const row = document.createElement('div');
       row.className = 'chat-msg-row';
       row.id = `chat-msg-${msg.id}`;
       row.setAttribute('data-message-id', msg.id);
 
-      // Szerepkör címke (Admin / Mod)
       let roleBadgeHtml = '';
       if (msg.user.role === 'admin') {
         roleBadgeHtml = '<span class="chat-badge-role chat-badge-admin">Admin</span>';
@@ -618,7 +624,6 @@
         roleBadgeHtml = '<span class="chat-badge-role chat-badge-mod">Mod</span>';
       }
 
-      // Törlés gomb moderációhoz
       let deleteBtnHtml = '';
       const canDelete = msg.can_delete || (currentUser && (currentUser.is_admin || currentUser.is_mod || currentUser.id === msg.user.id));
       if (canDelete) {
@@ -649,11 +654,11 @@
         </div>
       `;
 
-      messagesList.appendChild(row);
+      els.messagesList.appendChild(row);
 
       if (!isHistory) {
-        if (!isPanelOpen) {
-          unreadCount++;
+        if (!window._globalChatState.isOpen) {
+          window._globalChatState.unreadCount++;
           updateUnreadBadge();
         }
         scrollToBottom(false);
@@ -661,28 +666,29 @@
     }
 
     function removeMessage(messageId) {
-      messageIds.delete(messageId);
+      window._globalChatState.messageIds.delete(messageId);
+      window._globalChatState.messages = window._globalChatState.messages.filter(m => m.id !== messageId);
       const el = document.getElementById(`chat-msg-${messageId}`);
       if (el) {
         el.style.opacity = '0';
         el.style.transform = 'scale(0.95)';
         setTimeout(() => {
           el.remove();
-          if (messageIds.size === 0 && emptyState) {
-            emptyState.style.display = 'flex';
+          const els = getElements();
+          if (window._globalChatState.messageIds.size === 0 && els.emptyState) {
+            els.emptyState.style.display = 'flex';
           }
         }, 150);
       }
     }
 
-    // Globális törlési függvény meghívható az inline onclickből
     window.deleteGlobalChatMessage = function(id) {
       if (!confirm("Biztosan törlöd ezt az üzenetet?")) return;
 
-      if (channelSubscription && typeof channelSubscription.perform === 'function') {
-        channelSubscription.perform('delete_message', { message_id: id });
+      const sub = window._globalChatState.subscription;
+      if (sub && typeof sub.perform === 'function') {
+        sub.perform('delete_message', { message_id: id });
       } else {
-        // REST fallback
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         fetch(`/chat_messages/${id}`, {
           method: 'DELETE',
@@ -694,79 +700,10 @@
       }
     };
 
-    // ------------------------------------------------------------------------
-    // ActionCable WebSocket Kapcsolódás
-    // ------------------------------------------------------------------------
-    function initWebSocket() {
-      if (typeof ActionCable === 'undefined') {
-        console.warn("ActionCable könyvtár nincs betöltve, fallback REST betöltés...");
-        loadHistoryFallback();
-        return;
-      }
-
-      const consumer = ActionCable.createConsumer('/cable');
-
-      channelSubscription = consumer.subscriptions.create({ channel: "GlobalChatChannel" }, {
-        connected: function() {
-          if (statusIndicator) {
-            statusIndicator.className = 'chat-status-indicator';
-            statusText.innerText = 'Élő';
-          }
-        },
-        disconnected: function() {
-          if (statusIndicator) {
-            statusIndicator.className = 'chat-status-indicator offline';
-            statusText.innerText = 'Újrakapcsolódás...';
-          }
-        },
-        received: function(data) {
-          if (!data) return;
-
-          if (data.action === 'initial_history') {
-            if (loadingState) loadingState.style.display = 'none';
-            if (Array.isArray(data.messages) && data.messages.length > 0) {
-              data.messages.forEach(m => renderMessage(m, true));
-              scrollToBottom(true);
-            } else if (emptyState) {
-              emptyState.style.display = 'flex';
-            }
-          } else if (data.action === 'new_message') {
-            renderMessage(data.message, false);
-          } else if (data.action === 'message_deleted') {
-            removeMessage(data.message_id);
-          } else if (data.action === 'error') {
-            showAlert(data.message || 'Hiba történt az üzenet feldolgozásakor.');
-          }
-        }
-      });
-    }
-
-    // ------------------------------------------------------------------------
-    // REST Fallback (ha a WebSocket nem elérhető)
-    // ------------------------------------------------------------------------
-    function loadHistoryFallback() {
-      fetch('/chat_messages', { headers: { 'Accept': 'application/json' } })
-        .then(r => r.json())
-        .then(data => {
-          if (loadingState) loadingState.style.display = 'none';
-          if (data.success && Array.isArray(data.messages) && data.messages.length > 0) {
-            data.messages.forEach(m => renderMessage(m, true));
-            scrollToBottom(true);
-          } else if (emptyState) {
-            emptyState.style.display = 'flex';
-          }
-        })
-        .catch(() => {
-          if (loadingState) loadingState.innerText = 'Nem sikerült betölteni az üzeneteket.';
-        });
-    }
-
-    // ------------------------------------------------------------------------
-    // Üzenetküldés Kezelő
-    // ------------------------------------------------------------------------
     function sendMessage() {
-      if (!inputMsg) return;
-      const text = inputMsg.value.trim();
+      const els = getElements();
+      if (!els.inputMsg) return;
+      const text = els.inputMsg.value.trim();
       if (!text) return;
 
       if (text.length > 1000) {
@@ -774,12 +711,12 @@
         return;
       }
 
-      if (channelSubscription && typeof channelSubscription.perform === 'function') {
-        channelSubscription.perform('speak', { content: text });
-        inputMsg.value = '';
-        inputMsg.focus();
+      const sub = window._globalChatState.subscription;
+      if (sub && typeof sub.perform === 'function') {
+        sub.perform('speak', { content: text });
+        els.inputMsg.value = '';
+        els.inputMsg.focus();
       } else {
-        // Fallback REST POST
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         fetch('/chat_messages', {
           method: 'POST',
@@ -793,8 +730,8 @@
         .then(r => r.json())
         .then(data => {
           if (data.success) {
-            inputMsg.value = '';
-            inputMsg.focus();
+            els.inputMsg.value = '';
+            els.inputMsg.focus();
           } else {
             showAlert(data.error || 'Hiba történt a küldés során.');
           }
@@ -805,27 +742,144 @@
       }
     }
 
-    if (inputForm) {
-      inputForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        sendMessage();
-      });
-    }
+    function initWebSocket() {
+      if (typeof ActionCable === 'undefined') {
+        console.warn("ActionCable könyvtár nincs betöltve, fallback REST betöltés...");
+        loadHistoryFallback();
+        return;
+      }
 
-    if (inputMsg) {
-      inputMsg.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          sendMessage();
+      if (window._globalChatState.subscription) {
+        // Frissítjük a státuszt az új DOM-ban
+        const els = getElements();
+        if (els.statusIndicator) {
+          els.statusIndicator.className = 'chat-status-indicator';
+          els.statusText.innerText = 'Élő';
+        }
+        return;
+      }
+
+      const consumer = ActionCable.createConsumer('/cable');
+
+      window._globalChatState.subscription = consumer.subscriptions.create({ channel: "GlobalChatChannel" }, {
+        connected: function() {
+          const els = getElements();
+          if (els.statusIndicator) {
+            els.statusIndicator.className = 'chat-status-indicator';
+            els.statusText.innerText = 'Élő';
+          }
+        },
+        disconnected: function() {
+          const els = getElements();
+          if (els.statusIndicator) {
+            els.statusIndicator.className = 'chat-status-indicator offline';
+            els.statusText.innerText = 'Újrakapcsolódás...';
+          }
+        },
+        received: function(data) {
+          if (!data) return;
+
+          if (data.action === 'initial_history') {
+            window._globalChatState.messages = data.messages || [];
+            window._globalChatState.messageIds = new Set((data.messages || []).map(m => m.id));
+            const els = getElements();
+            if (els.loadingState) els.loadingState.style.display = 'none';
+            if (Array.isArray(data.messages) && data.messages.length > 0) {
+              data.messages.forEach(m => renderMessage(m, true));
+              scrollToBottom(true);
+            } else if (els.emptyState) {
+              els.emptyState.style.display = 'flex';
+            }
+          } else if (data.action === 'new_message') {
+            if (data.message && !window._globalChatState.messageIds.has(data.message.id)) {
+              window._globalChatState.messageIds.add(data.message.id);
+              window._globalChatState.messages.push(data.message);
+              renderMessage(data.message, false);
+            }
+          } else if (data.action === 'message_deleted') {
+            removeMessage(data.message_id);
+          } else if (data.action === 'error') {
+            showAlert(data.message || 'Hiba történt az üzenet feldolgozásakor.');
+          }
         }
       });
     }
 
-    // Inicializálás az oldal betöltésekor
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initWebSocket);
-    } else {
+    function loadHistoryFallback() {
+      fetch('/chat_messages', { headers: { 'Accept': 'application/json' } })
+        .then(r => r.json())
+        .then(data => {
+          const els = getElements();
+          if (els.loadingState) els.loadingState.style.display = 'none';
+          if (data.success && Array.isArray(data.messages) && data.messages.length > 0) {
+            window._globalChatState.messages = data.messages;
+            window._globalChatState.messageIds = new Set(data.messages.map(m => m.id));
+            data.messages.forEach(m => renderMessage(m, true));
+            scrollToBottom(true);
+          } else if (els.emptyState) {
+            els.emptyState.style.display = 'flex';
+          }
+        })
+        .catch(() => {
+          const els = getElements();
+          if (els.loadingState) els.loadingState.innerText = 'Nem sikerült betölteni az üzeneteket.';
+        });
+    }
+
+    function setupGlobalChatWidget() {
+      const els = getElements();
+      if (!els.triggerBtn || els.triggerBtn.dataset.chatBound === "true") return;
+      els.triggerBtn.dataset.chatBound = "true";
+
+      // Panel állapot visszaállítása
+      if (window._globalChatState.isOpen && els.panel) {
+        els.panel.classList.add('open');
+        els.panel.setAttribute('aria-hidden', 'false');
+      }
+      updateUnreadBadge();
+
+      // Korábbi gyorsítótárazott üzenetek visszatöltése az új DOM-ba
+      if (window._globalChatState.messages.length > 0) {
+        if (els.loadingState) els.loadingState.style.display = 'none';
+        if (els.emptyState) els.emptyState.style.display = 'none';
+        window._globalChatState.messages.forEach(m => renderMessage(m, true));
+        scrollToBottom(true);
+      }
+
+      els.triggerBtn.addEventListener('click', toggleChatPanel);
+      if (els.closeBtn) els.closeBtn.addEventListener('click', closeChatPanel);
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && window._globalChatState.isOpen) {
+          closeChatPanel();
+        }
+      });
+
+      if (els.inputForm) {
+        els.inputForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          sendMessage();
+        });
+      }
+
+      if (els.inputMsg) {
+        els.inputMsg.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+      }
+
       initWebSocket();
     }
+
+    // Támogatás: DOMContentLoaded (normál) és turbo:load (Turbo)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupGlobalChatWidget);
+    } else {
+      setupGlobalChatWidget();
+    }
+    document.addEventListener('turbo:load', setupGlobalChatWidget);
   })();
 </script>

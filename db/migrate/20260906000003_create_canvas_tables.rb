@@ -54,3 +54,4 @@ class CreateCanvasTables < ActiveRecord::Migration[7.1]
     AppDefinition.find_by(slug: "canvas")&.destroy
   end
 end
+

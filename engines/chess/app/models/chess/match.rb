@@ -227,11 +227,27 @@ module Chess
       
       self.pgn = new_pgn.strip
       
-      # Attempt to get fen if the gem supports it, else use a placeholder and client will fix it.
-      begin
-        self.fen = game.respond_to?(:fen) ? game.fen : game.board.fen
-      rescue
+      # Megbízható FEN generálás a visszalépés utáni állapothoz
+      if played_moves.empty?
         self.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+      else
+        calculated_fen = nil
+        begin
+          if game.board.respond_to?(:to_fen)
+            calculated_fen = game.board.to_fen
+          elsif game.respond_to?(:to_fen)
+            calculated_fen = game.to_fen
+          elsif game.respond_to?(:fen)
+            calculated_fen = game.fen
+          elsif game.board.respond_to?(:fen)
+            calculated_fen = game.board.fen
+          end
+        rescue => e
+          logger.warn("FEN kinyerési hiba a sakk gem-ből: #{e.message}") rescue nil
+        end
+
+        # Ha a gem adott FEN-t, azt mentjük; ha nem, akkor a meglévő vagy számított FEN-t használjuk
+        self.fen = calculated_fen if calculated_fen.present?
       end
       
       self.last_move_at = Time.current if time_control.present?

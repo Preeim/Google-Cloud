@@ -14,12 +14,18 @@ module Chess
     def show
       @match = Match.find_by!(uuid: params[:id])
 
-      # Explicit join requested via params[:join]
-      if @match.pending? && (params[:join] == "true" || params[:join] == "1")
-        join_pending_match!
+      # 1. Bejelentkezett felhasználó státuszának és rekordjának szinkronizálása
+      sync_logged_in_user_state!
+
+      # 2. Meghívó link feldolgozása: ha a meccs várakozik és nem a készítő nyitotta meg,
+      # bejelentkezett felhasználó esetén automatikusan társítjuk, vendég esetén pedig params[:join] vagy megerősítés esetén
+      if @match.pending? && !@match.creator?(current_user, session[:guest_id])
+        if current_user.present? || params[:join] == "true" || params[:join] == "1"
+          join_pending_match!
+        end
       end
 
-      # Automatically evaluate timeout on match view
+      # 3. Időtúllépés automatikus vizsgálata aktív játszma esetén
       if @match.active?
         @match.check_timeout!
       end
@@ -27,6 +33,7 @@ module Chess
 
     def join
       @match = Match.find_by!(uuid: params[:id])
+      sync_logged_in_user_state!
       if @match.pending?
         join_pending_match!
       end
@@ -103,37 +110,41 @@ module Chess
       @settings = Chess::Setting.current
     end
 
+    def sync_logged_in_user_state!
+      return unless logged_in? && @match.present?
+
+      # Ha az aktuális felhasználó session[:guest_id]-jével volt regisztrálva valamelyik oldal,
+      # szinkronizáljuk a meccs rekordját a saját bejelentkezett fiókjával (user_id)
+      if session[:guest_id].present?
+        if @match.white_guest_id.present? && @match.white_guest_id.to_s == session[:guest_id].to_s && @match.white_user_id.nil?
+          @match.update!(white_user_id: current_user.id, white_guest_id: nil)
+        end
+        if @match.black_guest_id.present? && @match.black_guest_id.to_s == session[:guest_id].to_s && @match.black_user_id.nil?
+          @match.update!(black_user_id: current_user.id, black_guest_id: nil)
+        end
+      end
+    end
+
     def join_pending_match!
       @match.with_lock do
         return unless @match.pending?
 
-        is_creator = if @match.white_user_id.present? && current_user.present? && @match.white_user_id == current_user.id
-                       true
-                     elsif @match.black_user_id.present? && current_user.present? && @match.black_user_id == current_user.id
-                       true
-                     elsif @match.white_guest_id.present? && session[:guest_id].present? && @match.white_guest_id.to_s == session[:guest_id].to_s
-                       true
-                     elsif @match.black_guest_id.present? && session[:guest_id].present? && @match.black_guest_id.to_s == session[:guest_id].to_s
-                       true
-                     else
-                       false
-                     end
-
-        return if is_creator
+        # Ha a látogató a meccs készítője, ne csatlakozzon saját magához
+        return if @match.creator?(current_user, session[:guest_id])
 
         white_open = @match.white_user_id.nil? && @match.white_guest_id.nil?
         black_open = @match.black_user_id.nil? && @match.black_guest_id.nil?
 
         if white_open
           if current_user.present?
-            @match.update!(white_user_id: current_user.id, status: "active", last_move_at: Time.current)
+            @match.update!(white_user_id: current_user.id, white_guest_id: nil, status: "active", last_move_at: Time.current)
           elsif session[:guest_id].present?
             @match.update!(white_guest_id: session[:guest_id], status: "active", last_move_at: Time.current)
           end
           Chess::MatchChannel.broadcast_to(@match, { action: "match_started" })
         elsif black_open
           if current_user.present?
-            @match.update!(black_user_id: current_user.id, status: "active", last_move_at: Time.current)
+            @match.update!(black_user_id: current_user.id, black_guest_id: nil, status: "active", last_move_at: Time.current)
           elsif session[:guest_id].present?
             @match.update!(black_guest_id: session[:guest_id], status: "active", last_move_at: Time.current)
           end

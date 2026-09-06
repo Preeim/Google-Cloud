@@ -12,3 +12,4 @@ module Canvas
     "canvas_"
   end
 end
+
