@@ -17,7 +17,7 @@ class UserAppPermission < ApplicationRecord
     standard: "standard",
     beta_tester: "beta_tester",
     manager: "manager"
-  }, default: "standard"
+  }, default: "standard", prefix: true
 
   validates :user_id, uniqueness: { scope: :app_definition_id, message: "már rendelkezik jogosultsággal ehhez a modulhoz" }
   validates :access_level, presence: true
