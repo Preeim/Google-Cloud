@@ -58,11 +58,13 @@ module Casino
         end
 
         # Ha pihenő állapotban volt, indítjuk a 20 mp visszaszámlálást
-        if table.state == "idle" || table.betting_closes_at.nil? || table.betting_closes_at <= Time.current
+        if table.state == "idle" || table.betting_closes_at.nil?
           table.update!(
             state: "betting",
             betting_closes_at: BETTING_DURATION_SECONDS.seconds.from_now
           )
+        elsif table.betting_closes_at <= Time.current
+          return { success: false, error: "A fogadási idő már lejárt erre a körre, a sorsolás folyamatban van." }
         end
 
         # Zseton levonása zárolással
@@ -101,7 +103,7 @@ module Casino
     end
 
     # Blackjack osztás indítása a fogadási idő után
-    def self.start_blackjack_deal(table)
+    def self.start_blackjack_deal(table, force: false)
       table.with_lock do
         current_bets = table.bets.where(round_number: table.round_number, status: "pending").includes(profile: :user)
 
@@ -113,6 +115,11 @@ module Casino
             message: "Nem érkezett tét, a dealer vár a játékosokra."
           })
           return { success: false, error: "Nincs aktív tét az asztalon.", idle: true }
+        end
+
+        # Ha a fogadási idő még ketyeg és nem minden szék foglalt
+        if !force && table.betting_closes_at.present? && table.betting_closes_at > Time.current && current_bets.size < 3
+          return { success: false, error: "A fogadási idő még tart (#{table.seconds_remaining} mp maradt a többi játékosnak)." }
         end
 
         deck = BlackjackEngine.new_shuffled_deck
@@ -199,15 +206,46 @@ module Casino
 
         when "stand"
           player["status"] = "stood"
+
+        when "double"
+          return { success: false, error: "Duplázni csak a kezdeti 2 lap meglétekor lehet." } unless player["cards"].size == 2
+          orig_amount = player["amount"].to_i
+          return { success: false, error: "Nincs elég zsetonod a duplázáshoz (#{orig_amount} szükséges)." } unless profile.can_afford?(orig_amount)
+
+          # Kiegészítő tét levonása zárolással
+          profile.deduct_chips!(
+            orig_amount,
+            transaction_type: "bet",
+            game_type: "blackjack",
+            metadata: { table_id: table.id, round_number: table.round_number, action: "double_down" }
+          )
+
+          # Tét rekord összegének és kéz adatainak frissítése
+          bet = table.bets.find_by(round_number: table.round_number, casino_profile_id: profile.id, status: "pending")
+          bet&.update!(amount: orig_amount * 2)
+          player["amount"] = orig_amount * 2
+
+          # Pontosan egyetlen lap kiosztása
+          card = deck.pop || BlackjackEngine.new_shuffled_deck.pop
+          player["cards"] << card
+          new_score = BlackjackEngine.hand_value(player["cards"])
+          player["score"] = new_score
+
+          if new_score > 21
+            player["status"] = "busted"
+          else
+            player["status"] = "stood"
+          end
+
         else
-          return { success: false, error: "Érvénytelen döntés (hit vagy stand)." }
+          return { success: false, error: "Érvénytelen döntés (hit, stand vagy double)." }
         end
 
         state_data["deck"] = deck
         state_data["players"] = players
         table.update_state_data!(state_data)
 
-        # Élő WebSocket értesítés a lap húzásáról / megállásról
+        # Élő WebSocket értesítés a lap húzásáról / megállásról / duplázásról
         Casino::TableChannel.broadcast_to(table, {
           type: "player_action_taken",
           profile_id: profile.id,
@@ -216,7 +254,8 @@ module Casino
           action: action,
           cards: player["cards"],
           score: player["score"],
-          status: player["status"]
+          status: player["status"],
+          amount: player["amount"]
         })
 
         # Ellenőrizzük, hogy minden aktív játékos befejezte-e a döntéseit
@@ -329,12 +368,12 @@ module Casino
       end
     end
 
-    # Rulett és Baccarat körök azonnali sorsolása
-    def self.resolve_round(table)
+    # Rulett és Baccarat körök sorsolása
+    def self.resolve_round(table, force: false)
       if table.game_type == "blackjack"
         # Ha a blackjacknél a fogadási idő után hívjuk meg: osztunk lapokat!
         if table.state == "betting" || table.state == "idle"
-          return start_blackjack_deal(table)
+          return start_blackjack_deal(table, force: force)
         elsif table.state == "player_turns"
           table.with_lock do
             state_data = table.current_state_data
@@ -342,9 +381,9 @@ module Casino
             all_done = players.values.all? { |p| %w[stood busted blackjack].include?(p["status"]) }
             time_expired = table.betting_closes_at.present? && table.betting_closes_at <= Time.current
 
-            if all_done || time_expired
-              # Ha lejárt a döntési idő, a még gondolkodó játékosokat automatikusan megállítjuk (stand)
-              if time_expired && !all_done
+            if all_done || time_expired || force
+              # Ha lejárt a döntési idő vagy kényszerített lezárás van, a még játszókat megállítjuk
+              if (!all_done)
                 players.each do |_, p_data|
                   p_data["status"] = "stood" if p_data["status"] == "playing"
                 end
@@ -353,7 +392,7 @@ module Casino
               end
               return resolve_blackjack_dealer(table)
             else
-              return { success: false, error: "A játékosok még nem fejezték be a lapkérést (Hit/Stand)." }
+              return { success: false, error: "A játékosok még nem fejezték be a lapkérést (Hit/Stand/Double)." }
             end
           end
         end
@@ -362,12 +401,24 @@ module Casino
       table.with_lock do
         return { success: false, error: "Az asztal nem áll készen az elbírálásra." } unless %w[idle betting resolving].include?(table.state)
 
-        table.update!(state: "resolving")
         current_bets = table.bets.where(round_number: table.round_number, status: "pending").includes(profile: :user)
+        if current_bets.empty?
+          table.update!(state: "idle", betting_closes_at: nil)
+          return { success: false, error: "Nincs aktív tét az asztalon.", idle: true }
+        end
+
+        # Ha a fogadási idő még tart
+        if !force && table.state == "betting" && table.betting_closes_at.present? && table.betting_closes_at > Time.current
+          return { success: false, error: "A fogadási idő még tart (#{table.seconds_remaining} mp maradt)." }
+        end
+
+        table.update!(state: "resolving")
 
         resolution_data = {}
         payouts_summary = []
         winner_announcements = []
+        played_profiles = Set.new
+        won_profiles = Set.new
 
         case table.game_type
         when "roulette"
@@ -381,6 +432,8 @@ module Casino
           current_bets.each do |bet|
             payout = RouletteEngine.calculate_payout(bet.bet_type, bet.amount, winning_number)
             process_bet_payout(bet, payout, resolution_data, payouts_summary, winner_announcements)
+            played_profiles << bet.profile
+            won_profiles << bet.profile if payout > bet.amount
           end
 
         when "baccarat"
@@ -390,8 +443,14 @@ module Casino
           current_bets.each do |bet|
             payout = BaccaratEngine.calculate_payout(bet.bet_type, bet.amount, baccarat_result)
             process_bet_payout(bet, payout, resolution_data, payouts_summary, winner_announcements)
+            played_profiles << bet.profile
+            won_profiles << bet.profile if payout > bet.amount
           end
         end
+
+        # Profil statisztikák körönként pontosan 1-szeri növelése
+        played_profiles.each { |p| p.increment!(:total_rounds_played) }
+        won_profiles.each { |p| p.increment!(:total_won_rounds) }
 
         if winner_announcements.empty? && current_bets.any?
           winner_announcements << "💀 Ebben a körben a Ház nyert, nem született nyertes tét."
@@ -439,14 +498,11 @@ module Casino
           winner_announcements << "🤝 #{profile.user.username}: Döntetlen (Push), a tét visszajár (#{bet.amount} zseton)."
         else
           bet.update!(payout: payout, status: "won")
-          profile.increment!(:total_won_rounds)
           winner_announcements << "🎉 #{profile.user.username} nyert #{payout.to_s.reverse.gsub(/(\d{3})(?=\d)/, '\\1 ').reverse} zsetont a(z) #{bet.bet_type.upcase} mezőn!"
         end
       else
         bet.update!(payout: 0, status: "lost")
       end
-
-      profile.increment!(:total_rounds_played)
 
       payouts_summary << {
         user_id: profile.user.id,

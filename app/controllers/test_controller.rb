@@ -1,4 +1,6 @@
 class TestController < ApplicationController
+  before_action :require_admin!
+
   def index
     # Test MySQL connection and measure latency
     @db_connected = false

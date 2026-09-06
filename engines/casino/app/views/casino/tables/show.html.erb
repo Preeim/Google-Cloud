@@ -64,6 +64,18 @@
 <!-- 1. JÁTÉKSPECIFIKUS ASZTAL FELÜLET                                           -->
 <!-- ========================================================================== -->
 
+<style>
+  @keyframes spinWheel {
+    0% { transform: rotate(0deg) scale(0.92); filter: blur(0px); }
+    50% { transform: rotate(720deg) scale(1.08); filter: blur(2px); }
+    100% { transform: rotate(1440deg) scale(1); filter: blur(0px); }
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+</style>
+
 <div class="card" style="background: #0d1527; border: 2px solid #1e293b; border-radius: 16px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 24px;">
 
   <% if @table.game_type == "roulette" %>
@@ -101,7 +113,11 @@
         <div style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; flex: 1;">
           <% 
             reds = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
-            (1..36).each do |num|
+            row_3 = (1..12).map { |i| i * 3 }      # [3, 6, 9... 36]
+            row_2 = (1..12).map { |i| i * 3 - 1 }  # [2, 5, 8... 35]
+            row_1 = (1..12).map { |i| i * 3 - 2 }  # [1, 4, 7... 34]
+            ordered_numbers = row_3 + row_2 + row_1
+            ordered_numbers.each do |num|
               is_red = reds.include?(num)
           %>
             <button type="button" class="btn-bet-cell" data-bet="<%= num %>" style="background: <%= is_red ? '#b91c1c' : '#18181b' %>; color: #fff; padding: 12px 2px; border: 1px solid <%= is_red ? '#ef4444' : '#3f3f46' %>; border-radius: 4px; font-weight: 800; font-size: 0.95rem; cursor: pointer;">
@@ -110,9 +126,9 @@
           <% end %>
         </div>
         <div style="display: flex; flex-direction: column; gap: 4px; width: 50px;">
-          <button type="button" class="btn-bet-cell" data-bet="col_1" style="background: #1e293b; color: #94a3b8; flex: 1; border: 1px solid #334155; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer;">2:1</button>
-          <button type="button" class="btn-bet-cell" data-bet="col_2" style="background: #1e293b; color: #94a3b8; flex: 1; border: 1px solid #334155; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer;">2:1</button>
-          <button type="button" class="btn-bet-cell" data-bet="col_3" style="background: #1e293b; color: #94a3b8; flex: 1; border: 1px solid #334155; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer;">2:1</button>
+          <button type="button" class="btn-bet-cell" data-bet="col_3" style="background: #1e293b; color: #94a3b8; flex: 1; border: 1px solid #334155; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer;" title="3, 6, 9... 36">2:1</button>
+          <button type="button" class="btn-bet-cell" data-bet="col_2" style="background: #1e293b; color: #94a3b8; flex: 1; border: 1px solid #334155; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer;" title="2, 5, 8... 35">2:1</button>
+          <button type="button" class="btn-bet-cell" data-bet="col_1" style="background: #1e293b; color: #94a3b8; flex: 1; border: 1px solid #334155; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer;" title="1, 4, 7... 34">2:1</button>
         </div>
       </div>
     </div>
@@ -334,14 +350,20 @@
             <!-- Műveleti Terület -->
             <div>
               <% if is_my_seat && @table.state == "player_turns" && seated_player["status"] == "playing" %>
-                <!-- DÖNTÉSI GOMBOK: HIT / STAND -->
-                <div id="my-bj-actions" style="display: flex; gap: 8px;">
-                  <button type="button" class="btn btn-primary btn-bj-action" data-action="hit" style="flex: 1; padding: 12px 6px; font-weight: 800; font-size: 0.95rem; background: #0284c7;">
-                    ➕ Lapot kérek
+                <!-- DÖNTÉSI GOMBOK: HIT / STAND / DOUBLE -->
+                <div id="my-bj-actions" style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-primary btn-bj-action" data-action="hit" style="flex: 1; min-width: 75px; padding: 10px 4px; font-weight: 800; font-size: 0.88rem; background: #0284c7;">
+                    ➕ Hit
                   </button>
-                  <button type="button" class="btn btn-secondary btn-bj-action" data-action="stand" style="flex: 1; padding: 12px 6px; font-weight: 800; font-size: 0.95rem; border-color: #f59e0b; color: #fbbf24;">
-                    ✋ Megállok
+                  <button type="button" class="btn btn-secondary btn-bj-action" data-action="stand" style="flex: 1; min-width: 75px; padding: 10px 4px; font-weight: 800; font-size: 0.88rem; border-color: #f59e0b; color: #fbbf24;">
+                    ✋ Stand
                   </button>
+                  <% can_double = (seated_player["cards"] || []).size == 2 && current_casino_profile.can_afford?(seated_player["amount"]) %>
+                  <% if can_double %>
+                    <button type="button" class="btn btn-gold btn-bj-action" data-action="double" style="flex: 1; min-width: 75px; padding: 10px 4px; font-weight: 800; font-size: 0.88rem;">
+                      ⚡ Double
+                    </button>
+                  <% end %>
                 </div>
               <% elsif seated_player.nil? && (@table.state == "betting" || @table.state == "idle") %>
                 <% if i_have_bet %>
@@ -542,46 +564,57 @@
       });
     });
 
-    // 4. Blackjack Játékos Döntések (Hit / Stand)
-    document.querySelectorAll('.btn-bj-action').forEach(btn => {
-      btn.addEventListener('click', function() {
-        const action = this.getAttribute('data-action');
-        document.querySelectorAll('.btn-bj-action').forEach(b => b.setAttribute('disabled', 'true'));
+    // 4. Blackjack Játékos Döntések (Hit / Stand / Double)
+    function attachBjActionListeners() {
+      document.querySelectorAll('.btn-bj-action').forEach(btn => {
+        btn.onclick = function() {
+          const action = this.getAttribute('data-action');
+          document.querySelectorAll('.btn-bj-action').forEach(b => b.setAttribute('disabled', 'true'));
 
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        fetch(`/casino/tables/${tableSlug}/action`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken,
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({ player_action: action })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (!data.success) {
-            alert(data.error || "Hiba történt a döntés rögzítésekor.");
+          const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+          fetch(`/casino/tables/${tableSlug}/action`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfToken,
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ player_action: action })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (!data.success) {
+              alert(data.error || "Hiba történt a döntés rögzítésekor.");
+              document.querySelectorAll('.btn-bj-action').forEach(b => b.removeAttribute('disabled'));
+            }
+          })
+          .catch(err => {
+            console.error(err);
             document.querySelectorAll('.btn-bj-action').forEach(b => b.removeAttribute('disabled'));
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          document.querySelectorAll('.btn-bj-action').forEach(b => b.removeAttribute('disabled'));
-        });
+          });
+        };
       });
-    });
+    }
+    attachBjActionListeners();
 
     // 5. Visszaszámláló Időzítő Kezelő
     let countdownInterval = null;
     const isBlackjack = "<%= @table.game_type %>" === "blackjack";
+    const gameType = "<%= @table.game_type %>";
     const currentUserId = "<%= current_user.id %>";
     const currentProfileId = "<%= current_casino_profile.id %>";
 
-    function startTimer(seconds) {
+    function startTimer(seconds, label = null) {
       if (countdownInterval) clearInterval(countdownInterval);
       let secondsLeft = seconds;
+      if (label) {
+        const timerLabel = document.getElementById('timer-label');
+        if (timerLabel) timerLabel.textContent = label;
+      }
       if (secondsLeft <= 0) return;
+
+      timerElem.textContent = secondsLeft + " mp";
+      timerElem.style.color = secondsLeft > 5 ? 'var(--success)' : 'var(--danger)';
 
       countdownInterval = setInterval(() => {
         secondsLeft--;
@@ -589,18 +622,21 @@
           timerElem.textContent = secondsLeft + " mp";
           timerElem.style.color = secondsLeft > 5 ? 'var(--success)' : 'var(--danger)';
         } else {
-          timerElem.textContent = "Kör indítása...";
+          timerElem.textContent = "Kör feldolgozása...";
           timerElem.style.color = 'var(--casino-gold)';
           clearInterval(countdownInterval);
-          // Ha az idő lejárt és Blackjacknél vagyunk: automatikusan kérjük a lapok osztását, ha van aktív gomb!
-          if (isBlackjack) {
-            setTimeout(() => {
-              const spinBtn = document.getElementById('btn-spin-now');
-              if (spinBtn && !spinBtn.disabled) {
-                spinBtn.click();
+          // Ha az idő lejárt: automatikusan kezdeményezzük a kör lezárását/osztását
+          setTimeout(() => {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            fetch(`/casino/tables/${tableSlug}/spin`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
+                'Accept': 'application/json'
               }
-            }, 800);
-          }
+            }).catch(e => console.log("Auto-resolve ping:", e));
+          }, 600);
         }
       }, 1000);
     }
@@ -608,6 +644,22 @@
     <% if @table.seconds_remaining > 0 %>
       startTimer(<%= @table.seconds_remaining %>);
     <% end %>
+
+    // Kártya HTML készítő segédfüggvény
+    function createCardElement(card) {
+      const isRed = ['♥', '♦'].includes(card.suit);
+      const div = document.createElement('div');
+      div.style.cssText = "background: #fff; color: " + (isRed ? '#dc2626' : '#000') + "; border-radius: 6px; width: 44px; height: 62px; display: flex; flex-direction: column; justify-content: space-between; padding: 4px 6px; font-weight: 900; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(0,0,0,0.4); animation: popIn 0.3s ease;";
+      div.innerHTML = `<div>${card.rank}</div><div style="text-align: right; font-size: 1.1rem;">${card.suit}</div>`;
+      return div;
+    }
+
+    function createHiddenCardElement() {
+      const div = document.createElement('div');
+      div.style.cssText = "background: repeating-linear-gradient(45deg, #1e293b, #1e293b 10px, #0f172a 10px, #0f172a 20px); border: 2px solid #475569; border-radius: 8px; width: 56px; height: 78px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 1.5rem; box-shadow: 0 4px 10px rgba(0,0,0,0.5);";
+      div.textContent = "🂠";
+      return div;
+    }
 
     // 6. ACTION CABLE WEBSOCKET MULTIPLAYER CSATLAKOZÁS
     if (typeof ActionCable !== 'undefined') {
@@ -621,14 +673,14 @@
           received(data) {
             console.log("WebSocket esemény érkezett:", data);
 
-            // A) Másik játékos tétet rakott valós időben
+            // A) Tét leadása valós időben
             if (data.type === 'bet_placed') {
               const feedList = document.getElementById('live-feed-list');
               const noFeed = document.getElementById('no-feed-msg');
               if (noFeed) noFeed.remove();
 
               const row = document.createElement('div');
-              row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-elevated); border-radius: 6px; font-size: 0.85rem; border-left: 3px solid var(--accent); animation: flash 1s;";
+              row.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-elevated); border-radius: 6px; font-size: 0.85rem; border-left: 3px solid var(--accent);";
               row.innerHTML = `<div><strong style="color: var(--accent);">${data.user_name}</strong> <span style="color: var(--text-muted);">tétet tett:</span> <strong style="color: var(--text-main);">${data.bet_type.toUpperCase()}</strong></div><div style="font-weight: 700; color: #fef08a;">🪙 ${Number(data.amount).toLocaleString()}</div>`;
               feedList.prepend(row);
 
@@ -653,7 +705,7 @@
                       <div style="margin-bottom: 10px;">
                         <strong style="color: var(--text-main); font-size: 1.05rem;">${data.user_name}</strong>
                         <div style="font-size: 0.8rem; color: #fef08a; font-weight: 700; margin-top: 2px;">
-                          🪙 ${Number(data.amount).toLocaleString()} zseton tét
+                          🪙 <span id="seat-bet-amount-${seatNum}">${Number(data.amount).toLocaleString()}</span> zseton tét
                         </div>
                       </div>
                       <div style="margin: 16px 0 12px;">
@@ -680,23 +732,91 @@
               }
 
               if (data.seconds_remaining && data.seconds_remaining > 0) {
-                startTimer(data.seconds_remaining);
+                startTimer(data.seconds_remaining, "Fogadási Idő");
               }
             }
 
             // B) Új visszaszámlálás indult
             else if (data.type === 'timer_started') {
-              startTimer(data.seconds_remaining);
+              startTimer(data.seconds_remaining, "Fogadási Idő");
             }
 
-            // C) Blackjack lapok kiosztva az aktív játékosoknak
+            // C) Blackjack lapok kiosztva (Oldal-újratöltés nélkül)
             else if (data.type === 'blackjack_cards_dealt') {
-              window.location.reload();
+              startTimer(data.seconds_remaining, "Döntési Idő");
+
+              // 1. Osztó lapjainak kirajzolása
+              const dealerScoreElem = document.getElementById('bj-dealer-score');
+              const dealerCardsElem = document.getElementById('bj-dealer-cards');
+              if (dealerScoreElem) {
+                dealerScoreElem.textContent = `Pontszám: ${data.dealer_visible_score} + ?`;
+              }
+              if (dealerCardsElem && data.dealer_visible_card) {
+                dealerCardsElem.innerHTML = '';
+                const openCard = createCardElement(data.dealer_visible_card);
+                openCard.style.width = "56px";
+                openCard.style.height = "78px";
+                const hiddenCard = createHiddenCardElement();
+                dealerCardsElem.appendChild(openCard);
+                dealerCardsElem.appendChild(hiddenCard);
+              }
+
+              // 2. Játékosok lapjainak kirajzolása és gombok megjelenítése
+              const players = data.players || {};
+              Object.values(players).forEach(p => {
+                const seatNum = p.seat.replace('seat_', '');
+                const seatCard = document.getElementById(`seat-card-${seatNum}`);
+                if (!seatCard) return;
+
+                const isMe = String(p.profile_id) === currentProfileId;
+                seatCard.setAttribute('data-profile-id', p.profile_id);
+
+                let statusBadge = '<span class="tag tag-active">⏳ DÖNTÉSRE VÁR</span>';
+                if (p.status === 'blackjack') statusBadge = '<span class="tag" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid #fbbf24;">🔥 BLACKJACK (21)</span>';
+
+                let actionButtonsHtml = '';
+                if (isMe && p.status === 'playing') {
+                  actionButtonsHtml = `
+                    <div id="my-bj-actions" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px;">
+                      <button type="button" class="btn btn-primary btn-bj-action" data-action="hit" style="flex: 1; min-width: 75px; padding: 10px 4px; font-weight: 800; font-size: 0.88rem; background: #0284c7;">➕ Hit</button>
+                      <button type="button" class="btn btn-secondary btn-bj-action" data-action="stand" style="flex: 1; min-width: 75px; padding: 10px 4px; font-weight: 800; font-size: 0.88rem; border-color: #f59e0b; color: #fbbf24;">✋ Stand</button>
+                      <button type="button" class="btn btn-gold btn-bj-action" data-action="double" style="flex: 1; min-width: 75px; padding: 10px 4px; font-weight: 800; font-size: 0.88rem;">⚡ Double</button>
+                    </div>
+                  `;
+                }
+
+                seatCard.innerHTML = `
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                      <span style="font-weight: 800; font-size: 0.95rem; color: var(--casino-gold);">${seatNum}. Ülőhely</span>
+                      ${isMe ? '<span style="background: var(--casino-gold); color: #000; font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 8px;">TE</span>' : ''}
+                    </div>
+                    <div style="margin-bottom: 10px;">
+                      <strong style="color: var(--text-main); font-size: 1.05rem;">${p.username}</strong>
+                      <div style="font-size: 0.8rem; color: #fef08a; font-weight: 700; margin-top: 2px;">
+                        🪙 <span id="seat-bet-amount-${seatNum}">${Number(p.amount).toLocaleString()}</span> zseton tét
+                      </div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                      <span id="player-score-${seatNum}" style="font-size: 1.3rem; font-weight: 900; color: #fff;">${p.score} pont</span>
+                      <div id="player-status-${seatNum}" style="margin-top: 4px;">${statusBadge}</div>
+                    </div>
+                    <div id="player-cards-${seatNum}" style="display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; min-height: 70px; margin-bottom: 12px;"></div>
+                  </div>
+                  <div>${actionButtonsHtml}</div>
+                `;
+
+                const cardsContainer = document.getElementById(`player-cards-${seatNum}`);
+                if (cardsContainer && p.cards) {
+                  p.cards.forEach(c => cardsContainer.appendChild(createCardElement(c)));
+                }
+              });
+
+              attachBjActionListeners();
             }
 
-            // D) Egy játékos lapot kért vagy megállt
+            // D) Egy játékos lapot kért / megállt / duplázott
             else if (data.type === 'player_action_taken') {
-              // Keressük meg a széket
               let seatNum = null;
               if (data.seat && data.seat.startsWith('seat_')) {
                 seatNum = data.seat.replace('seat_', '');
@@ -709,6 +829,9 @@
                 const scoreElem = document.getElementById(`player-score-${seatNum}`);
                 if (scoreElem) scoreElem.textContent = `${data.score} pont`;
 
+                const betAmountElem = document.getElementById(`seat-bet-amount-${seatNum}`);
+                if (betAmountElem && data.amount) betAmountElem.textContent = Number(data.amount).toLocaleString();
+
                 const statusElem = document.getElementById(`player-status-${seatNum}`);
                 if (statusElem) {
                   if (data.status === 'blackjack') {
@@ -717,36 +840,73 @@
                     statusElem.innerHTML = '<span class="tag" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444;">💀 BESOKALLT (>21)</span>';
                   } else if (data.status === 'stood') {
                     statusElem.innerHTML = '<span class="tag" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #0284c7;">✋ MEGÁLLT</span>';
-                  } else {
-                    statusElem.innerHTML = '<span class="tag tag-active">⏳ DÖNTÉSRE VÁR</span>';
                   }
                 }
 
                 const cardsElem = document.getElementById(`player-cards-${seatNum}`);
                 if (cardsElem && data.cards) {
                   cardsElem.innerHTML = '';
-                  data.cards.forEach(c => {
-                    const isRed = ['♥', '♦'].includes(c.suit);
-                    const tile = document.createElement('div');
-                    tile.style.cssText = "background: #fff; color: " + (isRed ? '#dc2626' : '#000') + "; border-radius: 6px; width: 44px; height: 62px; display: flex; flex-direction: column; justify-content: space-between; padding: 4px 6px; font-weight: 900; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(0,0,0,0.4);";
-                    tile.innerHTML = `<div>${c.rank}</div><div style="text-align: right; font-size: 1.1rem;">${c.suit}</div>`;
-                    cardsElem.appendChild(tile);
-                  });
+                  data.cards.forEach(c => cardsElem.appendChild(createCardElement(c)));
                 }
 
-                // Ha ez az aktuális felhasználó döntése volt és véget ért a köre, tüntessük el a gombokat
+                // Ha az aktuális játékos megállt vagy besokallt, gombok eltávolítása
                 if (String(data.profile_id) === currentProfileId && ['stood', 'busted', 'blackjack'].includes(data.status)) {
                   const actionsContainer = document.getElementById('my-bj-actions');
                   if (actionsContainer) actionsContainer.remove();
                 }
-              } else {
-                window.location.reload();
               }
             }
 
-            // E) Kör lezárult és nyertesek kihirdetése
+            // E) Kör lezárult és nyertesek kihirdetése (Oldal-újratöltés nélkül)
             else if (data.type === 'round_resolved') {
-              // Nyertesek kiírása azonnal a képernyőre
+              // 1. Játék-specifikus eredmények megjelenítése
+              if (data.game_type === 'roulette' && data.outcome) {
+                const wheel = document.getElementById('roulette-wheel-display');
+                const numElem = document.getElementById('roulette-result-number');
+                const colorElem = document.getElementById('roulette-result-color');
+                if (wheel) {
+                  wheel.style.animation = "none";
+                  void wheel.offsetWidth;
+                  wheel.style.animation = "spinWheel 1.2s cubic-bezier(0.2, 0.8, 0.2, 1)";
+                }
+                if (numElem) {
+                  numElem.textContent = data.outcome.winning_number;
+                  numElem.style.color = data.outcome.color === 'red' ? '#ef4444' : (data.outcome.color === 'black' ? '#f8fafc' : '#10b981');
+                }
+                if (colorElem) {
+                  colorElem.textContent = data.outcome.color.toUpperCase();
+                }
+              } else if (data.game_type === 'baccarat' && data.outcome) {
+                const pScore = document.getElementById('baccarat-player-score');
+                const bScore = document.getElementById('baccarat-banker-score');
+                const pCards = document.getElementById('baccarat-player-cards');
+                const bCards = document.getElementById('baccarat-banker-cards');
+                if (pScore) pScore.textContent = data.outcome.player_score;
+                if (bScore) bScore.textContent = data.outcome.banker_score;
+                if (pCards && data.outcome.player_cards) {
+                  pCards.innerHTML = '';
+                  data.outcome.player_cards.forEach(c => pCards.appendChild(createCardElement(c)));
+                }
+                if (bCards && data.outcome.banker_cards) {
+                  bCards.innerHTML = '';
+                  data.outcome.banker_cards.forEach(c => bCards.appendChild(createCardElement(c)));
+                }
+              } else if (data.game_type === 'blackjack') {
+                const dealerScoreElem = document.getElementById('bj-dealer-score');
+                const dealerCardsElem = document.getElementById('bj-dealer-cards');
+                if (dealerScoreElem) dealerScoreElem.textContent = `Pontszám: ${data.dealer_score}`;
+                if (dealerCardsElem && data.dealer_cards) {
+                  dealerCardsElem.innerHTML = '';
+                  data.dealer_cards.forEach(c => {
+                    const cardEl = createCardElement(c);
+                    cardEl.style.width = "56px";
+                    cardEl.style.height = "78px";
+                    dealerCardsElem.appendChild(cardEl);
+                  });
+                }
+              }
+
+              // 2. Nyertesek kiírása azonnal a bannerbe
               if (data.winners && data.winners.length > 0) {
                 const banner = document.getElementById('winners-banner');
                 const list = document.getElementById('winners-list');
@@ -762,10 +922,87 @@
                 }
               }
 
-              // Asztal automatikus frissítése a következő kör előkészítéséhez
+              // 3. Felhasználó zsetonjainak élő frissítése (ha van kifizetése)
+              if (data.payouts && data.payouts.length > 0) {
+                const myPayouts = data.payouts.filter(p => String(p.user_id) === currentUserId);
+                if (myPayouts.length > 0) {
+                  const headerChip = document.getElementById('player-chips-display');
+                  if (headerChip) {
+                    // Lekérjük a pontos friss zsetonegyenleget
+                    fetch(`/casino/leaderboards.json`)
+                      .then(r => r.json())
+                      .catch(() => {});
+                  }
+                }
+              }
+
+              // 4. Asztal dinamikus resetje a következő körre (Oldal-újratöltés nélkül)
               setTimeout(() => {
+                const roundElem = document.getElementById('current-round-number');
+                if (roundElem) roundElem.textContent = Number(roundElem.textContent) + 1;
+
+                const timerLabel = document.getElementById('timer-label');
+                if (timerLabel) timerLabel.textContent = "Fogadási Idő";
+                timerElem.textContent = "Várakozás tétre";
+                timerElem.style.color = "var(--success)";
+
+                // Saját tétek és élő napló ürítése a következő körre
+                const myBetsList = document.getElementById('my-bets-list');
+                if (myBetsList) myBetsList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;" id="no-my-bets-msg">Még nem tettél tétet ebben a körben.</p>';
+                const liveFeed = document.getElementById('live-feed-list');
+                if (liveFeed) liveFeed.innerHTML = '<p style="color: var(--text-muted); font-size: 0.85rem;" id="no-feed-msg">Várakozás a játékosok fogadásaira...</p>';
+
+                // Blackjack székek visszaállítása
+                if (isBlackjack) {
+                  for (let s = 1; s <= 3; s++) {
+                    const seatCard = document.getElementById(`seat-card-${s}`);
+                    if (seatCard) {
+                      seatCard.style.borderColor = '#334155';
+                      seatCard.style.boxShadow = 'none';
+                      seatCard.removeAttribute('data-profile-id');
+                      seatCard.innerHTML = `
+                        <div>
+                          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 800; font-size: 0.95rem; color: var(--casino-gold);">${s}. Ülőhely</span>
+                          </div>
+                          <div style="color: var(--text-muted); font-size: 0.85rem; margin: 28px 0;">Szabad Ülőhely</div>
+                        </div>
+                        <div>
+                          <button type="button" class="btn-bet-cell" data-bet="seat_${s}" style="width: 100%; background: #059669; color: #fff; padding: 12px 10px; border: 1px solid #10b981; border-radius: 8px; font-weight: 800; font-size: 0.95rem; cursor: pointer;">Fogadás ezen a széken →</button>
+                        </div>
+                      `;
+                    }
+                  }
+                  // Újra kötjük a szék fogadási gombjait
+                  document.querySelectorAll('.btn-bet-cell').forEach(cell => {
+                    cell.onclick = function() {
+                      document.querySelectorAll('.btn-bet-cell').forEach(c => c.style.outline = 'none');
+                      this.style.outline = '3px solid #fbbf24';
+                      currentSelectedBet = this.getAttribute('data-bet');
+                      selectedBetDisplay.textContent = currentSelectedBet.toUpperCase() + " (" + currentSelectedAmount.toLocaleString() + " zseton)";
+                      submitBtn.removeAttribute('disabled');
+                    };
+                  });
+                }
+
+                currentSelectedBet = null;
+                selectedBetDisplay.textContent = "—";
+                submitBtn.setAttribute('disabled', 'true');
+              }, 4000);
+            }
+
+            // F) Kör törölve / visszaállítva az admin által
+            else if (data.type === 'round_canceled') {
+              alert(data.message || "A kört az adminisztrátor visszaállította.");
+              window.location.reload();
+            }
+
+            // G) Asztal állapota módosult (pl. Karbantartás)
+            else if (data.type === 'table_state_changed') {
+              alert(data.message);
+              if (data.state === 'maintenance') {
                 window.location.reload();
-              }, 2200);
+              }
             }
           }
         }

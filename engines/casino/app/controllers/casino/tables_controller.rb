@@ -41,7 +41,12 @@ module Casino
         format.json { render json: res }
         format.html do
           if res[:success]
-            redirect_to table_path(@table), notice: "Döntésed rögzítve: #{act == 'hit' ? 'Lapot kértél' : 'Megálltál'}."
+            act_text = case act
+                       when 'hit' then 'Lapot kértél'
+                       when 'double' then 'Megdupláztad a tétet (+1 lap)'
+                       else 'Megálltál'
+                       end
+            redirect_to table_path(@table), notice: "Döntésed rögzítve: #{act_text}."
           else
             redirect_to table_path(@table), alert: res[:error]
           end

@@ -14,7 +14,7 @@ module Chess
     validates :uuid, presence: true, uniqueness: true
     validates :status, presence: true
 
-    # Helpes
+    # Helpers
     def white_player_name
       if white_user_id
         # Using Core User model. Note: In a true decoupled monolith, you might want to fetch this via a service.

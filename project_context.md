@@ -29,6 +29,7 @@ The server runs Ruby 3.3.0, which has a known syntax parser bug regarding "anony
 
 ## 🚀 Deployment Workflow
 1. **Local Development:** Write code locally on Windows and test.
+   - *Windows Git tip:* `core.fscache` and `core.preloadindex` are enabled. If `.git/index` ever requires resetting, use the `git fixindex` alias.
 2. **Push to GitHub:** Commit and push changes to `https://github.com/Preeim/Google-Cloud` (`main` branch).
 3. **Deploy:** 
    - SSH into the Google Cloud VM.
@@ -39,4 +40,9 @@ The server runs Ruby 3.3.0, which has a known syntax parser bug regarding "anony
 - **Authentication:** Custom authentication system using `has_secure_password` (bcrypt). Includes `User` model, `RegistrationsController`, and `SessionsController`.
 - **Testing Console:** A general testing area (`/test/index`) used to validate Action Cable WebSocket connections, including ping/pong latency tests and a broadcast echo room.
 - **Frontend styling:** Custom Tailwind-style utility classes integrated into the main application layout.
+- **Chess Module (`engines/chess`):** Full multiplayer chess engine with live Action Cable WebSocket sync, timers, spectating, and PGN recording.
+- **Casino Simulator (`engines/casino`):** Modular casino platform featuring European Roulette, Punto Banco Baccarat, and multiplayer Blackjack with live hit/stand controls, 10,000 starting chips, audit transactions (`casino_transactions`), and admin controls.
+  - Tables: `casino_profiles`, `casino_tables`, `casino_bets`, `casino_transactions`.
+
+
 
