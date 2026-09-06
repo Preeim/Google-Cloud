@@ -23,7 +23,14 @@
       <%= f.password_field :password_confirmation, required: true, autocomplete: "new-password", placeholder: "••••••••", style: "width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 11px 14px; color: var(--text-main); font-size: 0.95rem;" %>
     </div>
 
+    <%# Honeypot mező automatizált spam botok kiszűrésére (emberek számára rejtett) %>
+    <div style="display: none !important; opacity: 0; position: absolute; left: -9999px;" aria-hidden="true">
+      <label for="hp_security_verification">Ne töltsd ki ezt a mezőt:</label>
+      <%= text_field_tag :hp_security_verification, "", tabindex: "-1", autocomplete: "off" %>
+    </div>
+
     <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem;">Fiók Létrehozása</button>
+
   <% end %>
 
   <div style="margin-top: 20px; text-align: center; font-size: 0.88rem; color: var(--text-muted);">

@@ -32,6 +32,11 @@ module Casino
 
     def place_bet(data)
       return unless authorized_user?
+      if rate_limited?
+        transmit({ type: "bet_response", success: false, error: "Túl gyors művelet! Kérjük lassíts egy pillanatra." })
+        return
+      end
+
       profile = Casino::Profile.find_by(user_id: current_user.id)
       return unless profile
 
@@ -42,6 +47,11 @@ module Casino
     # Blackjack döntés: "hit" (lapkérés), "stand" (megállás) vagy "double" (duplázás)
     def player_action(data)
       return unless authorized_user?
+      if rate_limited?
+        transmit({ type: "action_response", success: false, error: "Túl gyors művelet! Kérjük lassíts egy pillanatra." })
+        return
+      end
+
       profile = Casino::Profile.find_by(user_id: current_user.id)
       return unless profile
 
@@ -51,6 +61,11 @@ module Casino
 
     def spin_wheel(data)
       return unless authorized_user?
+      if rate_limited?
+        transmit({ type: "resolve_response", success: false, error: "Túl gyors művelet! Kérjük lassíts egy pillanatra." })
+        return
+      end
+
       profile = Casino::Profile.find_by(user_id: current_user.id)
       return unless profile
 
@@ -65,11 +80,24 @@ module Casino
       transmit({ type: "resolve_response", success: res[:success], error: res[:error] })
     end
 
+
     private
 
     def authorized_user?
       current_user && current_user.active? && !current_user.locked? && current_user.can_access_app?("casino")
     end
+
+    # WebSocket spam védelem: minimum 250ms szünetet ír elő műveletek között
+    def rate_limited?
+      now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      if @last_action_at && (now - @last_action_at) < 0.25
+        true
+      else
+        @last_action_at = now
+        false
+      end
+    end
   end
 end
+
 

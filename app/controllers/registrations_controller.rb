@@ -6,6 +6,8 @@
 # ==============================================================================
 
 class RegistrationsController < ApplicationController
+  before_action :check_honeypot, only: [:create]
+
   def new
     redirect_to root_path if logged_in?
     @user = User.new
@@ -13,6 +15,7 @@ class RegistrationsController < ApplicationController
 
   def create
     redirect_to root_path if logged_in?
+
 
     @user = User.new(user_params)
     # A regisztrált felhasználók kizárólag 'user' szerepkört kaphatnak
@@ -47,8 +50,24 @@ class RegistrationsController < ApplicationController
 
   private
 
+  # Honeypot mező ellenőrzése az automatizált regisztrációs botok kiszűrésére
+  def check_honeypot
+    if params[:hp_security_verification].present?
+      AuditLog.log!(
+        action: "bot_registration_blocked",
+        actor: nil,
+        target: nil,
+        request: request,
+        metadata: { ip: request.remote_ip, honeypot_value: params[:hp_security_verification] }
+      )
+      flash[:alert] = "Biztonsági ellenőrzés sikertelen. Kérjük töltsd ki újra az űrlapot."
+      redirect_to register_path
+    end
+  end
+
   # Tömeges hozzárendelés (Mass Assignment) elleni védelem: csak a szükséges mezők
   def user_params
     params.require(:user).permit(:username, :email, :password, :password_confirmation)
   end
 end
+

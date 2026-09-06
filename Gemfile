@@ -24,6 +24,10 @@ gem "redis", "~> 5.0"
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
+# Rate limiting, IP throttling and spam protection
+gem "rack-attack", "~> 6.7"
+
+
 # Use JavaScript import maps by default
 gem "importmap-rails"
 

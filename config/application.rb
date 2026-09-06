@@ -29,5 +29,9 @@ module GoogleCloudHub
 
     # Configuration for the application, engines, and railties goes here.
     config.time_zone = "UTC"
+
+    # Rack::Attack bekapcsolása spamelés és DoS elleni védelemhez
+    config.middleware.use Rack::Attack
+
   end
 end
