@@ -51,8 +51,16 @@ rm -f tmp/pids/server.pid
 echo "Starting Rails in background (logs -> log/server.log)..."
 RAILS_ENV=production nohup bundle exec rails server -e production -b 0.0.0.0 -p 3000 > log/server.log 2>&1 &
 
-sleep 4
-if pgrep -f "puma.*3000" > /dev/null || pgrep -f "rails.*3000" > /dev/null; then
+SERVER_UP=false
+for i in {1..12}; do
+    if pgrep -f "puma.*3000" > /dev/null || pgrep -f "rails.*3000" > /dev/null; then
+        SERVER_UP=true
+        break
+    fi
+    sleep 1
+done
+
+if [ "$SERVER_UP" = true ]; then
     echo "====================================================="
     echo "   Deployment Complete! Live site is up and running."
     echo "====================================================="
@@ -60,5 +68,5 @@ else
     echo "====================================================="
     echo "   Warning: Server may still be booting or failed. Log:"
     echo "====================================================="
-    tail -n 35 log/server.log || true
+    tail -n 100 log/server.log || true
 fi
