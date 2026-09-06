@@ -34,7 +34,7 @@ fi
 mkdir -p log
 
 echo "Starting Rails in background (logs -> log/server.log)..."
-nohup env RAILS_ENV=production bin/rails server -b 0.0.0.0 -p 3000 > log/server.log 2>&1 &
+nohup bin/rails server -b 0.0.0.0 -p 3000 > log/server.log 2>&1 &
 
 sleep 3
 if pgrep -f "puma.*3000" > /dev/null; then
