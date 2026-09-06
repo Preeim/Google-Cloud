@@ -39,8 +39,12 @@ module Casino
 
       tables = Casino::Table.active.where("betting_closes_at IS NOT NULL AND betting_closes_at <= ?", Time.current)
       tables.find_each do |table|
-        if table.state == "betting" || table.state == "player_turns"
-          Casino::TableManager.resolve_round(table)
+        begin
+          if table.state == "betting" || table.state == "player_turns"
+            Casino::TableManager.resolve_round(table)
+          end
+        rescue StandardError => table_err
+          Rails.logger.error "[Casino::Scheduler] Error resolving table #{table.id}: #{table_err.message}"
         end
       end
     end

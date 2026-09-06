@@ -8,8 +8,19 @@ module Casino
       end
 
       def toggle
-        new_state = @table.state == "maintenance" ? "idle" : "maintenance"
+        old_state = @table.state
+        new_state = old_state == "maintenance" ? "idle" : "maintenance"
         @table.update!(state: new_state)
+
+        ::AuditLog.log!(
+          action: "casino_table_state_toggled",
+          actor: current_user,
+          target: @table,
+          resource: @table,
+          request: request,
+          metadata: { old_state: old_state, new_state: new_state, table_name: @table.name }
+        ) rescue nil
+
         Casino::TableChannel.broadcast_to(@table, {
           type: "table_state_changed",
           state: new_state,
@@ -36,6 +47,15 @@ module Casino
 
           @table.update!(state: "idle", betting_closes_at: nil, state_data: {}.to_json)
         end
+
+        ::AuditLog.log!(
+          action: "casino_table_round_reset",
+          actor: current_user,
+          target: @table,
+          resource: @table,
+          request: request,
+          metadata: { table_name: @table.name, round_number: @table.round_number, refunded_bets: refunded_count }
+        ) rescue nil
 
         Casino::TableChannel.broadcast_to(@table, {
           type: "round_canceled",

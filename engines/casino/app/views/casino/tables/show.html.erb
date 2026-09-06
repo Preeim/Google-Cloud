@@ -940,16 +940,13 @@
                 }
               }
 
-              // 3. Felhasználó zsetonjainak élő frissítése (ha van kifizetése)
+              // 3. Felhasználó zsetonjainak élő frissítése a kifizetésekből
               if (data.payouts && data.payouts.length > 0) {
-                const myPayouts = data.payouts.filter(p => String(p.user_id) === currentUserId);
-                if (myPayouts.length > 0) {
+                const myPayout = data.payouts.find(p => String(p.user_id) === currentUserId);
+                if (myPayout && myPayout.chips_after !== undefined) {
                   const headerChip = document.getElementById('player-chips-display');
                   if (headerChip) {
-                    // Lekérjük a pontos friss zsetonegyenleget
-                    fetch(`/casino/leaderboards.json`)
-                      .then(r => r.json())
-                      .catch(() => {});
+                    headerChip.textContent = Number(myPayout.chips_after).toLocaleString();
                   }
                 }
               }

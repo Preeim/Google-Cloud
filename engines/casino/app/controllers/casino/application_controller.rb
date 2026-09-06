@@ -15,14 +15,18 @@ module Casino
       return unless logged_in?
 
       created_new = false
-      @current_casino_profile = Casino::Profile.find_or_create_by!(user_id: current_user.id) do |p|
-        p.chips = 10000
-        p.total_rounds_played = 0
-        p.total_won_rounds = 0
-        created_new = true
+      begin
+        @current_casino_profile = Casino::Profile.find_or_create_by!(user_id: current_user.id) do |p|
+          p.chips = 10000
+          p.total_rounds_played = 0
+          p.total_won_rounds = 0
+          created_new = true
+        end
+      rescue ActiveRecord::RecordNotUnique
+        @current_casino_profile = Casino::Profile.find_by(user_id: current_user.id)
       end
 
-      if created_new && @current_casino_profile.transactions.empty?
+      if created_new && @current_casino_profile.present? && @current_casino_profile.transactions.empty?
         @current_casino_profile.transactions.create!(
           amount: 10000,
           transaction_type: "welcome_bonus",

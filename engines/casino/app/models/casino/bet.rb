@@ -9,6 +9,7 @@ module Casino
     validates :amount, numericality: { greater_than: 0 }
     validates :bet_type, presence: true
     validates :round_number, numericality: { greater_than: 0 }
+    validates :status, inclusion: { in: %w[pending won lost push canceled] }
 
     scope :for_round, ->(round) { where(round_number: round) }
     scope :pending, -> { where(status: "pending") }

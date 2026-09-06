@@ -32,7 +32,7 @@ module Casino
 
     # Levezeti a teljes Punto Banco Baccarat kört a hivatalos nemzetközi szabályok szerint
     def self.play_round
-      deck = create_shoe(1) # Egy új kártyapakli generálása a körhöz
+      deck = create_shoe(6) # 6 paklis standard cipő a körhöz
 
       player_cards = [deck.pop, deck.pop]
       banker_cards = [deck.pop, deck.pop]
@@ -51,7 +51,7 @@ module Casino
         if player_total <= 5
           p3 = deck.pop
           player_cards << p3
-          p3_val = p3[:value]
+          p3_val = p3[:value] || card_value(p3["rank"] || p3[:rank])
           player_total = hand_value(player_cards)
           player_drew = true
         end
@@ -121,7 +121,7 @@ module Casino
       elsif outcome == "banker"
         if bet == "banker"
           # 0.95:1 (5% ház jutalék levonás után)
-          amount + (amount * 0.95).floor
+          amount + (amount * 0.95).round
         else
           0
         end

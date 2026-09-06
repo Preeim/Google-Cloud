@@ -1,6 +1,8 @@
 module Casino
   class TableChannel < ApplicationCable::Channel
     def subscribed
+      reject and return unless authorized_user?
+
       @table = Casino::Table.find_by(slug: params[:table_id]) || Casino::Table.find_by(id: params[:table_id])
       if @table
         stream_for @table
@@ -8,13 +10,11 @@ module Casino
         Casino::TableManager.check_or_start_timer(@table) if @table.game_type == "blackjack"
 
         # Értesítés az asztalnak, hogy új játékos lépett be
-        if current_user
-          Casino::TableChannel.broadcast_to(@table, {
-            type: "player_joined",
-            user_id: current_user.id,
-            username: current_user.username
-          })
-        end
+        Casino::TableChannel.broadcast_to(@table, {
+          type: "player_joined",
+          user_id: current_user.id,
+          username: current_user.username
+        })
       else
         reject
       end
@@ -31,7 +31,7 @@ module Casino
     end
 
     def place_bet(data)
-      return unless current_user
+      return unless authorized_user?
       profile = Casino::Profile.find_by(user_id: current_user.id)
       return unless profile
 
@@ -39,9 +39,9 @@ module Casino
       transmit({ type: "bet_response", success: res[:success], error: res[:error], chips: profile.reload.chips })
     end
 
-    # Blackjack döntés: "hit" (lapkérés) vagy "stand" (megállás)
+    # Blackjack döntés: "hit" (lapkérés), "stand" (megállás) vagy "double" (duplázás)
     def player_action(data)
-      return unless current_user
+      return unless authorized_user?
       profile = Casino::Profile.find_by(user_id: current_user.id)
       return unless profile
 
@@ -50,10 +50,25 @@ module Casino
     end
 
     def spin_wheel(data)
-      return unless current_user
-      # Ha lejárt az idő vagy a játékosok készen állnak
+      return unless authorized_user?
+      profile = Casino::Profile.find_by(user_id: current_user.id)
+      return unless profile
+
+      # Csak admin vagy a körben aktív téttel rendelkező játékos indíthatja el
+      has_active_bet = @table.current_bets.where(casino_profile_id: profile.id).exists?
+      unless current_user.admin? || has_active_bet
+        transmit({ type: "resolve_response", success: false, error: "Nincs aktív téted ezen az asztalon a sorsolás indításához." })
+        return
+      end
+
       res = Casino::TableManager.resolve_round(@table)
       transmit({ type: "resolve_response", success: res[:success], error: res[:error] })
+    end
+
+    private
+
+    def authorized_user?
+      current_user && current_user.active? && !current_user.locked? && current_user.can_access_app?("casino")
     end
   end
 end

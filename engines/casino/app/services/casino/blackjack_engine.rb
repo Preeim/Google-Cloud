@@ -5,18 +5,20 @@ module Casino
     SUITS = %w[♠ ♥ ♦ ♣].freeze
     RANKS = %w[A 2 3 4 5 6 7 8 9 10 J Q K].freeze
 
-    def self.new_shuffled_deck
+    def self.new_shuffled_deck(decks_count = 6)
       deck = []
-      SUITS.each do |suit|
-        RANKS.each do |rank|
-          deck << { suit: suit, rank: rank }
+      decks_count.times do
+        SUITS.each do |suit|
+          RANKS.each do |rank|
+            deck << { suit: suit, rank: rank }
+          end
         end
       end
       deck.shuffle
     end
 
     def self.card_point(rank)
-      case rank
+      case rank.to_s
       when "A" then 11
       when "10", "J", "Q", "K" then 10
       else rank.to_i

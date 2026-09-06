@@ -13,6 +13,14 @@ module Casino
       bet_type = params[:bet_type]
       amount = params[:amount].to_i
 
+      if amount <= 0
+        respond_to do |format|
+          format.json { render json: { success: false, error: "A tétnek pozitív számnak kell lennie." }, status: :unprocessable_entity }
+          format.html { redirect_to table_path(@table), alert: "A tétnek pozitív számnak kell lennie." }
+        end
+        return
+      end
+
       res = Casino::TableManager.place_bet(@table, current_casino_profile, bet_type, amount)
 
       respond_to do |format|
@@ -34,7 +42,15 @@ module Casino
     end
 
     def action
-      act = params[:player_action]
+      act = params[:player_action].to_s.downcase.strip
+      unless %w[hit stand double].include?(act)
+        respond_to do |format|
+          format.json { render json: { success: false, error: "Érvénytelen lépés." }, status: :unprocessable_entity }
+          format.html { redirect_to table_path(@table), alert: "Érvénytelen lépés." }
+        end
+        return
+      end
+
       res = Casino::TableManager.player_action(@table, current_casino_profile, act)
 
       respond_to do |format|
@@ -55,6 +71,16 @@ module Casino
     end
 
     def spin
+      # Csak admin vagy a körben aktív téttel rendelkező játékos indíthatja el
+      has_active_bet = @table.current_bets.where(casino_profile_id: current_casino_profile.id).exists?
+      unless current_user.admin? || has_active_bet
+        respond_to do |format|
+          format.json { render json: { success: false, error: "Nincs aktív téted ezen az asztalon a sorsolás indításához." }, status: :forbidden }
+          format.html { redirect_to table_path(@table), alert: "Nincs aktív téted ezen az asztalon a sorsolás indításához." }
+        end
+        return
+      end
+
       res = Casino::TableManager.resolve_round(@table)
 
       respond_to do |format|

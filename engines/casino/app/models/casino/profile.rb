@@ -5,6 +5,8 @@ module Casino
     has_many :bets, class_name: "Casino::Bet", foreign_key: :casino_profile_id, dependent: :destroy
 
     validates :chips, numericality: { greater_than_or_equal_to: 0 }
+    validates :total_rounds_played, numericality: { greater_than_or_equal_to: 0 }
+    validates :total_won_rounds, numericality: { greater_than_or_equal_to: 0 }
     validates :user_id, uniqueness: true
 
     scope :leaderboard, -> { order(chips: :desc, total_won_rounds: :desc) }

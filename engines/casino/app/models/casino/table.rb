@@ -5,11 +5,26 @@ module Casino
     validates :name, presence: true
     validates :slug, presence: true, uniqueness: true
     validates :game_type, inclusion: { in: %w[roulette baccarat blackjack] }
+    validates :state, inclusion: { in: %w[idle betting player_turns resolving maintenance] }
+    validates :min_bet, numericality: { greater_than: 0 }
+    validates :max_bet, numericality: { greater_than: 0 }
+    validate :min_bet_cannot_exceed_max_bet
 
     scope :roulette_tables, -> { where(game_type: "roulette") }
     scope :baccarat_tables, -> { where(game_type: "baccarat") }
     scope :blackjack_tables, -> { where(game_type: "blackjack") }
     scope :active, -> { where.not(state: "maintenance") }
+
+    private
+
+    def min_bet_cannot_exceed_max_bet
+      return unless min_bet.present? && max_bet.present?
+      if min_bet > max_bet
+        errors.add(:min_bet, "nem lehet nagyobb a maximális tétnél (#{max_bet})")
+      end
+    end
+
+    public
 
     def to_param
       slug
