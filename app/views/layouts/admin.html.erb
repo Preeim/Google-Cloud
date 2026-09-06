@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Adminisztráció | Bánk's Repository</title>
   <%= csrf_meta_tags %>
-  <%= csp_meta_tag %>
   <script src="https://cdn.jsdelivr.net/npm/@rails/actioncable@7.1.3/app/assets/javascripts/actioncable.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --bg-canvas: #0a0f1d;
@@ -182,6 +182,7 @@
     </div>
     <nav class="admin-nav">
       <a href="/bank-admin" class="<%= 'active' if request.path == '/bank-admin' %>">Irányítópult</a>
+      <a href="/bank-admin/server_metrics" class="<%= 'active' if request.path.start_with?('/bank-admin/server_metrics') || request.path.start_with?('/bank-admin/system') %>">Szerver Monitor</a>
       <a href="/bank-admin/users" class="<%= 'active' if request.path.start_with?('/bank-admin/users') %>">Felhasználók</a>
       <a href="/bank-admin/apps" class="<%= 'active' if request.path.start_with?('/bank-admin/apps') %>">Modulok</a>
       <a href="/bank-admin/audit_logs" class="<%= 'active' if request.path.start_with?('/bank-admin/audit_logs') %>">Audit Napló</a>

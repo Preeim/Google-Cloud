@@ -43,7 +43,17 @@ Rails.application.routes.draw do
       post :toggle, on: :member
     end
     resources :audit_logs, only: [:index]
+
+    # Valós Idejű Szerver Telemetria & Monitorozó Rendszer
+    resources :server_metrics, only: [:index] do
+      get :data, on: :collection
+    end
+    get "system", to: "server_metrics#index", as: :system_metrics
   end
+
+  # Kényelmi és közvetlen átirányítások a monitorozó felületre (/admin/system, /admin/server_metrics)
+  get "/admin/system", to: redirect("/bank-admin/system")
+  get "/admin/server_metrics", to: redirect("/bank-admin/server_metrics")
 
   # 5. Izolált Moduláris Webalkalmazások (Rails Engines)
   mount Chess::Engine => "/chess", as: :chess_app

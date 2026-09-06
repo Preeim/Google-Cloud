@@ -1,0 +1,1010 @@
+<%# ============================================================================== %>
+<%# Bánk's Repository - Valós Idejű Szerver Monitorozó Műszerfal                     %>
+<%# (app/views/admin/server_metrics/index.html.erb)                                %>
+<%# ============================================================================== %>
+<%# Reszponzív, modern telemetria panel Chart.js idősoros grafikonokkal,              %>
+<%# színkódolt státuszjelzőkkel és ActionCable + REST polling kettős architektúrával. %>
+<%# ============================================================================== %>
+
+<style>
+  /* -------------------------------------------------------------------------- */
+  /* Szerver Monitor Specifikus Stílusok                                        */
+  /* -------------------------------------------------------------------------- */
+  .metrics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .metrics-title {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .metrics-subtitle {
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    margin-top: 4px;
+  }
+
+  .metrics-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* Státuszjelző Pirulák */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+  .status-badge.live {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid var(--success);
+    color: #34d399;
+  }
+  .status-badge.polling {
+    background: rgba(56, 189, 248, 0.15);
+    border: 1px solid var(--accent-blue);
+    color: var(--accent-blue);
+  }
+  .status-badge.offline {
+    background: rgba(244, 63, 94, 0.15);
+    border: 1px solid var(--danger);
+    color: #fb7185;
+  }
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 8px currentColor;
+    animation: pulse-glow 2s infinite;
+  }
+  @keyframes pulse-glow {
+    0% { opacity: 0.6; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 0.6; transform: scale(0.9); }
+  }
+
+  /* Fő Rendszerállapot Csík */
+  .system-health-banner {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-left: 5px solid var(--success);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    transition: border-left-color 0.3s ease;
+  }
+  .health-info {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .health-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+  }
+  .health-meta {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+  }
+  .health-meta strong {
+    color: var(--text-main);
+  }
+
+  /* Statisztikai Kártyák Rács */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .metric-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .metric-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+  }
+  .metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .metric-label {
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+  .metric-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .metric-value-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .metric-value-large {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--text-main);
+    line-height: 1;
+  }
+  .metric-subvalue {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* Haladási Sávok (Progress Bars) */
+  .progress-track {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-elevated);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s;
+  }
+  .fill-normal { background: var(--success); }
+  .fill-warning { background: var(--warning); }
+  .fill-critical { background: var(--danger); }
+
+  /* Kártya Belső Részlet Sorok */
+  .metric-detail-list {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.86rem;
+  }
+  .metric-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--text-muted);
+  }
+  .metric-detail-item strong {
+    color: var(--text-main);
+  }
+
+  /* Grafikonok Rács */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .chart-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 20px;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .chart-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chart-canvas-container {
+    flex: 1;
+    position: relative;
+    width: 100%;
+    min-height: 220px;
+  }
+
+  /* Vezérlőelemek */
+  .select-dark {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    outline: none;
+    cursor: pointer;
+  }
+  .select-dark:focus {
+    border-color: var(--admin-accent);
+  }
+  .btn-refresh {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .btn-refresh:hover {
+    border-color: var(--admin-accent);
+    color: var(--admin-accent);
+  }
+  .btn-refresh.spinning svg {
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Mobil Reszponzivitás */
+  @media (max-width: 768px) {
+    .metrics-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .metrics-controls {
+      justify-content: space-between;
+    }
+    .metrics-grid {
+      grid-template-columns: 1fr;
+    }
+    .charts-grid {
+      grid-template-columns: 1fr;
+    }
+    .system-health-banner {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
+
+<!-- ======================================================================== -->
+<!-- 1. Fejléc & Globális Vezérlősáv                                          -->
+<!-- ======================================================================== -->
+<div class="metrics-header">
+  <div>
+    <h1 class="metrics-title">
+      <span>⚡ Szerver Telemetria & Rendszer-egészség</span>
+    </h1>
+    <p class="metrics-subtitle">
+      Valós idejű hardver- és hálózatmonitorozás: <%= @metrics[:platform] %> (<%= @metrics[:hostname] %>)
+    </p>
+  </div>
+
+  <div class="metrics-controls">
+    <!-- Élő Kapcsolati Állapotjelző -->
+    <span class="status-badge live" id="live-connection-badge">
+      <span class="pulse-dot"></span>
+      <span id="live-connection-text">ActionCable Élő</span>
+    </span>
+
+    <!-- Frissítési Gyakoriság -->
+    <select id="select-refresh-interval" class="select-dark" title="Frissítési időköz">
+      <option value="2000">Frissítés: 2 mp</option>
+      <option value="3000" selected>Frissítés: 3 mp</option>
+      <option value="5000">Frissítés: 5 mp</option>
+      <option value="10000">Frissítés: 10 mp</option>
+      <option value="0">Szüneteltetve</option>
+    </select>
+
+    <!-- Kézi Frissítés Gomb -->
+    <button type="button" id="btn-manual-refresh" class="btn-refresh" title="Azonnali frissítés">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+      <span>Frissítés</span>
+    </button>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- 2. Rendszer Egészségi Állapot Értékelő Banner                            -->
+<!-- ======================================================================== -->
+<div class="system-health-banner" id="system-health-banner">
+  <div class="health-info">
+    <div class="health-icon-box" id="health-icon-box">🛡️</div>
+    <div>
+      <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-main);" id="health-status-title">
+        <%= @metrics[:status][:label] %>
+      </div>
+      <div style="font-size: 0.84rem; color: var(--text-muted); margin-top: 2px;" id="health-status-desc">
+        Minden hardveres erőforrás és szolgáltatás stabil paraméterek között üzemel.
+      </div>
+    </div>
+  </div>
+
+  <div class="health-meta">
+    <div>Futási idő (Uptime): <strong id="val-uptime"><%= @metrics[:uptime] %></strong></div>
+    <div>Adatbázis: <strong id="val-db-status" style="color: <%= @metrics[:database][:connected] ? 'var(--success)' : 'var(--danger)' %>;">
+      <%= @metrics[:database][:connected] ? "Online (#{@metrics[:database][:latency_ms]} ms)" : "Hiba" %>
+    </strong></div>
+    <div>Utolsó szinkron: <strong id="val-last-sync"><%= Time.current.strftime("%H:%M:%S") %></strong></div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- 3. Statisztikai Kártyák Rácsa (4 Fő Erőforrás)                           -->
+<!-- ======================================================================== -->
+<div class="metrics-grid">
+  <!-- KÁRTYA 1: CPU HASZNÁLAT -->
+  <div class="metric-card" id="card-cpu">
+    <div>
+      <div class="metric-header">
+        <span class="metric-label">Processzorterhelés (CPU)</span>
+        <span class="metric-badge" id="badge-cpu-cores"><%= @metrics[:cpu][:cores_count] %> Mag</span>
+      </div>
+      <div class="metric-value-row">
+        <span class="metric-value-large" id="val-cpu-percent"><%= @metrics[:cpu][:usage_percent] %>%</span>
+        <span class="metric-subvalue" id="val-load-avg">Load: <%= @metrics[:cpu][:load_1m] %> / <%= @metrics[:cpu][:load_5m] %> / <%= @metrics[:cpu][:load_15m] %></span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill fill-normal" id="bar-cpu" style="width: <%= @metrics[:cpu][:usage_percent] %>%;"></div>
+      </div>
+    </div>
+    <div class="metric-detail-list">
+      <div class="metric-detail-item">
+        <span>1 perces átlag:</span>
+        <strong id="val-load-1m"><%= @metrics[:cpu][:load_1m] %></strong>
+      </div>
+      <div class="metric-detail-item">
+        <span>5 perces átlag:</span>
+        <strong id="val-load-5m"><%= @metrics[:cpu][:load_5m] %></strong>
+      </div>
+      <div class="metric-detail-item">
+        <span>15 perces átlag:</span>
+        <strong id="val-load-15m"><%= @metrics[:cpu][:load_15m] %></strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- KÁRTYA 2: MEMÓRIA (RAM & SWAP) -->
+  <div class="metric-card" id="card-mem">
+    <div>
+      <div class="metric-header">
+        <span class="metric-label">Memória (RAM & Swap)</span>
+        <span class="metric-badge" id="badge-ram-total"><%= @metrics[:memory][:total_gb] %> GB Összes</span>
+      </div>
+      <div class="metric-value-row">
+        <span class="metric-value-large" id="val-ram-percent"><%= @metrics[:memory][:used_percent] %>%</span>
+        <span class="metric-subvalue" id="val-ram-used-gb"><%= @metrics[:memory][:used_gb] %> / <%= @metrics[:memory][:total_gb] %> GB</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill fill-normal" id="bar-ram" style="width: <%= @metrics[:memory][:used_percent] %>%;"></div>
+      </div>
+    </div>
+    <div class="metric-detail-list">
+      <div class="metric-detail-item">
+        <span>Szabad memória:</span>
+        <strong id="val-ram-free-gb"><%= @metrics[:memory][:free_gb] %> GB (<%= @metrics[:memory][:free_mb] %> MB)</strong>
+      </div>
+      <div class="metric-detail-item">
+        <span>Gyorsítótár (Cache/Buffer):</span>
+        <strong id="val-ram-cached-mb"><%= @metrics[:memory][:cached_mb] %> MB</strong>
+      </div>
+      <div class="metric-detail-item">
+        <span>Swap terület:</span>
+        <strong id="val-swap-usage"><%= @metrics[:memory][:swap_used_mb] %> / <%= @metrics[:memory][:swap_total_mb] %> MB (<%= @metrics[:memory][:swap_used_percent] %>%)</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- KÁRTYA 3: HÁLÓZATI FORGALOM (NETWORK I/O) -->
+  <div class="metric-card" id="card-net">
+    <div>
+      <div class="metric-header">
+        <span class="metric-label">Hálózati Sebesség & I/O</span>
+        <span class="metric-badge" id="badge-net-ifaces"><%= @metrics[:network][:interfaces_count] %> Interfész</span>
+      </div>
+      <div class="metric-value-row">
+        <span class="metric-value-large" id="val-net-rx" style="color: var(--accent-blue);"><%= @metrics[:network][:rx_rate_kbps] %> <span style="font-size: 1rem; font-weight: 500;">KB/s</span></span>
+        <span class="metric-subvalue" id="val-net-tx" style="color: var(--admin-accent); font-weight: 700;">Tx: <%= @metrics[:network][:tx_rate_kbps] %> KB/s</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill fill-normal" id="bar-net" style="width: <%= [@metrics[:network][:rx_rate_kbps] / 10.0, 100.0].min %>%; background: linear-gradient(90deg, var(--accent-blue), var(--admin-accent));"></div>
+      </div>
+    </div>
+    <div class="metric-detail-list">
+      <div class="metric-detail-item">
+        <span>Összes fogadott (Rx):</span>
+        <strong id="val-rx-total"><%= @metrics[:network][:rx_total_mb] %> MB</strong>
+      </div>
+      <div class="metric-detail-item">
+        <span>Összes küldött (Tx):</span>
+        <strong id="val-tx-total"><%= @metrics[:network][:tx_total_mb] %> MB</strong>
+      </div>
+      <div class="metric-detail-item">
+        <span>Aktív TCP / Sockets:</span>
+        <strong id="val-active-sockets"><%= @metrics[:network][:active_tcp_connections] %> TCP | <%= @metrics[:network][:active_cable_connections] %> ActionCable</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- KÁRTYA 4: FOLYAMATOK & TÁRHELY (PROCESSES & DISK) -->
+  <div class="metric-card" id="card-disk">
+    <div>
+      <div class="metric-header">
+        <span class="metric-label">Tárhely & Alkalmazás</span>
+        <span class="metric-badge"><%= @metrics[:disk][:mount_point] %></span>
+      </div>
+      <div class="metric-value-row">
+        <span class="metric-value-large" id="val-disk-percent"><%= @metrics[:disk][:used_percent] %>%</span>
+        <span class="metric-subvalue" id="val-disk-used-gb"><%= @metrics[:disk][:used_gb] %> / <%= @metrics[:disk][:total_gb] %> GB</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill fill-normal" id="bar-disk" style="width: <%= @metrics[:disk][:used_percent] %>%;"></div>
+      </div>
+    </div>
+    <div class="metric-detail-list">
+      <div class="metric-detail-item">
+        <span>Szabad tárhely:</span>
+        <strong id="val-disk-free-gb"><%= @metrics[:disk][:free_gb] %> GB</strong>
+      </div>
+      <div class="metric-detail-item">
+        <span>Puma Web Szerver (PID <%= @metrics[:process][:puma_pid] %>):</span>
+        <strong id="val-puma-mem"><%= @metrics[:process][:puma_memory_mb] %> MB RSS</strong>
+      </div>
+      <div class="metric-detail-item">
+        <span>Ruby Környezet:</span>
+        <strong>Ruby <%= @metrics[:process][:ruby_version] %></strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- 4. Idősoros Grafikonok Rácsa (Chart.js Idősorok)                         -->
+<!-- ======================================================================== -->
+<div class="charts-grid">
+  <!-- Grafikon 1: CPU Terhelés Idősor -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <h2 class="chart-title">
+        <span>📊 CPU Terhelési Trend (%)</span>
+      </h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">Utolsó ~20 minta</span>
+    </div>
+    <div class="chart-canvas-container">
+      <canvas id="chart-cpu"></canvas>
+    </div>
+  </div>
+
+  <!-- Grafikon 2: Memória Használat Idősor -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <h2 class="chart-title">
+        <span>💾 Memóriahasználat Alakulása (MB)</span>
+      </h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">Használt vs Szabad RAM</span>
+    </div>
+    <div class="chart-canvas-container">
+      <canvas id="chart-mem"></canvas>
+    </div>
+  </div>
+
+  <!-- Grafikon 3: Hálózati Forgalom Sebesség (Rx / Tx) -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <h2 class="chart-title">
+        <span>🌐 Hálózati Forgalom Sebessége (KB/s)</span>
+      </h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">Rx (Letöltés) / Tx (Feltöltés)</span>
+    </div>
+    <div class="chart-canvas-container">
+      <canvas id="chart-net"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================== -->
+<!-- 5. Kliensoldali Valós Idejű Vezérlő Szkript                               -->
+<!-- ======================================================================== -->
+<script>
+  (function() {
+    // ------------------------------------------------------------------------
+    // Kezdeti Adatok & Változók
+    // ------------------------------------------------------------------------
+    let initialData = <%= raw @metrics.to_json %>;
+    const MAX_DATA_POINTS = 25;
+
+    let refreshIntervalMs = 3000;
+    let timerId = null;
+    let cableSubscription = null;
+    let isFetching = false;
+
+    // DOM Referenciák
+    const badgeConnection = document.getElementById('live-connection-badge');
+    const textConnection = document.getElementById('live-connection-text');
+    const selectInterval = document.getElementById('select-refresh-interval');
+    const btnRefresh = document.getElementById('btn-manual-refresh');
+    const valLastSync = document.getElementById('val-last-sync');
+
+    // Kártyák DOM elemei
+    const bannerHealth = document.getElementById('system-health-banner');
+    const healthStatusTitle = document.getElementById('health-status-title');
+    const healthStatusDesc = document.getElementById('health-status-desc');
+    const healthIconBox = document.getElementById('health-icon-box');
+
+    const valCpuPercent = document.getElementById('val-cpu-percent');
+    const valLoadAvg = document.getElementById('val-load-avg');
+    const barCpu = document.getElementById('bar-cpu');
+    const valLoad1m = document.getElementById('val-load-1m');
+    const valLoad5m = document.getElementById('val-load-5m');
+    const valLoad15m = document.getElementById('val-load-15m');
+
+    const valRamPercent = document.getElementById('val-ram-percent');
+    const valRamUsedGb = document.getElementById('val-ram-used-gb');
+    const barRam = document.getElementById('bar-ram');
+    const valRamFreeGb = document.getElementById('val-ram-free-gb');
+    const valRamCachedMb = document.getElementById('val-ram-cached-mb');
+    const valSwapUsage = document.getElementById('val-swap-usage');
+
+    const valNetRx = document.getElementById('val-net-rx');
+    const valNetTx = document.getElementById('val-net-tx');
+    const barNet = document.getElementById('bar-net');
+    const valRxTotal = document.getElementById('val-rx-total');
+    const valTxTotal = document.getElementById('val-tx-total');
+    const valActiveSockets = document.getElementById('val-active-sockets');
+
+    const valDiskPercent = document.getElementById('val-disk-percent');
+    const valDiskUsedGb = document.getElementById('val-disk-used-gb');
+    const barDisk = document.getElementById('bar-disk');
+    const valDiskFreeGb = document.getElementById('val-disk-free-gb');
+    const valPumaMem = document.getElementById('val-puma-mem');
+    const valUptime = document.getElementById('val-uptime');
+    const valDbStatus = document.getElementById('val-db-status');
+
+    // ------------------------------------------------------------------------
+    // Chart.js Grafikonok Inicializálása
+    // ------------------------------------------------------------------------
+    let cpuChart = null;
+    let memChart = null;
+    let netChart = null;
+
+    function initCharts() {
+      if (typeof Chart === 'undefined') {
+        console.warn("Chart.js nincs betöltve, grafikonok kihagyása.");
+        return;
+      }
+
+      // Globális sötét stílus beállítások
+      Chart.defaults.color = '#94a3b8';
+      Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      Chart.defaults.borderColor = 'rgba(35, 48, 77, 0.6)';
+
+      const initialLabels = [new Date().toLocaleTimeString()];
+
+      // 1. CPU Grafikon
+      const ctxCpu = document.getElementById('chart-cpu')?.getContext('2d');
+      if (ctxCpu) {
+        cpuChart = new Chart(ctxCpu, {
+          type: 'line',
+          data: {
+            labels: [...initialLabels],
+            datasets: [{
+              label: 'CPU Használat (%)',
+              data: [initialData.cpu?.usage_percent || 0],
+              borderColor: '#a855f7',
+              backgroundColor: 'rgba(168, 85, 247, 0.15)',
+              borderWidth: 2,
+              fill: true,
+              tension: 0.35,
+              pointRadius: 2,
+              pointHoverRadius: 5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            scales: {
+              y: {
+                min: 0,
+                max: 100,
+                ticks: { callback: v => v + '%' }
+              },
+              x: { grid: { display: false } }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: { mode: 'index', intersect: false }
+            }
+          }
+        });
+      }
+
+      // 2. Memória Grafikon
+      const ctxMem = document.getElementById('chart-mem')?.getContext('2d');
+      if (ctxMem) {
+        memChart = new Chart(ctxMem, {
+          type: 'line',
+          data: {
+            labels: [...initialLabels],
+            datasets: [
+              {
+                label: 'Használt RAM (MB)',
+                data: [initialData.memory?.used_mb || 0],
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.35,
+                pointRadius: 2
+              },
+              {
+                label: 'Szabad RAM (MB)',
+                data: [initialData.memory?.free_mb || 0],
+                borderColor: '#10b981',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                borderDash: [4, 4],
+                fill: false,
+                tension: 0.35,
+                pointRadius: 2
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            scales: {
+              y: {
+                min: 0,
+                ticks: { callback: v => v + ' MB' }
+              },
+              x: { grid: { display: false } }
+            },
+            plugins: {
+              legend: { position: 'top', labels: { boxWidth: 12 } },
+              tooltip: { mode: 'index', intersect: false }
+            }
+          }
+        });
+      }
+
+      // 3. Hálózati Forgalom Grafikon
+      const ctxNet = document.getElementById('chart-net')?.getContext('2d');
+      if (ctxNet) {
+        netChart = new Chart(ctxNet, {
+          type: 'line',
+          data: {
+            labels: [...initialLabels],
+            datasets: [
+              {
+                label: 'Rx (Letöltés KB/s)',
+                data: [initialData.network?.rx_rate_kbps || 0],
+                borderColor: '#38bdf8',
+                backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.35,
+                pointRadius: 2
+              },
+              {
+                label: 'Tx (Feltöltés KB/s)',
+                data: [initialData.network?.tx_rate_kbps || 0],
+                borderColor: '#a855f7',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.35,
+                pointRadius: 2
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 300 },
+            scales: {
+              y: {
+                min: 0,
+                ticks: { callback: v => v + ' KB/s' }
+              },
+              x: { grid: { display: false } }
+            },
+            plugins: {
+              legend: { position: 'top', labels: { boxWidth: 12 } },
+              tooltip: { mode: 'index', intersect: false }
+            }
+          }
+        });
+      }
+    }
+
+    // ------------------------------------------------------------------------
+    // DOM & Grafikon Frissítés Új Telemetriával
+    // ------------------------------------------------------------------------
+    function updateDashboard(data) {
+      if (!data) return;
+
+      const nowStr = new Date().toLocaleTimeString();
+      if (valLastSync) valLastSync.innerText = nowStr;
+
+      // 1. Rendszer Egészségi Állapot Banner
+      if (data.status && bannerHealth) {
+        const statusColor = data.status.color || '#10b981';
+        bannerHealth.style.borderLeftColor = statusColor;
+        if (healthStatusTitle) healthStatusTitle.innerText = data.status.label || 'Optimális';
+
+        if (data.status.level === 'critical') {
+          healthIconBox.innerText = '🚨';
+          healthStatusDesc.innerText = 'Figyelem! Egy vagy több rendszererőforrás elérte a kritikus (>90%) küszöbértéket.';
+        } else if (data.status.level === 'warning') {
+          healthIconBox.innerText = '⚠️';
+          healthStatusDesc.innerText = 'Fokozott terhelés érzékelhető a szerveren (75-90% közötti kihasználtság).';
+        } else {
+          healthIconBox.innerText = '🛡️';
+          healthStatusDesc.innerText = 'Minden hardveres erőforrás és szolgáltatás optimális paraméterek között üzemel.';
+        }
+      }
+
+      if (data.uptime && valUptime) valUptime.innerText = data.uptime;
+      if (data.database && valDbStatus) {
+        valDbStatus.innerText = data.database.connected ? `Online (${data.database.latency_ms} ms)` : 'Hiba';
+        valDbStatus.style.color = data.database.connected ? 'var(--success)' : 'var(--danger)';
+      }
+
+      // 2. CPU Kártya
+      if (data.cpu) {
+        const cpuPct = data.cpu.usage_percent;
+        if (valCpuPercent) valCpuPercent.innerText = cpuPct + '%';
+        if (barCpu) {
+          barCpu.style.width = Math.min(cpuPct, 100) + '%';
+          barCpu.className = 'progress-fill ' + getResourceColorClass(cpuPct);
+        }
+        if (valLoadAvg) valLoadAvg.innerText = `Load: ${data.cpu.load_1m} / ${data.cpu.load_5m} / ${data.cpu.load_15m}`;
+        if (valLoad1m) valLoad1m.innerText = data.cpu.load_1m;
+        if (valLoad5m) valLoad5m.innerText = data.cpu.load_5m;
+        if (valLoad15m) valLoad15m.innerText = data.cpu.load_15m;
+      }
+
+      // 3. Memória Kártya
+      if (data.memory) {
+        const memPct = data.memory.used_percent;
+        if (valRamPercent) valRamPercent.innerText = memPct + '%';
+        if (valRamUsedGb) valRamUsedGb.innerText = `${data.memory.used_gb} / ${data.memory.total_gb} GB`;
+        if (barRam) {
+          barRam.style.width = Math.min(memPct, 100) + '%';
+          barRam.className = 'progress-fill ' + getResourceColorClass(memPct);
+        }
+        if (valRamFreeGb) valRamFreeGb.innerText = `${data.memory.free_gb} GB (${data.memory.free_mb} MB)`;
+        if (valRamCachedMb) valRamCachedMb.innerText = `${data.memory.cached_mb} MB`;
+        if (valSwapUsage) valSwapUsage.innerText = `${data.memory.swap_used_mb} / ${data.memory.swap_total_mb} MB (${data.memory.swap_used_percent}%)`;
+      }
+
+      // 4. Hálózati Kártya
+      if (data.network) {
+        if (valNetRx) valNetRx.innerHTML = `${data.network.rx_rate_kbps} <span style="font-size: 1rem; font-weight: 500;">KB/s</span>`;
+        if (valNetTx) valNetTx.innerText = `Tx: ${data.network.tx_rate_kbps} KB/s`;
+        if (barNet) {
+          const rxRate = data.network.rx_rate_kbps || 0;
+          barNet.style.width = Math.min(Math.max(rxRate / 10.0, 4), 100) + '%';
+        }
+        if (valRxTotal) valRxTotal.innerText = `${data.network.rx_total_mb} MB`;
+        if (valTxTotal) valTxTotal.innerText = `${data.network.tx_total_mb} MB`;
+        if (valActiveSockets) {
+          valActiveSockets.innerText = `${data.network.active_tcp_connections} TCP | ${data.network.active_cable_connections} ActionCable`;
+        }
+      }
+
+      // 5. Tárhely & Folyamat Kártya
+      if (data.disk) {
+        const diskPct = data.disk.used_percent;
+        if (valDiskPercent) valDiskPercent.innerText = diskPct + '%';
+        if (valDiskUsedGb) valDiskUsedGb.innerText = `${data.disk.used_gb} / ${data.disk.total_gb} GB`;
+        if (barDisk) {
+          barDisk.style.width = Math.min(diskPct, 100) + '%';
+          barDisk.className = 'progress-fill ' + getResourceColorClass(diskPct);
+        }
+        if (valDiskFreeGb) valDiskFreeGb.innerText = `${data.disk.free_gb} GB`;
+      }
+
+      if (data.process && valPumaMem) {
+        valPumaMem.innerText = `${data.process.puma_memory_mb} MB RSS`;
+      }
+
+      // 6. Grafikonok Adatsorainak Bővítése
+      appendChartData(cpuChart, nowStr, [data.cpu?.usage_percent || 0]);
+      appendChartData(memChart, nowStr, [data.memory?.used_mb || 0, data.memory?.free_mb || 0]);
+      appendChartData(netChart, nowStr, [data.network?.rx_rate_kbps || 0, data.network?.tx_rate_kbps || 0]);
+    }
+
+    function appendChartData(chart, label, newValues) {
+      if (!chart) return;
+
+      chart.data.labels.push(label);
+      if (chart.data.labels.length > MAX_DATA_POINTS) {
+        chart.data.labels.shift();
+      }
+
+      newValues.forEach((val, idx) => {
+        if (chart.data.datasets[idx]) {
+          chart.data.datasets[idx].data.push(val);
+          if (chart.data.datasets[idx].data.length > MAX_DATA_POINTS) {
+            chart.data.datasets[idx].data.shift();
+          }
+        }
+      });
+
+      chart.update('none'); // Animáció nélküli azonnali render a magas teljesítményért
+    }
+
+    function getResourceColorClass(percent) {
+      if (percent >= 90.0) return 'fill-critical';
+      if (percent >= 75.0) return 'fill-warning';
+      return 'fill-normal';
+    }
+
+    // ------------------------------------------------------------------------
+    // Valós Idejű Kommunikáció (ActionCable + REST Fallback)
+    // ------------------------------------------------------------------------
+    function initWebSocket() {
+      if (typeof ActionCable === 'undefined') {
+        console.warn("ActionCable nem érhető el, automatikus REST Polling mód...");
+        switchToPollingMode();
+        return;
+      }
+
+      const consumer = ActionCable.createConsumer('/cable');
+
+      cableSubscription = consumer.subscriptions.create({ channel: "ServerMetricsChannel" }, {
+        connected: function() {
+          setConnectionState('live', 'ActionCable Élő');
+        },
+        disconnected: function() {
+          setConnectionState('polling', 'REST Polling (Újrakapcsolódás...)');
+        },
+        rejected: function() {
+          setConnectionState('offline', 'Kapcsolat Elutasítva (Admin Jog)');
+        },
+        received: function(data) {
+          updateDashboard(data);
+        }
+      });
+    }
+
+    function setConnectionState(type, label) {
+      if (!badgeConnection || !textConnection) return;
+      badgeConnection.className = `status-badge ${type}`;
+      textConnection.innerText = label;
+    }
+
+    function fetchMetricsRest() {
+      if (isFetching) return;
+      isFetching = true;
+
+      if (btnRefresh) btnRefresh.classList.add('spinning');
+
+      fetch('/bank-admin/server_metrics/data', {
+        headers: { 'Accept': 'application/json' }
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Hálózati hiba: " + res.status);
+        return res.json();
+      })
+      .then(data => {
+        updateDashboard(data);
+      })
+      .catch(err => {
+        console.error("Hiba a metrikák lekérésekor:", err);
+      })
+      .finally(() => {
+        isFetching = false;
+        if (btnRefresh) btnRefresh.classList.remove('spinning');
+      });
+    }
+
+    function triggerMetricsUpdate() {
+      if (cableSubscription && typeof cableSubscription.perform === 'function') {
+        if (btnRefresh) btnRefresh.classList.add('spinning');
+        cableSubscription.perform('refresh');
+        setTimeout(() => { if (btnRefresh) btnRefresh.classList.remove('spinning'); }, 400);
+      } else {
+        fetchMetricsRest();
+      }
+    }
+
+    function schedulePolling() {
+      if (timerId) clearInterval(timerId);
+
+      if (refreshIntervalMs > 0) {
+        timerId = setInterval(() => {
+          triggerMetricsUpdate();
+        }, refreshIntervalMs);
+      }
+    }
+
+    function switchToPollingMode() {
+      setConnectionState('polling', 'REST Polling');
+      schedulePolling();
+    }
+
+    // ------------------------------------------------------------------------
+    // Felhasználói Interakciók
+    // ------------------------------------------------------------------------
+    if (selectInterval) {
+      selectInterval.addEventListener('change', function(e) {
+        refreshIntervalMs = parseInt(e.target.value, 10);
+        schedulePolling();
+      });
+    }
+
+    if (btnRefresh) {
+      btnRefresh.addEventListener('click', function() {
+        triggerMetricsUpdate();
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // Indítás Betöltéskor
+    // ------------------------------------------------------------------------
+    initCharts();
+    initWebSocket();
+    schedulePolling();
+
+  })();
+</script>
+

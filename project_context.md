@@ -43,6 +43,12 @@ The server runs Ruby 3.3.0, which has a known syntax parser bug regarding "anony
 - **Chess Module (`engines/chess`):** Full multiplayer chess engine with live Action Cable WebSocket sync, timers, spectating, and PGN recording.
 - **Casino Simulator (`engines/casino`):** Modular casino platform featuring European Roulette, Punto Banco Baccarat, and multiplayer Blackjack with live hit/stand controls, 10,000 starting chips, audit transactions (`casino_transactions`), and admin controls.
   - Tables: `casino_profiles`, `casino_tables`, `casino_bets`, `casino_transactions`.
+- **Server Monitoring & System Health (`/bank-admin/server_metrics`, `/admin/system`):** Real-time hardware and network metrics dashboard with ActionCable WebSocket broadcasting, Linux `/proc` telemetry, non-blocking service object, Chart.js time-series graphs, and local Windows fallback.
+
+## 📌 Versioning & Git Commit Policy
+- Always commit and push changes to git (`main` branch) immediately when finishing tasks.
+- Keep the `VERSION` file updated using Semantic Versioning (SemVer) and display the current version number in all completion summaries.
+
 
 
 
