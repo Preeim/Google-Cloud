@@ -1,0 +1,669 @@
+<%# ============================================================================== %>
+<%# Bánk's Repository - Globális Egységes Felső Navigációs Menüsor (Navbar)          %>
+<%# ============================================================================== %>
+
+<header class="global-navbar" id="global-navbar">
+  <div class="navbar-container">
+    
+    <!-- 1. BAL OLDAL: Navigáció, Brand & Intelligens Vissza Gomb -->
+    <div class="nav-zone nav-zone-left">
+      <a href="<%= app_root_path %>" class="navbar-brand" title="Kezdőlap / Műszerfal">
+        <span class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </span>
+        <span class="brand-name">Bánk's <span>Repository</span></span>
+      </a>
+
+      <% back_path = page_back_url rescue nil %>
+      <% if back_path.present? && request.path != "/" && request.path != "" %>
+        <div class="nav-divider"></div>
+        <a href="<%= back_path %>" class="nav-back-btn" title="Visszalépés az előző szintre">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          <span class="back-text">Vissza</span>
+        </a>
+      <% end %>
+    </div>
+
+    <!-- 2. KÖZÉP: Dinamikus Oldalcím & Modul Jelvény -->
+    <div class="nav-zone nav-zone-center">
+      <% mod_info = current_module_info rescue nil %>
+      <% if mod_info && mod_info[:name] != "Platform" && mod_info[:name] != "Kezdőlap" %>
+        <span class="module-badge <%= mod_info[:badge_class] %>">
+          <span><%= mod_info[:icon] %></span>
+          <span class="module-text"><%= mod_info[:name] %></span>
+        </span>
+      <% end %>
+
+      <h1 class="nav-page-title" id="navbar-page-title">
+        <%= page_title rescue "Bánk's Repository" %>
+      </h1>
+    </div>
+
+    <!-- 3. JOBB OLDAL: Modul-specifikus Bővítmények & Fiókkezelés -->
+    <div class="nav-zone nav-zone-right">
+      
+      <!-- Modul-specifikus dinamikus tartalom (zsetonok, admin fülek, socket badge stb.) -->
+      <% if content_for?(:navbar_extra) %>
+        <div class="navbar-extra-slot">
+          <%= yield :navbar_extra %>
+        </div>
+      <% end %>
+
+      <% if logged_in? %>
+        <!-- BEJELENTKEZETT FELHASZNÁLÓ: Profil Avatar & Dropdown -->
+        <div class="user-menu-wrapper" id="user-menu-wrapper">
+          <button type="button" class="user-menu-btn" id="user-menu-toggle" aria-expanded="false" aria-haspopup="true">
+            <span class="user-avatar" style="background: <%= (current_user.custom_avatar_color rescue '#38bdf8') %>;">
+              <%= (current_user.avatar_initials rescue 'U') %>
+            </span>
+            <span class="user-name">
+              <%= (current_user.effective_name rescue current_user.username) %>
+            </span>
+            <svg class="dropdown-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+
+          <!-- Lenyíló Profil Menü -->
+          <div class="user-dropdown-panel" id="user-dropdown-menu" role="menu">
+            <div class="dropdown-header">
+              <div class="user-avatar-lg" style="background: <%= (current_user.custom_avatar_color rescue '#38bdf8') %>;">
+                <%= (current_user.avatar_initials rescue 'U') %>
+              </div>
+              <div class="dropdown-user-meta">
+                <div class="dropdown-user-title"><%= current_user.effective_name rescue current_user.username %></div>
+                <div class="dropdown-user-subtitle">@<%= current_user.username %></div>
+                <% if admin? %>
+                  <span class="badge-role-admin">🛡️ Adminisztrátor</span>
+                <% elsif moderator? %>
+                  <span class="badge-role-mod">⚡ Moderátor</span>
+                <% else %>
+                  <span class="badge-role-user">👤 Tag</span>
+                <% end %>
+              </div>
+            </div>
+
+            <div class="dropdown-divider"></div>
+
+            <div class="dropdown-links">
+              <a href="<%= app_my_profile_path %>" class="dropdown-item">
+                <span class="item-icon">👤</span>
+                <span class="item-label">Saját Profilom</span>
+              </a>
+
+              <% if admin? %>
+                <a href="<%= app_admin_root_path %>" class="dropdown-item dropdown-item-admin">
+                  <span class="item-icon">🛡️</span>
+                  <span class="item-label">Rendszer Adminisztráció</span>
+                </a>
+              <% end %>
+            </div>
+
+            <!-- Mobilos Gyors Modulválasztó Szekció -->
+            <div class="dropdown-mobile-section">
+              <div class="dropdown-section-title">Modulok & Játékok</div>
+              <div class="dropdown-links">
+                <a href="/" class="dropdown-item <%= 'active' if request.path == '/' %>">
+                  <span class="item-icon">🏠</span>
+                  <span class="item-label">Kezdőlap / Műszerfal</span>
+                </a>
+                <a href="/chess" class="dropdown-item <%= 'active' if request.path.start_with?('/chess') %>">
+                  <span class="item-icon">♟️</span>
+                  <span class="item-label">Sakk Mester</span>
+                </a>
+                <a href="/casino" class="dropdown-item <%= 'active' if request.path.start_with?('/casino') %>">
+                  <span class="item-icon">🎰</span>
+                  <span class="item-label">Grand Casino</span>
+                </a>
+                <a href="/canvas" class="dropdown-item <%= 'active' if request.path.start_with?('/canvas') %>">
+                  <span class="item-icon">🎨</span>
+                  <span class="item-label">Közösségi Rajzvászon</span>
+                </a>
+                <a href="/test" class="dropdown-item <%= 'active' if request.path == '/test' %>">
+                  <span class="item-icon">🛠️</span>
+                  <span class="item-label">Teszt Konzol</span>
+                </a>
+              </div>
+            </div>
+
+            <div class="dropdown-divider"></div>
+
+            <div class="dropdown-footer">
+              <a href="<%= app_logout_path %>" class="dropdown-logout-btn" data-method="delete">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span>Kijelentkezés</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <!-- KIJELENTKEZETT VENDÉG ÁLLAPOT -->
+        <div class="guest-auth-actions">
+          <a href="<%= app_login_path %>" class="btn btn-navbar-secondary">Belépés</a>
+          <a href="<%= app_register_path %>" class="btn btn-navbar-primary">Regisztráció</a>
+        </div>
+      <% end %>
+
+    </div>
+
+  </div>
+</header>
+
+<style>
+  /* ========================================================================== */
+  /* Globális Navbar Stílusok (Scoped & Kompatibilis)                           */
+  /* ========================================================================== */
+  header.global-navbar {
+    background: rgba(17, 25, 46, 0.92);
+    border-bottom: 1px solid var(--border-subtle, #23304d);
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 500;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+
+  .navbar-container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 60px;
+  }
+
+  .nav-zone {
+    display: flex;
+    align-items: center;
+  }
+
+  /* 1. Bal Zóna: Brand & Vissza gomb */
+  .nav-zone-left {
+    flex: 0 0 auto;
+    gap: 12px;
+  }
+
+  .navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text-main, #f1f5f9);
+    font-weight: 700;
+    font-size: 1.15rem;
+    transition: opacity 0.15s;
+    user-select: none;
+  }
+  .navbar-brand:hover {
+    opacity: 0.9;
+  }
+  .brand-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent, #38bdf8);
+  }
+  .brand-name span {
+    color: var(--accent, #38bdf8);
+  }
+
+  .nav-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--border-subtle, #23304d);
+  }
+
+  .nav-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--bg-elevated, #1a243b);
+    border: 1px solid var(--border-subtle, #23304d);
+    border-radius: 6px;
+    color: var(--text-muted, #94a3b8);
+    text-decoration: none;
+    font-size: 0.84rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+  }
+  .nav-back-btn:hover {
+    color: var(--text-main, #f1f5f9);
+    border-color: var(--accent, #38bdf8);
+    background: #202c48;
+  }
+
+  /* 2. Középső Zóna: Cím & Modul Jelvény */
+  .nav-zone-center {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+    min-width: 0;
+  }
+
+  .nav-page-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main, #f1f5f9);
+    margin: 0;
+    padding: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+  }
+
+  .module-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid var(--accent, #38bdf8);
+    color: var(--accent, #38bdf8);
+    white-space: nowrap;
+  }
+  .module-badge.badge-chess {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: var(--chess-gold, #fbbf24);
+    color: var(--chess-gold, #fbbf24);
+  }
+  .module-badge.badge-casino {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: var(--casino-gold, #fbbf24);
+    color: var(--casino-gold, #fbbf24);
+  }
+  .module-badge.badge-admin {
+    background: rgba(168, 85, 247, 0.15);
+    border-color: var(--admin-accent, #a855f7);
+    color: var(--admin-accent, #a855f7);
+  }
+
+  /* 3. Jobb Zóna: Extra Slot & Fiókkezelés */
+  .nav-zone-right {
+    flex: 0 0 auto;
+    gap: 14px;
+    justify-content: flex-end;
+  }
+
+  .navbar-extra-slot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Dropdown Tároló */
+  .user-menu-wrapper {
+    position: relative;
+  }
+
+  .user-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 10px 4px 6px;
+    background: var(--bg-elevated, #1a243b);
+    border: 1px solid var(--border-subtle, #23304d);
+    border-radius: 24px;
+    color: var(--text-main, #f1f5f9);
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+  }
+  .user-menu-btn:hover, .user-menu-btn[aria-expanded="true"] {
+    border-color: var(--border-hover, #3b4b73);
+    background: #222f4c;
+  }
+  .user-menu-btn[aria-expanded="true"] .dropdown-caret {
+    transform: rotate(180deg);
+  }
+
+  .user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: #0a0f1d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.76rem;
+    flex-shrink: 0;
+  }
+
+  .user-name {
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dropdown-caret {
+    color: var(--text-muted, #94a3b8);
+    transition: transform 0.2s ease;
+  }
+
+  /* Dropdown Panel */
+  .user-dropdown-panel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 280px;
+    background: var(--bg-surface, #11192e);
+    border: 1px solid var(--border-subtle, #23304d);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 600;
+    overflow: hidden;
+  }
+  .user-dropdown-panel.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .dropdown-header {
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .user-avatar-lg {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    color: #0a0f1d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .dropdown-user-meta {
+    min-width: 0;
+    flex: 1;
+  }
+  .dropdown-user-title {
+    font-weight: 700;
+    color: var(--text-main, #f1f5f9);
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dropdown-user-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted, #94a3b8);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .badge-role-admin {
+    display: inline-block;
+    padding: 1px 6px;
+    background: rgba(168, 85, 247, 0.2);
+    border: 1px solid var(--admin-accent, #a855f7);
+    color: var(--admin-accent, #a855f7);
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  .badge-role-mod {
+    display: inline-block;
+    padding: 1px 6px;
+    background: rgba(56, 189, 248, 0.2);
+    border: 1px solid var(--accent, #38bdf8);
+    color: var(--accent, #38bdf8);
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  .badge-role-user {
+    display: inline-block;
+    padding: 1px 6px;
+    background: rgba(148, 163, 184, 0.2);
+    border: 1px solid var(--border-subtle, #23304d);
+    color: var(--text-muted, #94a3b8);
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  .dropdown-divider {
+    height: 1px;
+    background: var(--border-subtle, #23304d);
+  }
+
+  .dropdown-links {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    color: var(--text-main, #f1f5f9);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+  }
+  .dropdown-item:hover, .dropdown-item.active {
+    background: var(--bg-elevated, #1a243b);
+    color: var(--accent, #38bdf8);
+  }
+  .dropdown-item-admin {
+    color: var(--admin-accent, #a855f7);
+  }
+  .dropdown-item-admin:hover {
+    background: rgba(168, 85, 247, 0.15);
+    color: var(--admin-accent, #a855f7);
+  }
+  .item-icon {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+  }
+
+  .dropdown-mobile-section {
+    padding: 6px 8px;
+    background: rgba(10, 15, 29, 0.4);
+    border-top: 1px solid var(--border-subtle, #23304d);
+    border-bottom: 1px solid var(--border-subtle, #23304d);
+  }
+  .dropdown-section-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted, #94a3b8);
+    font-weight: 700;
+    padding: 6px 12px 2px;
+  }
+
+  .dropdown-footer {
+    padding: 8px;
+  }
+  .dropdown-logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: rgba(244, 63, 94, 0.15);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    color: #fb7185;
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .dropdown-logout-btn:hover {
+    background: var(--danger, #f43f5e);
+    color: #ffffff;
+  }
+
+  /* Vendég Gombok */
+  .guest-auth-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .btn-navbar-primary {
+    background: var(--accent, #38bdf8);
+    color: #0a0f1d;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.86rem;
+    text-decoration: none;
+    transition: all 0.15s;
+    border: 1px solid var(--accent, #38bdf8);
+  }
+  .btn-navbar-primary:hover {
+    background: var(--accent-hover, #0284c7);
+  }
+  .btn-navbar-secondary {
+    background: var(--bg-elevated, #1a243b);
+    color: var(--text-main, #f1f5f9);
+    border: 1px solid var(--border-subtle, #23304d);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.86rem;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .btn-navbar-secondary:hover {
+    border-color: var(--border-hover, #3b4b73);
+    background: #222f4c;
+  }
+
+  /* ========================================================================== */
+  /* Reszponzivitás                                                             */
+  /* ========================================================================== */
+  @media (max-width: 860px) {
+    .navbar-container {
+      padding: 8px 14px;
+    }
+    .brand-name {
+      display: none; /* Mobilon helytakarékos ikon */
+    }
+    .user-name {
+      display: none; /* Mobilon csak az avatar és a lenyíló nyíl látható */
+    }
+    .nav-page-title {
+      font-size: 0.95rem;
+    }
+    .back-text {
+      display: none;
+    }
+    .nav-back-btn {
+      padding: 6px 8px;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .module-badge {
+      display: none; /* Nagyon szűk kijelzőn csak a cím marad */
+    }
+    .navbar-container {
+      gap: 8px;
+    }
+  }
+</style>
+
+<script>
+  (function() {
+    // Dropdown eseménykezelés Vanilla JavaScripttel
+    function initGlobalNavbar() {
+      const toggleBtn = document.getElementById('user-menu-toggle');
+      const menu = document.getElementById('user-dropdown-menu');
+      const wrapper = document.getElementById('user-menu-wrapper');
+
+      if (!toggleBtn || !menu || !wrapper) return;
+
+      function closeMenu() {
+        menu.classList.remove('open');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      }
+
+      function openMenu() {
+        menu.classList.add('open');
+        toggleBtn.setAttribute('aria-expanded', 'true');
+      }
+
+      toggleBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isOpen = menu.classList.contains('open');
+        if (isOpen) {
+          closeMenu();
+        } else {
+          openMenu();
+        }
+      });
+
+      // Kattintás kívülre -> bezárás
+      document.addEventListener('click', function(e) {
+        if (!wrapper.contains(e.target)) {
+          closeMenu();
+        }
+      });
+
+      // Escape billentyű -> bezárás
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeMenu();
+        }
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initGlobalNavbar);
+    } else {
+      initGlobalNavbar();
+    }
+  })();
+</script>
+

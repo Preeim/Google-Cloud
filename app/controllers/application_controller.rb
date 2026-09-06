@@ -11,10 +11,12 @@ class ApplicationController < ActionController::Base
   protect_from_forgery with: :exception
 
   # Nézetekben és Engine sablonokban elérhető segédmetódusok
+  include ApplicationHelper rescue nil
   helper_method :current_user, :logged_in?, :admin?, :moderator?,
                 :current_active_session, :app_login_path, :app_root_path,
                 :app_logout_path, :app_register_path, :app_admin_root_path,
-                :app_my_profile_path, :app_user_profile_path
+                :app_my_profile_path, :app_user_profile_path,
+                :page_title, :page_back_url, :current_module_info
 
   # Biztonságos útvonal-lekérők (Engine-ekből hívva is garantáltan működnek)
   def app_login_path

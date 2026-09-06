@@ -45,6 +45,7 @@ The server runs Ruby 3.3.0, which has a known syntax parser bug regarding "anony
   - Tables: `casino_profiles`, `casino_tables`, `casino_bets`, `casino_transactions`.
 - **Server Monitoring & System Health (`/bank-admin/server_metrics`, `/admin/system`):** Real-time hardware and network metrics dashboard with ActionCable WebSocket broadcasting, Linux `/proc` telemetry, non-blocking service object, Chart.js time-series graphs, and local Windows fallback.
 - **Collaborative Real-time Canvas (`engines/canvas`):** Multi-user shared whiteboard with ActionCable WebSocket streaming, 15–30 ms coordinate throttling/batching, smoothed quadratic Bézier curves, MySQL persistence (`canvas_boards`, `canvas_strokes`), PNG high-res export, responsive 1600x900 virtual coordinates, live presence list, spectator/drawing permission gates, and admin controls (board freeze, clear board).
+- **Unified Top Navigation Bar (`app/views/shared/_navbar.html.erb`):** Globally unified, responsive sticky top navbar across all core and engine layouts with 3 fixed zones (Home logo & smart back breadcrumb, dynamic page title & module badge, module dynamic slot & user profile dropdown / guest auth), backed by `ApplicationHelper` (`page_title`, `page_back_url`, `current_module_info`).
 
 ## 📌 Versioning & Git Commit Policy
 - Always commit and push changes to git (`main` branch) immediately when finishing tasks.

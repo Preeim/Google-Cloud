@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Adminisztráció | Bánk's Repository</title>
+  <title><%= page_title %> | Bánk's Repository</title>
   <%= csrf_meta_tags %>
   <script src="https://cdn.jsdelivr.net/npm/@rails/actioncable@7.1.3/app/assets/javascripts/actioncable.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -26,22 +26,46 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
     body { background-color: var(--bg-canvas); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; width: 100%; }
     
-    header.admin-header {
+    /* Admin Kontextuális Al-menüsor */
+    .admin-subnav {
       background: var(--bg-surface);
       border-bottom: 1px solid var(--border-subtle);
-      padding: 12px 28px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      padding: 6px 20px;
     }
-    .admin-brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.15rem; color: var(--text-main); text-decoration: none; }
-    .admin-badge { background: rgba(168, 85, 247, 0.2); border: 1px solid var(--admin-accent); color: var(--admin-accent); font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
-    
-    .admin-nav { display: flex; align-items: center; gap: 20px; }
-    .admin-nav a { color: var(--text-muted); text-decoration: none; font-size: 0.95rem; font-weight: 500; transition: color 0.15s; }
-    .admin-nav a:hover, .admin-nav a.active { color: var(--admin-accent); }
-    .admin-nav .back-link { color: var(--accent-blue); padding: 6px 14px; border: 1px solid var(--border-subtle); border-radius: 6px; }
-    .admin-nav .back-link:hover { border-color: var(--accent-blue); }
+    .admin-subnav-container {
+      max-width: 1300px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .admin-subnav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 4px 0;
+    }
+    .admin-subnav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+    }
+    .admin-subnav-links a:hover {
+      color: var(--text-main);
+      background: var(--bg-elevated);
+    }
+    .admin-subnav-links a.active {
+      color: var(--admin-accent);
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.3);
+    }
 
     .flash-container { max-width: 1300px; margin: 16px auto 0; padding: 0 20px; width: 100%; }
     .flash-notice { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: #34d399; padding: 12px 18px; border-radius: 8px; margin-bottom: 12px; }
@@ -173,22 +197,21 @@
   </style>
 </head>
 <body>
-  <header class="admin-header">
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-      <a href="/bank-admin" class="admin-brand">
-        🛡️ Bánk's Repository
-      </a>
-      <span class="admin-badge">Admin</span>
+  <!-- 1. Globális Egységes Felső Navigációs Sáv (Navbar) -->
+  <%= render "shared/navbar" %>
+
+  <!-- Kontextuális Admin Al-menüsor -->
+  <nav class="admin-subnav">
+    <div class="admin-subnav-container">
+      <div class="admin-subnav-links">
+        <a href="/bank-admin" class="<%= 'active' if request.path == '/bank-admin' %>">📊 Irányítópult</a>
+        <a href="/bank-admin/server_metrics" class="<%= 'active' if request.path.start_with?('/bank-admin/server_metrics') || request.path.start_with?('/bank-admin/system') %>">⚡ Szerver Monitor</a>
+        <a href="/bank-admin/users" class="<%= 'active' if request.path.start_with?('/bank-admin/users') %>">👥 Felhasználók</a>
+        <a href="/bank-admin/apps" class="<%= 'active' if request.path.start_with?('/bank-admin/apps') %>">🧩 Modulok</a>
+        <a href="/bank-admin/audit_logs" class="<%= 'active' if request.path.start_with?('/bank-admin/audit_logs') %>">📜 Audit Napló</a>
+      </div>
     </div>
-    <nav class="admin-nav">
-      <a href="/bank-admin" class="<%= 'active' if request.path == '/bank-admin' %>">Irányítópult</a>
-      <a href="/bank-admin/server_metrics" class="<%= 'active' if request.path.start_with?('/bank-admin/server_metrics') || request.path.start_with?('/bank-admin/system') %>">Szerver Monitor</a>
-      <a href="/bank-admin/users" class="<%= 'active' if request.path.start_with?('/bank-admin/users') %>">Felhasználók</a>
-      <a href="/bank-admin/apps" class="<%= 'active' if request.path.start_with?('/bank-admin/apps') %>">Modulok</a>
-      <a href="/bank-admin/audit_logs" class="<%= 'active' if request.path.start_with?('/bank-admin/audit_logs') %>">Audit Napló</a>
-      <a href="/" class="back-link">← Főoldal</a>
-    </nav>
-  </header>
+  </nav>
 
   <div class="flash-container">
     <% if notice %>

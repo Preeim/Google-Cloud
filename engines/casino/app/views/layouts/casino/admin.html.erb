@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Kaszinó Adminisztráció | Bánk's Repository</title>
+  <title><%= page_title %> | Bánk's Repository</title>
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
   <style>
@@ -102,23 +102,33 @@
   </style>
 </head>
 <body>
-  <header class="casino-admin-header">
-    <div class="brand-group">
-      <a href="<%= admin_root_path %>" class="casino-brand">
-        <span style="font-size: 1.4rem;">🎰</span>
-        <span>Kaszinó Modul Admin</span>
-      </a>
-      <span class="badge-admin">Vezérlőpult</span>
-    </div>
+  <!-- 1. Globális Egységes Felső Navigációs Sáv (Navbar) -->
+  <%= render "shared/navbar" %>
 
-    <nav class="nav-links">
-      <a href="<%= admin_root_path %>" class="nav-link <%= 'active' if current_page?(admin_root_path) %>">Áttekintés</a>
-      <a href="<%= admin_users_path %>" class="nav-link <%= 'active' if request.path.include?('/users') %>">Játékosok & Zsetonok</a>
-      <a href="<%= admin_tables_path %>" class="nav-link <%= 'active' if request.path.include?('/tables') %>">Élő Asztalok</a>
-      <a href="/casino" class="nav-btn-back">← Kaszinó Lobbi</a>
-      <a href="/bank-admin" class="nav-btn-back" style="color: var(--admin-accent); border-color: rgba(168, 85, 247, 0.4);">🛡️ Fő Admin Központ</a>
-    </nav>
-  </header>
+  <!-- Kontextuális Kaszinó Admin Al-menüsor -->
+  <nav class="casino-subnav" style="background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); padding: 8px 20px;">
+    <div style="max-width: 1300px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 8px; overflow-x: auto; white-space: nowrap;">
+        <a href="<%= admin_root_path %>" class="btn btn-secondary <%= 'btn-gold' if current_page?(admin_root_path) %>" style="padding: 5px 12px; font-size: 0.84rem;">
+          📊 Áttekintés
+        </a>
+        <a href="<%= admin_users_path %>" class="btn btn-secondary <%= 'btn-gold' if request.path.include?('/users') %>" style="padding: 5px 12px; font-size: 0.84rem;">
+          👥 Játékosok & Zsetonok
+        </a>
+        <a href="<%= admin_tables_path %>" class="btn btn-secondary <%= 'btn-gold' if request.path.include?('/tables') %>" style="padding: 5px 12px; font-size: 0.84rem;">
+          🎲 Élő Asztalok
+        </a>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <a href="/casino" class="btn btn-secondary" style="padding: 5px 12px; font-size: 0.82rem;">
+          ← Kaszinó Lobbi
+        </a>
+        <a href="/bank-admin" class="btn btn-admin" style="padding: 5px 12px; font-size: 0.82rem;">
+          🛡️ Fő Admin Központ
+        </a>
+      </div>
+    </div>
+  </nav>
 
   <div class="flash-container">
     <% if notice %>
