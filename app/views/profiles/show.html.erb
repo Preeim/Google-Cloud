@@ -1,0 +1,186 @@
+<%# ========================================================================== %>
+<%# Bánk's Repository - Felhasználói Profil Nézet (profiles/show.html.erb)       %>
+<%# ========================================================================== %>
+
+<style>
+  .profile-hero {
+    background: linear-gradient(135deg, #11192e 0%, #16223e 50%, #0d1527 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .profile-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, <%= @user.custom_avatar_color %>, var(--accent), var(--admin-accent));
+  }
+  .profile-hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .profile-identity {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .profile-avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #0a0f1d;
+    background: <%= @user.custom_avatar_color %>;
+    box-shadow: 0 0 20px <%= @user.custom_avatar_color %>55;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .profile-avatar-large .status-dot {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 3px solid #11192e;
+  }
+  .profile-avatar-large .status-dot.online {
+    background: var(--success);
+    box-shadow: 0 0 10px var(--success);
+  }
+  .profile-avatar-large .status-dot.offline {
+    background: var(--text-muted);
+  }
+
+  .profile-details h1 {
+    font-size: clamp(1.4rem, 4vw, 1.85rem);
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .profile-meta-tags {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+  }
+  .profile-widget-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+    gap: 20px;
+  }
+
+  @media (max-width: 768px) {
+    .profile-hero {
+      padding: 18px;
+    }
+    .profile-identity {
+      gap: 14px;
+    }
+    .profile-avatar-large {
+      width: 64px;
+      height: 64px;
+      font-size: 1.6rem;
+    }
+    .profile-widget-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .profile-widget-card {
+      grid-column: span 1 !important;
+    }
+  }
+</style>
+
+<!-- Hero Fejléc Szekció -->
+<div class="profile-hero">
+  <div class="profile-hero-content">
+    <div class="profile-identity">
+      <div class="profile-avatar-large">
+        <%= @user.avatar_initials %>
+        <span class="status-dot <%= @user.online? ? 'online' : 'offline' %>" title="<%= @user.online? ? 'Online' : 'Offline' %>"></span>
+      </div>
+
+      <div class="profile-details">
+        <h1>
+          <span><%= @user.effective_name %></span>
+          <% if @user.admin? %>
+            <span class="badge badge-admin" style="font-size: 0.75rem; vertical-align: middle;">Rendszergazda</span>
+          <% elsif @user.moderator? %>
+            <span class="badge" style="background: rgba(56, 189, 248, 0.2); color: var(--accent); border: 1px solid var(--accent); font-size: 0.75rem;">Moderátor</span>
+          <% end %>
+        </h1>
+
+        <div class="profile-meta-tags">
+          <span>@<%= @user.username %></span>
+          <span>•</span>
+          <span>Tagság: <%= @user.created_at.strftime("%Y. %m. %d.") %></span>
+          <span>•</span>
+          <% if @user.online? %>
+            <span style="color: var(--success); font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+              <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--success);"></span> Jelenleg Online
+            </span>
+          <% elsif @user.last_seen_at.present? %>
+            <span>Látva: <%= time_ago_in_words(@user.last_seen_at) %> ezelőtt</span>
+          <% else %>
+            <span>Még nem jelent meg</span>
+          <% end %>
+        </div>
+
+        <% if @user.custom_status.present? %>
+          <div style="margin-top: 8px; color: #cbd5e1; font-size: 0.95rem; font-style: italic;">
+            "<%= @user.custom_status %>"
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Műveleti Gombok (Szerkesztés / Vissza a Dashboardra) -->
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <a href="/" class="btn btn-secondary">
+        ← Vissza a Kezdőlapra
+      </a>
+      <% if @can_edit %>
+        <button type="button" id="btn-open-profile-edit" class="btn btn-primary">
+          <span>✏️</span> Profil Szerkesztése
+        </button>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<!-- Dinamikus Moduláris Profil Widget Grid -->
+<div class="profile-widget-grid">
+  <% @widgets.each do |widget| %>
+    <%= render "profiles/widget_container", widget: widget do %>
+      <%= render widget.partial, user: @user, viewer: current_user, data: widget.load_data(@user, current_user) %>
+    <% end %>
+  <% end %>
+</div>
+
+<!-- Profil Szerkesztő Ablak (Modal) -->
+<% if @can_edit %>
+  <%= render "profiles/edit_modal", user: @user %>
+<% end %>
+

@@ -13,7 +13,8 @@ class ApplicationController < ActionController::Base
   # Nézetekben és Engine sablonokban elérhető segédmetódusok
   helper_method :current_user, :logged_in?, :admin?, :moderator?,
                 :current_active_session, :app_login_path, :app_root_path,
-                :app_logout_path, :app_register_path, :app_admin_root_path
+                :app_logout_path, :app_register_path, :app_admin_root_path,
+                :app_my_profile_path, :app_user_profile_path
 
   # Biztonságos útvonal-lekérők (Engine-ekből hívva is garantáltan működnek)
   def app_login_path
@@ -66,6 +67,27 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  def app_my_profile_path
+    if respond_to?(:main_app) && main_app.respond_to?(:my_profile_path)
+      main_app.my_profile_path
+    elsif respond_to?(:my_profile_path)
+      my_profile_path
+    else
+      "/profile"
+    end
+  end
+
+  def app_user_profile_path(user)
+    user_id = user.is_a?(User) ? user.id : user
+    if respond_to?(:main_app) && main_app.respond_to?(:user_profile_path)
+      main_app.user_profile_path(user_id)
+    elsif respond_to?(:user_profile_path)
+      user_profile_path(user_id)
+    else
+      "/profile/#{user_id}"
+    end
+  end
+
   private
 
   # ============================================================================
@@ -88,14 +110,22 @@ class ApplicationController < ActionController::Base
           # Munkamenet frissítése (sliding expiration)
           active_session.touch_activity! rescue nil
           @current_active_session = active_session
-          active_session.user
+          user = active_session.user
+          if user && (user.last_seen_at.nil? || user.last_seen_at < 2.minutes.ago)
+            user.touch_last_seen! rescue nil
+          end
+          user
         else
           # Ha a token érvénytelen vagy távolról törölték, töröljük a cookie-t
           reset_session
           nil
         end
       elsif user_id.present?
-        User.find_by(id: user_id) rescue nil
+        user = User.find_by(id: user_id) rescue nil
+        if user && (user.last_seen_at.nil? || user.last_seen_at < 2.minutes.ago)
+          user.touch_last_seen! rescue nil
+        end
+        user
       end
     end
   end

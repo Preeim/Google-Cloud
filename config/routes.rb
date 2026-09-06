@@ -21,6 +21,13 @@ Rails.application.routes.draw do
   get    "/register", to: "registrations#new",    as: :register
   post   "/register", to: "registrations#create"
 
+  # 3/B. Felhasználói Profil & Moduláris Rendszer Útvonalak
+  get    "/profile",      to: "profiles#show",   as: :my_profile
+  get    "/profile/:id",  to: "profiles#show",   as: :user_profile
+  patch  "/profile",      to: "profiles#update", as: :update_my_profile
+  patch  "/profile/:id",  to: "profiles#update", as: :update_user_profile
+  get    "/users/:id",    to: "profiles#show"    # Kényelmi alias kompatibilitásért
+
   # 4. Védett Rendszergazdai Névtér (/bank-admin)
   namespace :admin, path: "bank-admin" do
     root to: "dashboard#index"

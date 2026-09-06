@@ -33,6 +33,9 @@ class User < ApplicationRecord
   has_many :audit_logs_as_actor, class_name: "AuditLog", foreign_key: :actor_user_id, dependent: :nullify
   has_many :audit_logs_as_target, class_name: "AuditLog", foreign_key: :target_user_id, dependent: :nullify
 
+  # Jelenlét és profil scope-ok
+  scope :online, -> { where("last_seen_at >= ?", 5.minutes.ago) }
+
   # Validációk
   validates :username, presence: true,
                        uniqueness: { case_sensitive: false },
@@ -45,6 +48,12 @@ class User < ApplicationRecord
 
   # Jelszó komplexitás: legalább 8 karakter új jelszó megadásakor
   validates :password, length: { minimum: 8 }, if: -> { new_record? || !password.nil? }
+
+  # Profil mezők validációja
+  validates :display_name, length: { maximum: 50 }, allow_blank: true
+  validates :bio, length: { maximum: 500 }, allow_blank: true
+  validates :custom_status, length: { maximum: 120 }, allow_blank: true
+  validates :avatar_color, format: { with: /\A#(?:[0-9a-fA-F]{3}){1,2}\z/, message: "érvénytelen hexadecimális színkód" }, allow_blank: true
 
   # ============================================================================
   # Biztonsági és Fiókzárolási Metódusok
@@ -108,5 +117,39 @@ class User < ApplicationRecord
     # Ellenkező esetben nézzük az egyéni jogosultsági rekordot
     perm = user_app_permissions.find_by(app_definition: app)
     perm.present? && perm.access_level != "none" && (perm.expires_at.nil? || perm.expires_at > Time.current)
+  end
+
+  # ============================================================================
+  # Profil és Jelenlét (Presence) Segédmetódusok
+  # ============================================================================
+
+  # Igaz, ha az utolsó aktivitás 5 percen belül történt
+  def online?
+    last_seen_at.present? && last_seen_at >= 5.minutes.ago
+  end
+
+  # Frissíti az utolsó aktivitás időbélyegét
+  def touch_last_seen!
+    update_columns(last_seen_at: Time.current)
+  end
+
+  # Megjelenítendő név: ha van beállítva display_name, azt adja vissza, egyébként a username-et
+  def effective_name
+    display_name.presence || username
+  end
+
+  # Kezdőbetűk az avatarhoz (pl. "Bánk" -> "BÁ", "John Doe" -> "JD")
+  def avatar_initials
+    parts = effective_name.strip.split(/\s+/)
+    if parts.length >= 2
+      (parts[0][0].to_s + parts[1][0].to_s).upcase
+    else
+      effective_name[0..1].to_s.upcase
+    end
+  end
+
+  # Biztonságos hex avatar szín
+  def custom_avatar_color
+    avatar_color.presence || "#38bdf8"
   end
 end

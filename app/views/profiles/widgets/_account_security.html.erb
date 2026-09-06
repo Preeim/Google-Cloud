@@ -1,0 +1,63 @@
+<%# Fiókbiztonság & Munkamenetek Widget Particiális Nézet %>
+<div>
+  <%# Biztonsági Állapot Grid %>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+    <div style="background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
+      <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Jelszó Módosítva</div>
+      <div style="font-weight: 700; font-size: 0.95rem; margin-top: 4px; color: var(--text-main);">
+        <%= data[:password_changed_at]&.strftime("%Y. %m. %d. %H:%M") || "Kezdeti regisztrációkor" %>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
+      <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Sikertelen Próbálkozások</div>
+      <div style="font-weight: 700; font-size: 0.95rem; margin-top: 4px; color: <%= data[:failed_logins_count] > 0 ? 'var(--warning)' : 'var(--success)' %>;">
+        <%= data[:failed_logins_count] %> hibás kísérlet
+      </div>
+    </div>
+
+    <div style="background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px;">
+      <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Fiókzár Állapot</div>
+      <div style="font-weight: 700; font-size: 0.95rem; margin-top: 4px; color: <%= user.locked? ? 'var(--danger)' : 'var(--success)' %>;">
+        <%= user.locked? ? "Zárolva #{time_ago_in_words(user.locked_until)}-ig" : "Biztonságos (Nincs zárolás)" %>
+      </div>
+    </div>
+  </div>
+
+  <%# Aktív Munkamenetek Táblázata %>
+  <div>
+    <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+      <span>Aktív Eszközök és Munkamenetek (Active Sessions)</span>
+      <span style="font-size: 0.75rem; color: var(--accent);"><%= data[:active_sessions].count %> aktív munkamenet</span>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <% data[:active_sessions].each do |s| %>
+        <% 
+          is_current_session = (defined?(current_active_session) && current_active_session&.id == s.id)
+        %>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; background: var(--bg-canvas); border: 1px solid <%= is_current_session ? 'var(--accent)' : 'var(--border-subtle)' %>; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.2rem;"><%= s.user_agent.to_s.include?("Mobile") ? "📱" : "💻" %></span>
+            <div>
+              <div style="font-weight: 600; color: var(--text-main);">
+                <%= s.ip_address || "Ismeretlen IP" %>
+                <% if is_current_session %>
+                  <span class="badge badge-live" style="margin-left: 6px;">Jelenlegi eszközöd</span>
+                <% end %>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <%= s.user_agent.presence || "Böngésző információ nem elérhető" %>
+              </div>
+            </div>
+          </div>
+          <div style="text-align: right; font-size: 0.78rem; color: var(--text-muted);">
+            <div>Utolsó aktivitás: <strong style="color: var(--text-main);"><%= time_ago_in_words(s.last_activity_at) %> ezelőtt</strong></div>
+            <div>Lejárat: <%= s.expires_at.strftime("%Y.%m.%d") %></div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+

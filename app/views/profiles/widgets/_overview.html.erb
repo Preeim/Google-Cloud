@@ -1,0 +1,63 @@
+<%# Áttekintés Widget Particiális Nézet %>
+<div style="display: flex; flex-direction: column; gap: 14px;">
+  <% if data[:custom_status].present? %>
+    <div style="background: var(--bg-elevated); border-left: 4px solid var(--accent); padding: 12px 14px; border-radius: 6px;">
+      <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px;">
+        Állapotüzenet
+      </div>
+      <div style="color: var(--text-main); font-size: 0.95rem; font-style: italic;">
+        "<%= data[:custom_status] %>"
+      </div>
+    </div>
+  <% end %>
+
+  <% if data[:bio].present? %>
+    <div>
+      <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">
+        Bemutatkozás
+      </div>
+      <p style="color: var(--text-main); font-size: 0.92rem; line-height: 1.6; white-space: pre-line; background: var(--bg-canvas); border: 1px solid var(--border-subtle); padding: 12px; border-radius: 8px;">
+        <%= data[:bio] %>
+      </p>
+    </div>
+  <% end %>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 4px;">
+    <div style="background: var(--bg-elevated); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+      <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Regisztráció</div>
+      <div style="font-weight: 700; font-size: 0.95rem; margin-top: 4px; color: var(--text-main);">
+        <%= data[:registered_at]&.strftime("%Y. %m. %d.") || "—" %>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-elevated); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+      <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Szerepkör</div>
+      <div style="font-weight: 700; font-size: 0.95rem; margin-top: 4px; color: <%= data[:role] == 'admin' ? 'var(--admin-accent)' : 'var(--accent)' %>;">
+        <%= data[:role].to_s.capitalize %>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-elevated); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+      <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Fiók Státusz</div>
+      <div style="font-weight: 700; font-size: 0.95rem; margin-top: 4px; color: <%= data[:status] == 'active' ? 'var(--success)' : 'var(--danger)' %>;">
+        <%= data[:status].to_s.capitalize %>
+      </div>
+    </div>
+
+    <div style="background: var(--bg-elevated); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+      <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 600;">Utolsó Aktivitás</div>
+      <div style="font-weight: 700; font-size: 0.95rem; margin-top: 4px; color: <%= data[:online] ? 'var(--success)' : 'var(--text-muted)' %>;">
+        <% if data[:online] %>
+          <span style="display: inline-flex; align-items: center; gap: 4px;">
+            <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--success);"></span> Most aktív
+          </span>
+        <% elsif data[:last_seen_at].present? %>
+          <%= time_ago_in_words(data[:last_seen_at]) %> ezelőtt
+        <% else %>
+          Régen látott
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+

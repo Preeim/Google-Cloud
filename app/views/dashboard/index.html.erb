@@ -1,23 +1,230 @@
+<%# ========================================================================== %>
+<%# Bánk's Repository - Központi Kezdőlap & Műszerfal (dashboard/index.html.erb) %>
+<%# ========================================================================== %>
+
+<style>
+  /* Kezdőlap Jelenlét és Aktivitás Stílusok */
+  @keyframes presence-pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+  }
+
+  .pulse-indicator {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--success);
+    display: inline-block;
+    animation: presence-pulse 2s infinite ease-out;
+  }
+
+  .online-user-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .online-user-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-elevated);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+
+  .online-user-card .avatar-box {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1rem;
+    color: #0a0f1d;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .online-user-card .avatar-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-surface);
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success);
+  }
+
+  .online-user-card .user-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .online-user-card .user-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .online-user-card .user-status {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  .presence-container {
+    background: linear-gradient(145deg, #0e172a 0%, #111e38 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+
+  .online-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+  }
+
+  @media (max-width: 768px) {
+    .presence-container {
+      padding: 16px;
+    }
+    .online-grid {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+  }
+</style>
+
+<!-- 1. Fő Üdvözlő Fejléc -->
 <div style="margin-bottom: 24px;">
   <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
     <div>
-      <h1 style="font-size: clamp(1.4rem, 4vw, 1.8rem); font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;">
+      <h1 style="font-size: clamp(1.4rem, 4vw, 1.85rem); font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;">
         Üdvözlünk a Bánk's Repository Hubon!
       </h1>
       <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 6px; line-height: 1.4;">
-        Válaszd ki az alábbi modulok egyikét, vagy indíts egy új sakk partit valós időben.
+        Valós idejű közösségi tér, moduláris webalkalmazások és interaktív többjátékos élmény.
       </p>
     </div>
-    <div style="display: flex; gap: 10px;">
-      <span style="display: inline-flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.12); border: 1px solid var(--success); color: #34d399; padding: 6px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 600;">
-        <span style="width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 8px var(--success);"></span>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <span style="display: inline-flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.12); border: 1px solid var(--success); color: #34d399; padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600;">
+        <span class="pulse-indicator"></span>
         Platform: Online
       </span>
+      <% if logged_in? %>
+        <a href="<%= app_my_profile_path %>" class="btn btn-secondary" style="font-size: 0.82rem; padding: 6px 12px;">
+          <span>👤</span> Saját Profilom →
+        </a>
+      <% end %>
     </div>
   </div>
 </div>
 
-<!-- Alkalmazás Modulok Kártyarács -->
+<!-- 2. Valós Idejű Online Fiókok & Aktivitás Panel -->
+<div class="presence-container">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); padding-bottom: 12px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 1.4rem;">👥</span>
+      <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
+        <span>Online Felhasználók & Élő Aktivitás</span>
+      </h2>
+      <span id="online-counter-badge" class="badge badge-live" style="font-size: 0.75rem;">
+        <span id="online-counter"><%= @online_count %></span> aktív
+      </span>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; font-size: 0.82rem; color: var(--text-muted);">
+      <span>Összes tag: <strong style="color: var(--text-main);"><%= @total_users_count %></strong></span>
+      <span style="color: var(--border-subtle);">|</span>
+      <span id="ws-presence-indicator" style="color: #34d399; display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: #34d399;"></span>
+        Élő kapcsolat (WebSocket)
+      </span>
+    </div>
+  </div>
+
+  <!-- Online Felhasználók Dinamikus Rácsa -->
+  <div id="online-users-grid" class="online-grid">
+    <% if @online_users.any? %>
+      <% @online_users.each do |user| %>
+        <%= link_to app_user_profile_path(user.id), class: "online-user-card", id: "presence-user-#{user.id}", title: "#{user.effective_name} profiljának megtekintése" do %>
+          <div class="avatar-box" style="background: <%= user.custom_avatar_color %>;">
+            <%= user.avatar_initials %>
+            <span class="avatar-dot"></span>
+          </div>
+          <div class="user-info">
+            <div class="user-name">
+              <span><%= user.effective_name %></span>
+              <% if user.admin? %>
+                <span class="badge badge-admin" style="font-size: 0.65rem; padding: 1px 5px;">Admin</span>
+              <% end %>
+            </div>
+            <div class="user-status">
+              <% if user.custom_status.present? %>
+                "<%= user.custom_status %>"
+              <% else %>
+                Épp most aktív
+              <% end %>
+            </div>
+          </div>
+          <div style="color: var(--accent); font-size: 0.9rem; opacity: 0.6; transition: opacity 0.2s;" class="card-arrow">
+            →
+          </div>
+        <% end %>
+      <% end %>
+    <% else %>
+      <%# Ha épp senki sincs online, megjelenítjük a legutóbb látott tagokat, hogy ne legyen üres a felület %>
+      <div id="no-online-placeholder" style="grid-column: 1 / -1; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-subtle); border-radius: 8px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+        Jelenleg nincs aktív látogató a szerveren. 
+        <% if @recent_active_users.any? %>
+          <div style="margin-top: 8px; font-size: 0.82rem; color: var(--text-main);">
+            Legutóbb aktív tagok:
+            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 6px;">
+              <% @recent_active_users.limit(4).each do |u| %>
+                <%= link_to app_user_profile_path(u.id), style: "color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: var(--bg-elevated); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border-subtle);" do %>
+                  <span><%= u.effective_name %></span>
+                  <span style="color: var(--text-muted); font-size: 0.72rem;">(<%= time_ago_in_words(u.last_seen_at) %>)</span>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- 3. Alkalmazás Modulok Kártyarács -->
 <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
   <span>📦</span> Elérhető Alkalmazások & Eszközök
 </h2>
@@ -103,3 +310,171 @@
   </div>
 </div>
 
+<!-- 4. Valós Idejű WebSocket Jelenlét Kliens (ActionCable PresenceChannel) -->
+<script>
+  (function() {
+    const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+    const cableUrl = wsProtocol + window.location.host + "/cable";
+
+    const grid = document.getElementById("online-users-grid");
+    const counter = document.getElementById("online-counter");
+    const wsIndicator = document.getElementById("ws-presence-indicator");
+
+    let socket = null;
+    let heartbeatTimer = null;
+
+    function renderUserCard(u) {
+      const card = document.createElement("a");
+      card.href = u.profile_path || ("/profile/" + u.id);
+      card.className = "online-user-card";
+      card.id = "presence-user-" + u.id;
+      card.title = (u.display_name || u.username) + " profiljának megtekintése";
+
+      const adminBadge = u.role === "admin" ? '<span class="badge badge-admin" style="font-size: 0.65rem; padding: 1px 5px;">Admin</span>' : '';
+      const statusText = u.custom_status ? ('"' + escapeHtml(u.custom_status) + '"') : 'Épp most aktív';
+
+      card.innerHTML = `
+        <div class="avatar-box" style="background: ${escapeHtml(u.avatar_color || '#38bdf8')};">
+          ${escapeHtml(u.avatar_initials || 'U')}
+          <span class="avatar-dot"></span>
+        </div>
+        <div class="user-info">
+          <div class="user-name">
+            <span>${escapeHtml(u.display_name || u.username)}</span>
+            ${adminBadge}
+          </div>
+          <div class="user-status">${statusText}</div>
+        </div>
+        <div style="color: var(--accent); font-size: 0.9rem; opacity: 0.6;" class="card-arrow">
+          →
+        </div>
+      `;
+      return card;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function connectPresence() {
+      try {
+        socket = new WebSocket(cableUrl);
+
+        socket.onopen = function() {
+          const subscribeMsg = JSON.stringify({
+            command: "subscribe",
+            identifier: JSON.stringify({ channel: "PresenceChannel" })
+          });
+          socket.send(subscribeMsg);
+
+          if (wsIndicator) {
+            wsIndicator.innerHTML = '<span style="width: 6px; height: 6px; border-radius: 50%; background: #34d399;"></span> Élő kapcsolat';
+            wsIndicator.style.color = '#34d399';
+          }
+
+          // Időzített szívverés küldése (45 másodpercenként)
+          if (heartbeatTimer) clearInterval(heartbeatTimer);
+          heartbeatTimer = setInterval(function() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify({
+                command: "message",
+                identifier: JSON.stringify({ channel: "PresenceChannel" }),
+                data: JSON.stringify({ action: "appear" })
+              }));
+            }
+          }, 45000);
+        };
+
+        socket.onmessage = function(event) {
+          try {
+            const data = JSON.parse(event.data);
+
+            if (data.type === "ping" || data.type === "welcome" || data.type === "confirm_subscription") {
+              return;
+            }
+
+            if (data.message) {
+              const msg = data.message;
+
+              // 1. Kezdeti állapot átadása
+              if (msg.action === "initial_state" && Array.isArray(msg.online_users)) {
+                if (counter) counter.innerText = msg.online_count || msg.online_users.length;
+
+                if (msg.online_users.length > 0) {
+                  const placeholder = document.getElementById("no-online-placeholder");
+                  if (placeholder) placeholder.remove();
+
+                  // Rács frissítése a valós adatokkal
+                  grid.innerHTML = "";
+                  msg.online_users.forEach(function(u) {
+                    grid.appendChild(renderUserCard(u));
+                  });
+                }
+              }
+
+              // 2. Új felhasználó belépése vagy státuszfrissítése
+              else if (msg.action === "user_online" || msg.action === "user_updated") {
+                if (counter && msg.online_count !== undefined) {
+                  counter.innerText = msg.online_count;
+                }
+
+                if (msg.user) {
+                  const placeholder = document.getElementById("no-online-placeholder");
+                  if (placeholder) placeholder.remove();
+
+                  const existing = document.getElementById("presence-user-" + msg.user.id);
+                  if (existing) {
+                    existing.replaceWith(renderUserCard(msg.user));
+                  } else {
+                    grid.prepend(renderUserCard(msg.user));
+                  }
+                }
+              }
+
+              // 3. Felhasználó kilépése
+              else if (msg.action === "user_offline") {
+                if (counter && msg.online_count !== undefined) {
+                  counter.innerText = msg.online_count;
+                }
+
+                const card = document.getElementById("presence-user-" + msg.user_id);
+                if (card) {
+                  card.style.opacity = "0.5";
+                  setTimeout(function() {
+                    card.remove();
+                    if (grid.children.length === 0) {
+                      grid.innerHTML = '<div id="no-online-placeholder" style="grid-column: 1 / -1; padding: 12px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">Jelenleg nincs aktív látogató a szerveren.</div>';
+                    }
+                  }, 2000);
+                }
+              }
+            }
+          } catch (err) {
+            console.warn("Presence message parsing error:", err);
+          }
+        };
+
+        socket.onclose = function() {
+          if (wsIndicator) {
+            wsIndicator.innerHTML = '<span style="width: 6px; height: 6px; border-radius: 50%; background: var(--warning);"></span> Újracsatlakozás...';
+            wsIndicator.style.color = 'var(--warning)';
+          }
+          if (heartbeatTimer) clearInterval(heartbeatTimer);
+          setTimeout(connectPresence, 4000);
+        };
+
+        socket.onerror = function() {
+          if (wsIndicator) {
+            wsIndicator.innerHTML = '<span style="width: 6px; height: 6px; border-radius: 50%; background: var(--danger);"></span> Hálózati hiba';
+            wsIndicator.style.color = 'var(--danger)';
+          }
+        };
+      } catch (err) {
+        console.error("Presence connection failed:", err);
+      }
+    }
+
+    connectPresence();
+  })();
+</script>

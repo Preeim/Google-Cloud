@@ -9,6 +9,12 @@
 class DashboardController < ApplicationController
   def index
     @available_apps = AppDefinition.where(state: ["active", "maintenance"])
+    
+    # Valós idejű online és aktív közösségi adatok
+    @online_users = User.online.order(last_seen_at: :desc).limit(20)
+    @online_count = @online_users.count
+    @total_users_count = User.count
+    @recent_active_users = User.where.not(last_seen_at: nil).order(last_seen_at: :desc).limit(12)
   end
 end
 

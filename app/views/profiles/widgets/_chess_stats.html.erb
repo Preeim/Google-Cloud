@@ -1,0 +1,94 @@
+<%# Sakk Statisztika Widget Particiális Nézet %>
+<div>
+  <%# Főbb Metrikák Számsora %>
+  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px;">
+    <div style="background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 10px; text-align: center;">
+      <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Játszma</div>
+      <div style="font-size: 1.3rem; font-weight: 800; color: var(--text-main); margin-top: 2px;"><%= data[:total_games] %></div>
+    </div>
+    <div style="background: var(--bg-canvas); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 10px; text-align: center;">
+      <div style="font-size: 0.72rem; color: var(--success); text-transform: uppercase; font-weight: 600;">Győzelem</div>
+      <div style="font-size: 1.3rem; font-weight: 800; color: #34d399; margin-top: 2px;"><%= data[:wins] %></div>
+    </div>
+    <div style="background: var(--bg-canvas); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px; text-align: center;">
+      <div style="font-size: 0.72rem; color: var(--warning); text-transform: uppercase; font-weight: 600;">Döntetlen</div>
+      <div style="font-size: 1.3rem; font-weight: 800; color: #fbbf24; margin-top: 2px;"><%= data[:draws] %></div>
+    </div>
+    <div style="background: var(--bg-canvas); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 8px; padding: 10px; text-align: center;">
+      <div style="font-size: 0.72rem; color: var(--danger); text-transform: uppercase; font-weight: 600;">Vereség</div>
+      <div style="font-size: 1.3rem; font-weight: 800; color: #fb7185; margin-top: 2px;"><%= data[:losses] %></div>
+    </div>
+  </div>
+
+  <%# Nyerési Arány Haladási Sáv %>
+  <div style="background: var(--bg-elevated); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px;">
+      <span style="color: var(--text-muted); font-weight: 600;">Győzelmi arány:</span>
+      <span style="font-weight: 700; color: var(--accent);"><%= data[:win_rate] %>%</span>
+    </div>
+    <div style="height: 6px; background: var(--bg-canvas); border-radius: 3px; overflow: hidden;">
+      <div style="height: 100%; width: <%= [data[:win_rate], 100].min %>%; background: linear-gradient(90deg, var(--accent), var(--success)); border-radius: 3px;"></div>
+    </div>
+  </div>
+
+  <%# Folyamatban lévő Parti Figyelmeztetés %>
+  <% if data[:active_match] %>
+    <div style="background: rgba(56, 189, 248, 0.12); border: 1px solid var(--accent); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block;"></span>
+          Aktív játszma folyamatban!
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+          Ellenfél: <%= data[:active_match].white_user_id == user.id ? data[:active_match].black_player_name : data[:active_match].white_player_name %>
+        </div>
+      </div>
+      <a href="/chess/matches/<%= data[:active_match].uuid %>" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.8rem;">
+        Belépés →
+      </a>
+    </div>
+  <% end %>
+
+  <%# Legutóbbi Partik Listája %>
+  <div>
+    <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;">
+      Legutóbbi Partik
+    </div>
+    <% if data[:recent_matches].any? %>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <% data[:recent_matches].each do |match| %>
+          <% 
+            is_white = match.white_user_id == user.id
+            opponent_name = is_white ? match.black_player_name : match.white_player_name
+            color_badge = is_white ? "⚪ Világos" : "⚫ Sötét"
+            result_label, result_color = if match.active? || match.pending?
+                                           ["Folyamatban", "var(--warning)"]
+                                         elsif match.winner == "draw"
+                                           ["Döntetlen", "var(--warning)"]
+                                         elsif (is_white && match.winner == "white") || (!is_white && match.winner == "black")
+                                           ["Győzelem", "var(--success)"]
+                                         else
+                                           ["Vereség", "var(--danger)"]
+                                         end
+          %>
+          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-canvas); border: 1px solid var(--border-subtle); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 0.78rem; color: var(--text-muted);"><%= color_badge %></span>
+              <span style="color: var(--text-muted);">vs</span>
+              <strong style="color: var(--text-main);"><%= opponent_name %></strong>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-weight: 700; color: <%= result_color %>;"><%= result_label %></span>
+              <a href="/chess/matches/<%= match.uuid %>" style="color: var(--accent); text-decoration: none; font-size: 0.8rem;">Nézet ↗</a>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <div style="color: var(--text-muted); font-size: 0.85rem; font-style: italic; background: var(--bg-canvas); padding: 12px; border-radius: 6px; text-align: center;">
+        Még nem játszott sakkpartit a platformon.
+      </div>
+    <% end %>
+  </div>
+</div>
+

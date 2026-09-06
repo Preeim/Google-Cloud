@@ -1,0 +1,67 @@
+<%# Kaszinó Statisztika & Egyenleg Widget Particiális Nézet %>
+<div>
+  <%# Főbb Statisztikai Mutatók %>
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
+    <div style="background: var(--bg-canvas); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 8px; padding: 12px; text-align: center;">
+      <div style="font-size: 0.72rem; color: var(--warning); text-transform: uppercase; font-weight: 700;">Zsetonok (Chips)</div>
+      <div style="font-size: 1.4rem; font-weight: 800; color: #fbbf24; margin-top: 4px;">
+        <%= number_with_delimiter(data[:chips]) %> 🪙
+      </div>
+    </div>
+    <div style="background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; text-align: center;">
+      <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Körök Száma</div>
+      <div style="font-size: 1.4rem; font-weight: 800; color: var(--text-main); margin-top: 4px;">
+        <%= data[:total_rounds] %>
+      </div>
+    </div>
+    <div style="background: var(--bg-canvas); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 8px; padding: 12px; text-align: center;">
+      <div style="font-size: 0.72rem; color: var(--success); text-transform: uppercase; font-weight: 700;">Nyert Körök</div>
+      <div style="font-size: 1.4rem; font-weight: 800; color: #34d399; margin-top: 4px;">
+        <%= data[:won_rounds] %>
+      </div>
+    </div>
+  </div>
+
+  <%# Kaszinó Nyomógomb Navigáció %>
+  <div style="margin-bottom: 16px;">
+    <a href="/casino" class="btn btn-secondary" style="width: 100%; font-size: 0.88rem; padding: 8px; justify-content: center;">
+      🎰 Kaszinó Lobby & Játékasztalok Megnyitása →
+    </a>
+  </div>
+
+  <%# Ha a fiók tulajdonosa nézi: Tranzakciós Audit Napló %>
+  <% if data[:is_owner] %>
+    <div>
+      <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; display: flex; justify-content: space-between;">
+        <span>Legutóbbi Zseton Tranzakciók</span>
+        <span style="font-size: 0.7rem; color: var(--admin-accent);">Csak neked látható</span>
+      </div>
+      <% if data[:recent_transactions].any? %>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <% data[:recent_transactions].each do |tx| %>
+            <% 
+              is_positive = tx.amount >= 0
+              amount_color = is_positive ? "var(--success)" : "var(--danger)"
+              amount_sign = is_positive ? "+#{number_with_delimiter(tx.amount)}" : number_with_delimiter(tx.amount)
+            %>
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-canvas); border: 1px solid var(--border-subtle); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem;">
+              <div>
+                <strong style="color: var(--text-main); font-size: 0.85rem;"><%= tx.transaction_type.to_s.humanize %></strong>
+                <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 6px;">(<%= tx.game_type %>)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-weight: 700; color: <%= amount_color %>;"><%= amount_sign %> 🪙</span>
+                <span style="color: var(--text-muted); font-size: 0.75rem;"><%= tx.created_at.strftime("%H:%M") %></span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <div style="color: var(--text-muted); font-size: 0.85rem; font-style: italic; background: var(--bg-canvas); padding: 10px; border-radius: 6px; text-align: center;">
+          Még nincsenek rögzített kaszinó tranzakciók.
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+

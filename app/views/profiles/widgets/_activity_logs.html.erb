@@ -1,0 +1,35 @@
+<%# Aktivitási & Rendszernapló Widget Particiális Nézet %>
+<div>
+  <% if data[:logs].any? %>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <% data[:logs].each do |log| %>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-canvas); border: 1px solid var(--border-subtle); padding: 9px 12px; border-radius: 6px; font-size: 0.85rem;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.1rem;">
+              <% case log.action.to_s %>
+              <% when /login/ then %>🔑
+              <% when /lock/ then %>🔒
+              <% when /update/ then %>✏️
+              <% else %>📝
+              <% end %>
+            </span>
+            <div>
+              <strong style="color: var(--text-main);"><%= log.action.to_s.humanize %></strong>
+              <% if log.ip_address.present? %>
+                <span style="color: var(--text-muted); font-size: 0.78rem; margin-left: 6px;">(<%= log.ip_address %>)</span>
+              <% end %>
+            </div>
+          </div>
+          <div style="color: var(--text-muted); font-size: 0.78rem;">
+            <%= time_ago_in_words(log.created_at) %> ezelőtt
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <div style="color: var(--text-muted); font-size: 0.85rem; font-style: italic; background: var(--bg-canvas); padding: 12px; border-radius: 6px; text-align: center;">
+      Nincsenek rögzített audit naplóbejegyzések ehhez a felhasználóhoz.
+    </div>
+  <% end %>
+</div>
+
