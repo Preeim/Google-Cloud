@@ -115,7 +115,14 @@ module Casino
 
         # Zseton levonása zárolással és fedezet-ellenőrzéssel
         profile.with_lock do
-          unless profile.can_afford?(amount)
+          if profile.can_afford?(amount)
+            profile.deduct_chips!(
+              amount,
+              transaction_type: "bet",
+              game_type: table.game_type,
+              metadata: { table_id: table.id, round_number: table.round_number, bet_type: bet_type_str }
+            )
+          else
             insufficient_error = {
               success: false,
               error: "Nincs elegendő zsetonod a fogadáshoz! Elérhető egyenleged: #{profile.chips} zseton.",
@@ -124,15 +131,7 @@ module Casino
               required_amount: amount,
               min_bet: table.min_bet
             }
-            break
           end
-
-          profile.deduct_chips!(
-            amount,
-            transaction_type: "bet",
-            game_type: table.game_type,
-            metadata: { table_id: table.id, round_number: table.round_number, bet_type: bet_type_str }
-          )
         end
 
         return insufficient_error if insufficient_error

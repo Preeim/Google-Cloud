@@ -30,8 +30,8 @@ Rails.application.configure do
   config.hosts.clear
 
   # Action Cable WebSocket beállítások éles környezetben:
-  # Engedélyezzük a bankrepo.hu domainről érkező WebSocket handshake kéréseket
-  config.action_cable.disable_request_forgery_protection = true
+  # Engedélyezzük a szigorú Origin védelmet (CSWSH megelőzése) az allowed_request_origins alapján
+  config.action_cable.disable_request_forgery_protection = false
   config.action_cable.url = "/cable"
   config.action_cable.allowed_request_origins = [
     "https://bankrepo.hu",

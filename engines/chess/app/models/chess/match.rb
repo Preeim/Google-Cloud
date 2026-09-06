@@ -164,9 +164,12 @@ module Chess
         end
       end
       
-      # If no error was raised, the move is legal. Save client's provided strings.
-      self.pgn = client_pgn
-      self.fen = client_fen
+      # If no error was raised, the move is legal. Validate and save strings safely.
+      valid_fen = client_fen.to_s.strip.match?(%r{\A(?:[rnbqkpRNBQKP1-8]+/){7}[rnbqkpRNBQKP1-8]+\s+[wb]\s+(?:[KQkq]+|-)\s+(?:[a-h][1-8]|-)\s+\d+\s+\d+\z})
+      self.fen = valid_fen ? client_fen.to_s.strip : (game.respond_to?(:to_fen) ? game.to_fen : client_fen.to_s.strip)
+      
+      clean_pgn = client_pgn.to_s.gsub(/<[^>]*>/, '').strip
+      self.pgn = clean_pgn[0..10000]
       
       is_checkmate = san_move.to_s.include?('#') ||
                      client_pgn.to_s.match?(/(?:#|#\s*(?:1-0|0-1|\*))\s*$/) ||

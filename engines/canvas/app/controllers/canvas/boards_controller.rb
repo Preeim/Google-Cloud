@@ -49,12 +49,12 @@ module Canvas
     def save_snapshot
       return render json: { success: false, error: "Nincs jogosultságod pillanatfelvétel mentésére" }, status: :forbidden unless can_draw?(@board)
 
-      snapshot = params[:snapshot]
-      if snapshot.present? && snapshot.start_with?("data:image/")
+      snapshot = params[:snapshot].to_s
+      if snapshot.present? && snapshot.length <= 3.megabytes && snapshot.match?(%r{\Adata:image/(?:png|jpeg);base64,[A-Za-z0-9+/=\s]+\z})
         @board.save_snapshot!(snapshot)
         render json: { success: true }
       else
-        render json: { success: false, error: "Érvénytelen képformátum" }, status: :unprocessable_entity
+        render json: { success: false, error: "Érvénytelen képformátum vagy túl nagy méret (max 3 MB, kizárólag PNG/JPEG formátum)." }, status: :unprocessable_entity
       end
     end
 

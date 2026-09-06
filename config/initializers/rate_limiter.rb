@@ -90,6 +90,8 @@ module Security
   end
 end
 
-# Middleware beillesztése a Rails stackbe
-Rails.application.config.middleware.use Security::RateLimiter
+# Megjegyzés: A kérésszám-korlátozást a dedikált és robusztus Rack::Attack
+# (config/initializers/rack_attack.rb) kezeli egységes formázással és JSON/HTML támogatással.
+# A felesleges duplikáció elkerülése végett a middleware használata mellőzve.
+# Rails.application.config.middleware.use Security::RateLimiter
 

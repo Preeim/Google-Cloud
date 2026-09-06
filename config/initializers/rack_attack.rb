@@ -32,7 +32,7 @@ class Rack::Attack
   # Max 5 kísérlet percenként adott felhasználónévre (elosztott botnet elleni védelem)
   throttle("logins/username", limit: 5, period: 1.minute) do |req|
     if req.path == "/login" && req.post?
-      req.params["username"].to_s.downcase.strip.presence
+      (req.params["login"] || req.params["username"]).to_s.downcase.strip.presence
     end
   end
 

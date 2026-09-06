@@ -637,14 +637,26 @@
         `;
       }
 
+      function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      const safeAuthor = escapeHtml(msg.user.display_name || msg.user.username);
+      const safeInitials = escapeHtml(msg.user.avatar_initials || 'U');
+      const safeColor = escapeHtml(msg.user.avatar_color || '#38bdf8');
+      const safeProfilePath = escapeHtml(msg.user.profile_path || '#');
+
       row.innerHTML = `
-        <div class="chat-msg-avatar" style="background: ${msg.user.avatar_color || '#38bdf8'};">
-          ${msg.user.avatar_initials || 'U'}
+        <div class="chat-msg-avatar" style="background: ${safeColor};">
+          ${safeInitials}
         </div>
         <div class="chat-msg-content-wrap">
           <div class="chat-msg-header">
-            <a href="${msg.user.profile_path}" class="chat-msg-author">
-              <span>${msg.user.display_name || msg.user.username}</span>
+            <a href="${safeProfilePath}" class="chat-msg-author">
+              <span>${safeAuthor}</span>
               ${roleBadgeHtml}
             </a>
             <span class="chat-msg-time">${msg.formatted_time}</span>

@@ -88,6 +88,14 @@ class AppBackupService
         payload[:data][:transactions] = transactions
         payload[:metadata][:records_count] = profiles.size + bets.size + transactions.size
       end
+    when "canvas"
+      if defined?(Canvas::Board)
+        boards = Canvas::Board.all.as_json
+        strokes = defined?(Canvas::Stroke) ? Canvas::Stroke.all.as_json : []
+        payload[:data][:boards] = boards
+        payload[:data][:strokes] = strokes
+        payload[:metadata][:records_count] = boards.size + strokes.size
+      end
     else
       payload[:metadata][:records_count] = 0
     end

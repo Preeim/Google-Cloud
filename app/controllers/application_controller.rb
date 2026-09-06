@@ -123,8 +123,17 @@ class ApplicationController < ActionController::Base
         end
       elsif user_id.present?
         user = User.find_by(id: user_id) rescue nil
-        if user && (user.last_seen_at.nil? || user.last_seen_at < 2.minutes.ago)
-          user.touch_last_seen! rescue nil
+        if user
+          begin
+            new_token, new_session = ActiveSession.create_from_request!(user, request)
+            session[:session_token] = new_token
+            @current_active_session = new_session
+          rescue StandardError => e
+            Rails.logger.warn("[ApplicationController] ActiveSession automatikus pótlása sikertelen: #{e.message}")
+          end
+          if user.last_seen_at.nil? || user.last_seen_at < 2.minutes.ago
+            user.touch_last_seen! rescue nil
+          end
         end
         user
       end

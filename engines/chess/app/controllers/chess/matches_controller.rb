@@ -17,10 +17,9 @@ module Chess
       # 1. Bejelentkezett felhasználó státuszának és rekordjának szinkronizálása
       sync_logged_in_user_state!
 
-      # 2. Meghívó link feldolgozása: ha a meccs várakozik és nem a készítő nyitotta meg,
-      # bejelentkezett felhasználó esetén automatikusan társítjuk, vendég esetén pedig params[:join] vagy megerősítés esetén
+      # 2. Meghívó link feldolgozása: csak explicit csatlakozási szándék esetén (params[:join] vagy join akció)
       if @match.pending? && !@match.creator?(current_user, session[:guest_id])
-        if current_user.present? || params[:join] == "true" || params[:join] == "1"
+        if params[:join] == "true" || params[:join] == "1"
           join_pending_match!
         end
       end

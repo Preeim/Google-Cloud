@@ -19,7 +19,7 @@ bundle install
 # 4. Migrate database (creates if not exists, then runs migrations)
 echo "[4/5] Preparing database & migrations..."
 chmod +x bin/* || true
-bin/rails db:prepare
+RAILS_ENV=production bin/rails db:prepare
 
 # 5. Restart server
 echo "[5/5] Restarting Rails server..."
@@ -34,7 +34,7 @@ fi
 mkdir -p log
 
 echo "Starting Rails in background (logs -> log/server.log)..."
-nohup bin/rails server -b 0.0.0.0 -p 3000 > log/server.log 2>&1 &
+RAILS_ENV=production nohup bin/rails server -e production -b 127.0.0.1 -p 3000 > log/server.log 2>&1 &
 
 sleep 3
 if pgrep -f "puma.*3000" > /dev/null; then

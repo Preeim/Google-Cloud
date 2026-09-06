@@ -21,6 +21,14 @@ module Admin
     end
 
     def update
+      if @user == current_user
+        if (user_params[:role].present? && user_params[:role] != "admin") ||
+           (user_params[:status].present? && user_params[:status] != "active")
+          flash.now[:alert] = "Biztonsági okokból a saját adminisztrátori szerepkörödet vagy aktív státuszodat nem módosíthatod!"
+          render :edit, status: :unprocessable_entity and return
+        end
+      end
+
       old_role = @user.role
       old_status = @user.status
 

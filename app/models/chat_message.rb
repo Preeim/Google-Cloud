@@ -1,4 +1,4 @@
-﻿# frozen_string_literal: true
+# frozen_string_literal: true
 
 # ==============================================================================
 # Bánk's Repository - Globális Chat Üzenet Modell (ChatMessage)
@@ -41,10 +41,10 @@ class ChatMessage < ApplicationRecord
       formatted_time: format_timestamp,
       user: {
         id: user.id,
-        username: user.username,
-        display_name: user.effective_name,
-        avatar_color: user.custom_avatar_color,
-        avatar_initials: user.avatar_initials,
+        username: ERB::Util.html_escape(user.username),
+        display_name: ERB::Util.html_escape(user.effective_name),
+        avatar_color: ERB::Util.html_escape(user.custom_avatar_color),
+        avatar_initials: ERB::Util.html_escape(user.avatar_initials),
         role: user.role,
         profile_path: "/profile/#{user.id}"
       },

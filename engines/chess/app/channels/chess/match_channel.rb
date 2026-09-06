@@ -199,7 +199,7 @@ module Chess
     end
 
     def effective_guest_id
-      (guest_id.presence || params[:guest_id].presence).to_s
+      guest_id.to_s
     end
 
     def current_player_color
