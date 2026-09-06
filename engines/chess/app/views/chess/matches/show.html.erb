@@ -65,6 +65,26 @@
      data-last-move-at="<%= @match.last_move_at ? (@match.last_move_at.to_f * 1000).to_i : '' %>"
      data-my-color="<%= my_color %>">
 
+  <!-- Floating Toast Notification Container -->
+  <div id="chess-toast-container" class="chess-toast-container"></div>
+
+  <!-- In-Game Modal Overlay for Events (e.g. Challenge Cancelled) -->
+  <div id="chess-modal-overlay" class="chess-modal-overlay" style="display: none;">
+    <div class="chess-modal-card">
+      <div class="chess-modal-icon" id="chess-modal-icon">⚠️</div>
+      <h3 class="chess-modal-title" id="chess-modal-title">Értesítés</h3>
+      <p class="chess-modal-message" id="chess-modal-message"></p>
+      <p class="chess-modal-subtext" id="chess-modal-subtext"></p>
+      <div class="chess-modal-countdown-wrapper" id="chess-modal-countdown-wrapper" style="display: none;">
+        <span id="chess-modal-countdown-text"></span>
+      </div>
+      <div class="chess-modal-actions" id="chess-modal-actions">
+        <button type="button" class="btn btn-secondary" id="chess-modal-btn-cancel" style="display: none;">Mégse</button>
+        <button type="button" class="btn btn-primary" id="chess-modal-btn-action">Rendben</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Main Game Layout -->
   <div class="game-layout">
     <!-- Notifications & Game Over Banner -->
@@ -557,6 +577,182 @@
       font-size: 0.85rem;
     }
   }
+
+  /* In-Game Modal Overlay (e.g. Challenge Cancelled) */
+  .chess-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(10, 15, 29, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 99999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    animation: chessModalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes chessModalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .chess-modal-card {
+    background: #11192e;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.7), 0 0 25px rgba(245, 158, 11, 0.15);
+    border-radius: 12px;
+    padding: 2rem 1.75rem;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    animation: chessModalZoomIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes chessModalZoomIn {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .chess-modal-icon {
+    font-size: 2.8rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.4));
+  }
+  .chess-modal-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0;
+  }
+  .chess-modal-message {
+    font-size: 1.05rem;
+    color: #f1f5f9;
+    margin: 0;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+  .chess-modal-subtext {
+    font-size: 0.88rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.4;
+  }
+  .chess-modal-countdown-wrapper {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid #1a243b;
+    border-radius: 20px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.82rem;
+    color: #cbd5e1;
+  }
+  .chess-modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+  .chess-modal-actions .btn {
+    flex: 1;
+    padding: 0.65rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  /* Toast Notification Container & Cards */
+  .chess-toast-container {
+    position: fixed;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99990;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    pointer-events: none;
+    max-width: 460px;
+    width: 90%;
+  }
+  .chess-toast {
+    pointer-events: auto;
+    background: rgba(17, 25, 46, 0.95);
+    border-radius: 10px;
+    padding: 0.85rem 1.1rem;
+    box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    animation: chessToastSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .chess-toast.toast-fade-out {
+    opacity: 0;
+    transform: translateY(-15px) scale(0.95);
+  }
+  @keyframes chessToastSlideDown {
+    from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .chess-toast-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 2px;
+  }
+  .chess-toast-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .chess-toast-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 0.2rem;
+    color: #f8fafc;
+  }
+  .chess-toast-message {
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    line-height: 1.4;
+  }
+  .chess-toast-close {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0 0.2rem;
+    line-height: 1;
+    transition: color 0.2s;
+  }
+  .chess-toast-close:hover {
+    color: #cbd5e1;
+  }
+  .chess-toast.toast-success {
+    border-left: 4px solid #10b981;
+    box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.6), 0 0 15px rgba(16, 185, 129, 0.2);
+  }
+  .chess-toast.toast-success .chess-toast-title { color: #34d399; }
+  .chess-toast.toast-warning {
+    border-left: 4px solid #f59e0b;
+    box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.6), 0 0 15px rgba(245, 158, 11, 0.2);
+  }
+  .chess-toast.toast-warning .chess-toast-title { color: #fbbf24; }
+  .chess-toast.toast-danger {
+    border-left: 4px solid #ef4444;
+    box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.6), 0 0 15px rgba(239, 68, 68, 0.25);
+  }
+  .chess-toast.toast-danger .chess-toast-title { color: #f87171; }
+  .chess-toast.toast-info {
+    border-left: 4px solid #38bdf8;
+    box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.2);
+  }
+  .chess-toast.toast-info .chess-toast-title { color: #38bdf8; }
 </style>
 
 <!-- Load chess libraries via CDN for this implementation -->
@@ -941,17 +1137,165 @@ document.addEventListener("DOMContentLoaded", function() {
     shareInput.value = window.location.origin + "<%= match_path(@match.uuid, join: true) %>";
   }
 
+  // Chess in-game Toast Notification System
+  function showChessToast(options) {
+    var title = options.title || "Értesítés";
+    var message = options.message || "";
+    var type = options.type || "info"; // "success", "warning", "danger", "info"
+    var duration = options.duration !== undefined ? options.duration : 4000;
+    var icon = options.icon;
+    if (!icon) {
+      if (type === "warning") icon = "⚠️";
+      else if (type === "danger") icon = "🛑";
+      else if (type === "success") icon = "✅";
+      else icon = "ℹ️";
+    }
+
+    var $container = $('#chess-toast-container');
+    if (!$container.length) return;
+
+    var $toast = $(`
+      <div class="chess-toast toast-${type}">
+        <div class="chess-toast-icon">${icon}</div>
+        <div class="chess-toast-body">
+          <div class="chess-toast-title">${title}</div>
+          <div class="chess-toast-message">${message}</div>
+        </div>
+        <button type="button" class="chess-toast-close" title="Bezárás">&times;</button>
+      </div>
+    `);
+
+    $toast.find('.chess-toast-close').on('click', function() {
+      removeToast($toast);
+    });
+
+    $container.append($toast);
+
+    var autoDismiss = setTimeout(function() {
+      removeToast($toast);
+    }, duration);
+
+    function removeToast($el) {
+      clearTimeout(autoDismiss);
+      $el.addClass('toast-fade-out');
+      setTimeout(function() {
+        $el.remove();
+      }, 300);
+    }
+  }
+
+  // Chess in-game Modal Dialog (e.g. Challenge Cancelled)
+  var modalCountdownTimer = null;
+  function showChessModal(options) {
+    var title = options.title || "Értesítés";
+    var message = options.message || "";
+    var subtext = options.subtext || "";
+    var icon = options.icon || "⚠️";
+    var actionText = options.actionText || "Rendben";
+    var actionBtnClass = options.actionBtnClass || "btn-primary";
+    var onAction = options.onAction;
+    var countdown = options.countdown;
+
+    $('#chess-modal-icon').text(icon);
+    $('#chess-modal-title').text(title);
+    $('#chess-modal-message').text(message);
+    if (subtext) {
+      $('#chess-modal-subtext').text(subtext).show();
+    } else {
+      $('#chess-modal-subtext').hide();
+    }
+
+    $('#chess-modal-btn-cancel').hide();
+
+    if (modalCountdownTimer) {
+      clearInterval(modalCountdownTimer);
+      modalCountdownTimer = null;
+    }
+
+    if (countdown && countdown > 0) {
+      var remaining = countdown;
+      $('#chess-modal-countdown-wrapper').show();
+      $('#chess-modal-countdown-text').html(`Automatikus visszatérés: <strong style="color: #38bdf8;">${remaining}</strong> mp`);
+      modalCountdownTimer = setInterval(function() {
+        remaining--;
+        if (remaining <= 0) {
+          clearInterval(modalCountdownTimer);
+          modalCountdownTimer = null;
+          if (onAction) onAction();
+        } else {
+          $('#chess-modal-countdown-text').html(`Automatikus visszatérés: <strong style="color: #38bdf8;">${remaining}</strong> mp`);
+        }
+      }, 1000);
+    } else {
+      $('#chess-modal-countdown-wrapper').hide();
+    }
+
+    var $actionBtn = $('#chess-modal-btn-action');
+    $actionBtn.attr('class', 'btn ' + actionBtnClass).text(actionText).off('click').on('click', function() {
+      if (modalCountdownTimer) {
+        clearInterval(modalCountdownTimer);
+        modalCountdownTimer = null;
+      }
+      $('#chess-modal-overlay').hide();
+      if (onAction) onAction();
+    });
+
+    $('#chess-modal-overlay').css('display', 'flex');
+  }
+
+  // Chess in-game Confirmation Modal
+  function showChessConfirm(options) {
+    var title = options.title || "Megerősítés";
+    var message = options.message || "";
+    var subtext = options.subtext || "";
+    var icon = options.icon || "❓";
+    var confirmText = options.confirmText || "Igen";
+    var cancelText = options.cancelText || "Mégse";
+    var confirmBtnClass = options.confirmBtnClass || "btn-danger";
+    var onConfirm = options.onConfirm;
+    var onCancel = options.onCancel;
+
+    $('#chess-modal-icon').text(icon);
+    $('#chess-modal-title').text(title);
+    $('#chess-modal-message').text(message);
+    if (subtext) {
+      $('#chess-modal-subtext').text(subtext).show();
+    } else {
+      $('#chess-modal-subtext').hide();
+    }
+
+    if (modalCountdownTimer) {
+      clearInterval(modalCountdownTimer);
+      modalCountdownTimer = null;
+    }
+    $('#chess-modal-countdown-wrapper').hide();
+
+    var $cancelBtn = $('#chess-modal-btn-cancel');
+    $cancelBtn.text(cancelText).show().off('click').on('click', function() {
+      $('#chess-modal-overlay').hide();
+      if (onCancel) onCancel();
+    });
+
+    var $actionBtn = $('#chess-modal-btn-action');
+    $actionBtn.attr('class', 'btn ' + confirmBtnClass).text(confirmText).off('click').on('click', function() {
+      $('#chess-modal-overlay').hide();
+      if (onConfirm) onConfirm();
+    });
+
+    $('#chess-modal-overlay').css('display', 'flex');
+  }
+
   // Copy PGN with clipboard API & execCommand fallback
   $('#btn-copy-pgn').on('click', function() {
     var pgnVal = $('#pgn-content').val();
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(pgnVal).then(function() {
-        alert('PGN vágólapra másolva!');
+        showChessToast({ title: "Sikeres másolás", message: "PGN lépések a vágólapra másolva!", type: "success", icon: "📋" });
       }).catch(function() {
-        fallbackCopyText(pgnVal, 'PGN vágólapra másolva!');
+        fallbackCopyText(pgnVal, 'PGN lépések a vágólapra másolva!');
       });
     } else {
-      fallbackCopyText(pgnVal, 'PGN vágólapra másolva!');
+      fallbackCopyText(pgnVal, 'PGN lépések a vágólapra másolva!');
     }
   });
 
@@ -963,7 +1307,7 @@ document.addEventListener("DOMContentLoaded", function() {
     copyText.setSelectionRange(0, 99999);
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(copyText.value).then(function() {
-        alert("Meccs linkje a vágólapra másolva!");
+        showChessToast({ title: "Sikeres másolás", message: "Meccs linkje a vágólapra másolva!", type: "success", icon: "🔗" });
       }).catch(function() {
         fallbackCopyText(copyText.value, "Meccs linkje a vágólapra másolva!");
       });
@@ -979,9 +1323,9 @@ document.addEventListener("DOMContentLoaded", function() {
     tempInput.select();
     try {
       document.execCommand("copy");
-      alert(successMsg);
+      showChessToast({ title: "Sikeres másolás", message: successMsg, type: "success", icon: "📋" });
     } catch (err) {
-      alert("Másolás sikertelen, kérlek jelöld ki manuálisan.");
+      showChessToast({ title: "Másolási hiba", message: "Másolás sikertelen, kérlek jelöld ki manuálisan.", type: "warning", icon: "⚠️" });
     }
     document.body.removeChild(tempInput);
   }
@@ -1059,7 +1403,7 @@ document.addEventListener("DOMContentLoaded", function() {
           if (clockInterval) clearInterval(clockInterval);
         }
       } else if (data.action === "error") {
-        alert(data.message);
+        showChessToast({ title: "Szabálytalan lépés", message: data.message, type: "danger", icon: "⚠️" });
         game.undo();
         board.position(game.fen());
       } else if (data.action === "takeback_requested") {
@@ -1072,7 +1416,7 @@ document.addEventListener("DOMContentLoaded", function() {
       } else if (data.action === "takeback_rejected") {
         if (isSpectator || data.color === myColor) return;
         resetButtonCooldown('#btn-takeback', 'Visszalépés Kérése');
-        alert("Az ellenfél elutasította a visszalépési kérést.");
+        showChessToast({ title: "Visszalépés elutasítva", message: "Az ellenfél elutasította a visszalépési kérést.", type: "warning", icon: "↩️" });
       } else if (data.action === "draw_offered") {
         if (isSpectator || data.color === myColor) return;
         showPrompt("Az ellenfél döntetlent ajánlott fel. Elfogadod?", function() {
@@ -1083,9 +1427,19 @@ document.addEventListener("DOMContentLoaded", function() {
       } else if (data.action === "draw_declined") {
         if (isSpectator || data.color === myColor) return;
         resetButtonCooldown('#btn-draw', 'Döntetlen Ajánlat');
+        showChessToast({ title: "Döntetlen elutasítva", message: "Az ellenfél elutasította a döntetlen ajánlatot.", type: "warning", icon: "🤝" });
       } else if (data.action === "challenge_cancelled") {
-        alert("A szoba készítője visszavonta a kihívást.");
-        window.location.href = "/chess";
+        showChessModal({
+          title: "Kihívás Visszavonva",
+          message: "A szoba készítője visszavonta a kihívást.",
+          subtext: "A kihívás törlésre került a szerveren. Átirányítás a sakk lobbiba...",
+          icon: "♟️❌",
+          countdown: 5,
+          actionText: "⬅️ Vissza a Sakk Lobbiba",
+          onAction: function() {
+            window.location.href = "/chess";
+          }
+        });
       } else if (data.action === "game_over") {
         isCompleted = true;
         container.dataset.status = "completed";
@@ -1146,20 +1500,29 @@ document.addEventListener("DOMContentLoaded", function() {
 
   // Action buttons
   $('#btn-resign').on('click', function() {
-    if (confirm("Biztosan feladod a játszmát?")) {
-      window.matchSubscription.perform("resign");
-    }
+    showChessConfirm({
+      title: "Játszma Feladása",
+      message: "Biztosan feladod a játszmát?",
+      subtext: "A feladással a játszma azonnal véget ér, és az ellenfél nyer.",
+      icon: "🏳️",
+      confirmText: "Igen, feladom",
+      cancelText: "Mégse",
+      confirmBtnClass: "btn-danger",
+      onConfirm: function() {
+        window.matchSubscription.perform("resign");
+      }
+    });
   });
 
   $('#btn-draw').on('click', function() {
     window.matchSubscription.perform("offer_draw");
-    alert("Döntetlen ajánlat elküldve az ellenfélnek.");
+    showChessToast({ title: "Ajánlat Elküldve", message: "Döntetlen ajánlat elküldve az ellenfélnek.", type: "info", icon: "🤝" });
     applyButtonCooldown('#btn-draw', 'Döntetlen Ajánlat', 20);
   });
 
   $('#btn-takeback').on('click', function() {
     window.matchSubscription.perform("request_takeback");
-    alert("Visszalépési kérelem elküldve.");
+    showChessToast({ title: "Kérelem Elküldve", message: "Visszalépési kérelem elküldve az ellenfélnek.", type: "info", icon: "↩️" });
     applyButtonCooldown('#btn-takeback', 'Visszalépés Kérése', 20);
   });
 });
