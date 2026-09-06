@@ -4,6 +4,8 @@
 
 module Canvas
   class ApplicationController < ::ApplicationController
+    helper ::ApplicationHelper rescue nil
+
     # Modul hozzáférési szűrő
     before_action -> { check_app_access!("canvas") }
 

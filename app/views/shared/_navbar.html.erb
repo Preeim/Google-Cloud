@@ -19,10 +19,35 @@
         <span class="brand-name">Bánk's <span>Repository</span></span>
       </a>
 
-      <% back_path = page_back_url rescue nil %>
-      <% if back_path.present? && request.path != "/" && request.path != "" %>
+      <% 
+        curr_path = request.path.to_s
+        resolved_back_path = if content_for?(:back_url)
+                               content_for(:back_url)
+                             elsif respond_to?(:page_back_url)
+                               page_back_url rescue nil
+                             end
+
+        if resolved_back_path.blank?
+          if curr_path.start_with?("/casino/") && curr_path != "/casino"
+            resolved_back_path = "/casino"
+          elsif curr_path.start_with?("/chess/") && curr_path != "/chess"
+            resolved_back_path = "/chess"
+          elsif curr_path.start_with?("/canvas/") && curr_path != "/canvas"
+            resolved_back_path = "/canvas"
+          elsif curr_path.start_with?("/bank-admin/") && curr_path != "/bank-admin"
+            resolved_back_path = "/bank-admin"
+          elsif curr_path != "/" && curr_path != ""
+            resolved_back_path = "/"
+          end
+        end
+      %>
+      <% if resolved_back_path.present? && curr_path != "/" && curr_path != "" %>
         <div class="nav-divider"></div>
-        <a href="<%= back_path %>" class="nav-back-btn" title="Visszalépés az előző szintre">
+        <a href="<%= resolved_back_path %>" 
+           class="nav-back-btn" 
+           id="nav-global-back-btn" 
+           title="Visszalépés"
+           onclick="if (window.history.length > 1 && document.referrer && document.referrer !== window.location.href && document.referrer.indexOf(window.location.host) !== -1) { window.history.back(); return false; }">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
@@ -33,7 +58,32 @@
 
     <!-- 2. KÖZÉP: Dinamikus Oldalcím & Modul Jelvény -->
     <div class="nav-zone nav-zone-center">
-      <% mod_info = current_module_info rescue nil %>
+      <% 
+        mod_info = if respond_to?(:current_module_info)
+                     current_module_info rescue nil
+                   end
+        if mod_info.nil?
+          if curr_path.start_with?("/chess/admin")
+            mod_info = { name: "Sakk Admin", icon: "♟️", badge_class: "badge-admin", color: "var(--chess-gold, #fbbf24)" }
+          elsif curr_path.start_with?("/chess")
+            mod_info = { name: "Sakk Mester", icon: "♟️", badge_class: "badge-chess", color: "var(--accent, #38bdf8)" }
+          elsif curr_path.start_with?("/casino/admin")
+            mod_info = { name: "Kaszinó Admin", icon: "🎰", badge_class: "badge-admin", color: "var(--casino-gold, #fbbf24)" }
+          elsif curr_path.start_with?("/casino")
+            mod_info = { name: "Grand Casino", icon: "🎰", badge_class: "badge-casino", color: "var(--casino-gold, #fbbf24)" }
+          elsif curr_path.start_with?("/canvas")
+            mod_info = { name: "Közösségi Rajzvászon", icon: "🎨", badge_class: "badge-canvas", color: "var(--accent, #38bdf8)" }
+          elsif curr_path.start_with?("/bank-admin")
+            mod_info = { name: "Admin Központ", icon: "🛡️", badge_class: "badge-admin", color: "var(--admin-accent, #a855f7)" }
+          elsif curr_path.start_with?("/profile")
+            mod_info = { name: "Felhasználói Fiók", icon: "👤", badge_class: "badge-profile", color: "var(--accent, #38bdf8)" }
+          elsif curr_path.start_with?("/test")
+            mod_info = { name: "Teszt Konzol", icon: "🛠️", badge_class: "badge-test", color: "var(--accent, #38bdf8)" }
+          else
+            mod_info = { name: "Platform", icon: "💎", badge_class: "badge-main", color: "var(--accent, #38bdf8)" }
+          end
+        end
+      %>
       <% if mod_info && mod_info[:name] != "Platform" && mod_info[:name] != "Kezdőlap" %>
         <span class="module-badge <%= mod_info[:badge_class] %>">
           <span><%= mod_info[:icon] %></span>
@@ -41,8 +91,43 @@
         </span>
       <% end %>
 
+      <%
+        navbar_title = if content_for?(:title)
+                         content_for(:title)
+                       elsif respond_to?(:page_title)
+                         page_title rescue nil
+                       end
+
+        if navbar_title.blank?
+          if curr_path == "/"
+            navbar_title = "Kezdőlap"
+          elsif curr_path.start_with?("/chess/admin")
+            navbar_title = "Sakk Adminisztráció"
+          elsif curr_path.start_with?("/chess")
+            navbar_title = "Sakk Aréna"
+          elsif curr_path.start_with?("/casino/admin")
+            navbar_title = "Kaszinó Adminisztráció"
+          elsif curr_path.start_with?("/casino")
+            navbar_title = "Kaszinó Lobbi"
+          elsif curr_path.start_with?("/canvas")
+            navbar_title = "Közösségi Rajzvászon"
+          elsif curr_path.start_with?("/bank-admin")
+            navbar_title = "Rendszer Adminisztráció"
+          elsif curr_path.start_with?("/profile")
+            navbar_title = "Felhasználói Profil"
+          elsif curr_path.start_with?("/login")
+            navbar_title = "Bejelentkezés"
+          elsif curr_path.start_with?("/register")
+            navbar_title = "Regisztráció"
+          elsif curr_path.start_with?("/test")
+            navbar_title = "Rendszer Diagnosztika"
+          else
+            navbar_title = "Bánk's Repository"
+          end
+        end
+      %>
       <h1 class="nav-page-title" id="navbar-page-title">
-        <%= page_title rescue "Bánk's Repository" %>
+        <%= navbar_title %>
       </h1>
     </div>
 
@@ -241,6 +326,8 @@
     text-decoration: none;
     font-size: 0.84rem;
     font-weight: 600;
+    cursor: pointer;
+    user-select: none;
     transition: all 0.15s ease;
   }
   .nav-back-btn:hover {
@@ -657,6 +744,17 @@
           closeMenu();
         }
       });
+
+      // Vissza gomb intelligens navigáció
+      const backBtn = document.getElementById('nav-global-back-btn');
+      if (backBtn) {
+        backBtn.addEventListener('click', function(e) {
+          if (window.history.length > 1 && document.referrer && document.referrer !== window.location.href && document.referrer.indexOf(window.location.host) !== -1) {
+            e.preventDefault();
+            window.history.back();
+          }
+        });
+      }
     }
 
     if (document.readyState === 'loading') {

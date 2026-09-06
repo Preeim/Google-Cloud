@@ -9,6 +9,8 @@
 
 module Chess
   class ApplicationController < ::ApplicationController
+    helper ::ApplicationHelper rescue nil
+
     # Modul hozzáférési szűrő futtatása
     before_action -> { check_app_access!("chess") }
     

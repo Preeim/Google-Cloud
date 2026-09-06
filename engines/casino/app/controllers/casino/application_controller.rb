@@ -1,5 +1,7 @@
 module Casino
   class ApplicationController < ::ApplicationController
+    helper ::ApplicationHelper rescue nil
+
     # Modul hozzáférési szűrő futtatása a platform AppDefinition konfigurációjához
     before_action -> { check_app_access!("casino") }
     before_action :authenticate_user!
