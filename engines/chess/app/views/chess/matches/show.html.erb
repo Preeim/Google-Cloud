@@ -13,6 +13,7 @@
   white_open = @match.white_user_id.nil? && @match.white_guest_id.nil?
   black_open = @match.black_user_id.nil? && @match.black_guest_id.nil?
   can_join = @match.pending? && is_spectator && (white_open || black_open)
+  is_creator = !is_spectator
   is_creator = @match.creator?(current_user, current_guest)
 
   if is_spectator
@@ -477,6 +478,16 @@
     touch-action: none; /* Prevents accidental screen scrolling while dragging pieces */
     user-select: none;
     -webkit-user-select: none;
+  }
+  #chess-board img,
+  .board-relative-container img,
+  .piece-417db {
+    -webkit-user-drag: none;
+    user-drag: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    pointer-events: auto;
   }
   .square-selected {
     background-color: rgba(56, 189, 248, 0.45) !important;
@@ -1386,12 +1397,15 @@ document.addEventListener("DOMContentLoaded", function() {
   function clearPremove() {
     pendingPremove = null;
     selectedPremoveSource = null;
+    $('#chess-board [data-square]').removeClass('square-premove');
     reapplyPremoveHighlight();
   }
 
   function setPremove(from, to) {
     clearPremove();
     pendingPremove = { from: from, to: to, promotion: 'q' };
+    $('#chess-board [data-square="' + from + '"]').addClass('square-premove');
+    $('#chess-board [data-square="' + to + '"]').addClass('square-premove');
     reapplyPremoveHighlight();
     showChessToast({ title: "Premove beállítva", message: from.toUpperCase() + " ➔ " + to.toUpperCase(), type: "info", duration: 1800, icon: "⚡" });
   }
@@ -1498,6 +1512,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   // Kattintás mezőre (tap-to-move és tap-to-premove)
   $('#chess-board').on('click', function(e) {
+    if (e.button !== 0 || isRightClicking) return;
     var $target = $(e.target);
     var square = $target.closest('[data-square]').data('square') || getSquareFromEvent(e);
     if (square) {
@@ -1507,6 +1522,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
   // Tábla Drag & Drop Eseménykezelők
   function onDragStart (source, piece, position, orientation) {
+    if (isRightClicking) return false;
+
     removeHighlights();
     selectedSquare = null;
 
@@ -1548,6 +1565,8 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   function onDrop (source, target) {
+    if (isRightClicking) return 'snapback';
+
     removeHighlights();
     selectedSquare = null;
 
@@ -1911,28 +1930,50 @@ document.addEventListener("DOMContentLoaded", function() {
     $('#svg-preview-group').empty();
   }
 
-  // Jobb klikk kezelése a tábla felületén
-  $('#board-relative-container').on('contextmenu', function(e) {
-    e.preventDefault();
-    return false;
-  });
+  // Jobb klikk és nyílrajzolás kezelése a tábla felületén
+  const boardContainerEl = document.getElementById('board-relative-container');
+  if (boardContainerEl) {
+    // Esemény-elfogási (Capture) fázis: megakadályozza, hogy a chessboard.js jobb klikkre bábut kezdjen el húzni
+    boardContainerEl.addEventListener('mousedown', function(e) {
+      if (e.button === 2) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
 
-  $('#board-relative-container').on('mousedown', function(e) {
-    if (e.button === 2) {
+        // Kijelölt mező törlése bal klikkes állapotból
+        selectedSquare = null;
+        removeHighlights();
+
+        if (pendingPremove) {
+          clearPremove();
+          showChessToast({ title: "Premove törölve", message: "Az előzetes lépés visszavonva.", type: "info", duration: 1500, icon: "↩️" });
+        }
+        const sq = getSquareFromEvent(e);
+        if (sq) {
+          isRightClicking = true;
+          rightClickStartSquare = sq;
+        }
+      } else if (e.button === 0) {
+        clearArrowsAndHighlights();
+      }
+    }, true);
+  }
+
+  // Globális kontextusmenü letiltás (megakadályozza a "Link másolása" / képmenü megjelenését a sakkfelületen)
+  document.addEventListener('contextmenu', function(e) {
+    if (isRightClicking ||
+        (e.target && (
+          e.target.closest('#board-wrapper') ||
+          e.target.closest('#board-relative-container') ||
+          e.target.closest('#chess-board') ||
+          e.target.closest('.piece-417db') ||
+          (e.target.tagName === 'IMG' && e.target.getAttribute('data-piece'))
+        ))) {
       e.preventDefault();
-      if (pendingPremove) {
-        clearPremove();
-        showChessToast({ title: "Premove törölve", message: "Az előzetes lépés visszavonva.", type: "info", duration: 1500, icon: "↩️" });
-      }
-      const sq = getSquareFromEvent(e);
-      if (sq) {
-        isRightClicking = true;
-        rightClickStartSquare = sq;
-      }
-    } else if (e.button === 0) {
-      clearArrowsAndHighlights();
+      e.stopPropagation();
+      return false;
     }
-  });
+  }, true);
 
   $(window).on('mousemove', function(e) {
     if (!isRightClicking || !rightClickStartSquare) return;
@@ -1944,9 +1985,11 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   });
 
-  $(window).on('mouseup', function(e) {
+  window.addEventListener('mouseup', function(e) {
     if (!isRightClicking) return;
     if (e.button === 2) {
+      e.preventDefault();
+      e.stopPropagation();
       isRightClicking = false;
       const endSquare = getSquareFromEvent(e);
       $('#svg-preview-group').empty();
@@ -1970,7 +2013,7 @@ document.addEventListener("DOMContentLoaded", function() {
       }
       rightClickStartSquare = null;
     }
-  });
+  }, true);
 
   // ==========================================
   // PC Tábla Átméretezés (Board Resize)
