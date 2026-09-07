@@ -3,7 +3,7 @@
 **Utolsó frissítés:** 2026. szeptember 7.  
 **Platform:** Bánk's Repository (bankrepo.hu)  
 **Adatkezelő:** Hevesi Bánk  
-**Kapcsolattartási e-mail:** [admin@bankrepo.hu](mailto:admin@bankrepo.hu)
+**Kapcsolattartási e-mail:** [hevesi.g.bank@gmail.com](mailto:hevesi.g.bank@gmail.com)
 
 ---
 
@@ -63,7 +63,7 @@ A felhasználóknak bármikor jogukban áll:
 
 ### Adattörlési kérelem benyújtása:
 Fiókod és minden személyes adatod törlését a regisztrált e-mail címedről küldött egyszerű kérelemmel kezdeményezheted az alábbi címen:  
-📧 **[admin@bankrepo.hu](mailto:admin@bankrepo.hu)**  
+📧 **[hevesi.g.bank@gmail.com](mailto:hevesi.g.bank@gmail.com)**  
 A kérelmek feldolgozása a megkeresést követően haladéktalanul, de legkésőbb 72 órán belül megtörténik.
 
 ---
@@ -72,6 +72,6 @@ A kérelmek feldolgozása a megkeresést követően haladéktalanul, de legkés�
 
 Adatvédelmi kérdésekkel, észrevételekkel vagy törlési kérelmekkel kapcsolatban az adatkezelő elérhetősége:  
 **Név:** Hevesi Bánk  
-**E-mail:** [admin@bankrepo.hu](mailto:admin@bankrepo.hu)  
+**E-mail:** [hevesi.g.bank@gmail.com](mailto:hevesi.g.bank@gmail.com)  
 **Weboldal:** [https://bankrepo.hu](https://bankrepo.hu)
 

@@ -9,7 +9,7 @@
 ## Fejlesztői Információk
 
 - **Készítő / Fejlesztő:** Hevesi Bánk
-- **Kapcsolattartási E-mail:** [admin@bankrepo.hu](mailto:admin@bankrepo.hu)
+- **Kapcsolattartási E-mail:** [hevesi.g.bank@gmail.com](mailto:hevesi.g.bank@gmail.com)
 - **Nyílt Forráskódú GitHub Tároló:** [https://github.com/Preeim/Google-Cloud](https://github.com/Preeim/Google-Cloud)
 - **Licenc:** Nyílt forráskódú [MIT Licenc](https://github.com/Preeim/Google-Cloud/blob/main/LICENSE)
 

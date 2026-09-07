@@ -2,7 +2,7 @@
 
 **Utolsó frissítés:** 2026. szeptember 7.  
 **Platform:** Bánk's Repository (bankrepo.hu)  
-**Fejlesztő / Üzemeltető:** Hevesi Bánk (Kapcsolat: admin@bankrepo.hu)
+**Fejlesztő / Üzemeltető:** Hevesi Bánk (Kapcsolat: hevesi.g.bank@gmail.com)
 
 ---
 
@@ -56,6 +56,6 @@ A felhasználó a regisztrációval és a weboldal látogatásával vállalja, h
 A jelen nyilatkozat tartalma a projekt fejlődésével és a funkciók bővülésével időről időre frissülhet. 
 
 Bármilyen kérdés vagy észrevétel esetén az üzemeltető elérhetősége:  
-**E-mail:** [admin@bankrepo.hu](mailto:admin@bankrepo.hu)  
+**E-mail:** [hevesi.g.bank@gmail.com](mailto:hevesi.g.bank@gmail.com)  
 **GitHub:** [https://github.com/Preeim/Google-Cloud](https://github.com/Preeim/Google-Cloud)
 
