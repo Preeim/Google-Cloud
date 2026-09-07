@@ -1178,9 +1178,26 @@ document.addEventListener("DOMContentLoaded", function() {
   let lastMoveAtTimestamp = container.dataset.lastMoveAt ? parseInt(container.dataset.lastMoveAt) : null;
   let clockInterval = null;
 
-  // Initialize chess logic
+  // Initialize chess logic & state
   var game = new Chess();
   var board = null;
+
+  // Selection & Premove state
+  let selectedSquare = null;
+  let pendingPremove = null;
+  let selectedPremoveSource = null;
+  let currentBrowsedPlyIndex = null;
+
+  // SVG Arrows & Highlights state
+  let drawnArrows = [];
+  let highlightedSquares = new Set();
+  let rightClickStartSquare = null;
+  let isRightClicking = false;
+
+  // Board Resize state
+  let isResizingBoard = false;
+  let resizeStartX = 0;
+  let resizeStartWidth = 450;
   
   var pgnText = document.getElementById('pgn-content').value;
   if (pgnText && pgnText.trim().length > 0) {
@@ -1333,10 +1350,6 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // Tap-to-move, Selection & Premove Handling
-  let selectedSquare = null;
-  let pendingPremove = null;
-  let selectedPremoveSource = null;
-  let currentBrowsedPlyIndex = null;
 
   function removeHighlights() {
     $('#chess-board [data-square]').removeClass('square-selected square-target-hint');
@@ -1467,8 +1480,9 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // Kattintás mezőre (tap-to-move és tap-to-premove)
-  $('#chess-board').on('click', '[data-square]', function(e) {
-    const square = $(this).data('square');
+  $('#chess-board').on('click', function(e) {
+    var $target = $(e.target);
+    var square = $target.closest('[data-square]').data('square') || getSquareFromEvent(e);
     if (square) {
       handleSquareTap(square);
     }
@@ -1512,6 +1526,8 @@ document.addEventListener("DOMContentLoaded", function() {
         (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
       return false;
     }
+
+    return true;
   }
 
   function onDrop (source, target) {
@@ -1654,8 +1670,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
   // PGN Jegyzőkönyv és Modal Előállítás
   function generateFullPgnText() {
-    var whiteName = $('#opponent-role-label').text().includes('Világos') ? $('#opponent-name').text().trim() : $('#user-name').text().trim();
-    var blackName = $('#opponent-role-label').text().includes('Sötét') ? $('#opponent-name').text().trim() : $('#user-name').text().trim();
+    var oppLabel = ($('#opponent-role-label').text() || '');
+    var whiteName = oppLabel.includes('Világos') ? $('#opponent-name').text().trim() : $('#user-name').text().trim();
+    var blackName = oppLabel.includes('Sötét') ? $('#opponent-name').text().trim() : $('#user-name').text().trim();
     if (myColor === 'black') {
       whiteName = $('#opponent-name').text().trim();
       blackName = $('#user-name').text().trim();
@@ -1752,10 +1769,6 @@ document.addEventListener("DOMContentLoaded", function() {
   // ==========================================
   // SVG Nyilak és Mezőkijelölések Kezelése
   // ==========================================
-  let drawnArrows = [];
-  let highlightedSquares = new Set();
-  let rightClickStartSquare = null;
-  let isRightClicking = false;
 
   function getSquareFromEvent(e) {
     const boardEl = document.getElementById('chess-board');
@@ -1951,9 +1964,6 @@ document.addEventListener("DOMContentLoaded", function() {
     renderArrowsAndHighlights();
   }
 
-  let isResizingBoard = false;
-  let resizeStartX = 0;
-  let resizeStartWidth = 450;
 
   $('#board-resizer').on('mousedown touchstart', function(e) {
     e.preventDefault();
