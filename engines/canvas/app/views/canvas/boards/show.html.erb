@@ -357,11 +357,14 @@
 </style>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  const canvas = document.getElementById("whiteboard");
-  if (!canvas) return;
+(function() {
+  function initWhiteboard() {
+    const canvas = document.getElementById("whiteboard");
+    if (!canvas) return;
+    if (canvas._canvasInitialized) return;
+    canvas._canvasInitialized = true;
 
-  const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d");
   const virtualWidth = 1600;
   const virtualHeight = 900;
 
@@ -769,6 +772,15 @@ document.addEventListener("DOMContentLoaded", function() {
       });
     }
   <% end %>
-});
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", initWhiteboard);
+  } else {
+    initWhiteboard();
+  }
+  document.addEventListener("turbo:load", initWhiteboard);
+  document.addEventListener("turbo:render", initWhiteboard);
+})();
 </script>
 

@@ -128,6 +128,14 @@
       if (openBtn) {
         openBtn.onclick = openModal;
       }
+      // Globális delegáció a biztonságos Turbo és dinamikus kattintáskezeléshez
+      document.addEventListener('click', function(e) {
+        const trigger = e.target.closest('#btn-open-profile-edit');
+        if (trigger) {
+          e.preventDefault();
+          openModal();
+        }
+      });
       if (closeBtn) {
         closeBtn.onclick = closeModal;
       }
@@ -152,6 +160,7 @@
       initProfileModal();
     }
     document.addEventListener('turbo:load', initProfileModal);
+    document.addEventListener('turbo:render', initProfileModal);
   })();
 </script>
 

@@ -720,6 +720,9 @@
 
       if (!toggleBtn || !menu || !wrapper) return;
 
+      if (toggleBtn._navbarInitialized) return;
+      toggleBtn._navbarInitialized = true;
+
       function closeMenu() {
         menu.classList.remove('open');
         toggleBtn.setAttribute('aria-expanded', 'false');
@@ -731,6 +734,7 @@
       }
 
       toggleBtn.addEventListener('click', function(e) {
+        e.preventDefault();
         e.stopPropagation();
         const isOpen = menu.classList.contains('open');
         if (isOpen) {
@@ -753,8 +757,6 @@
           closeMenu();
         }
       });
-
-
     }
 
     if (document.readyState === 'loading') {
@@ -762,6 +764,8 @@
     } else {
       initGlobalNavbar();
     }
+    document.addEventListener('turbo:load', initGlobalNavbar);
+    document.addEventListener('turbo:render', initGlobalNavbar);
   })();
 </script>
 

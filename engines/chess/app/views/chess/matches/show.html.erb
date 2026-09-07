@@ -1163,21 +1163,35 @@
   .chess-toast.toast-info .chess-toast-title { color: #38bdf8; }
 </style>
 
-<!-- Load chess libraries via CDN with Subresource Integrity (SRI) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" integrity="sha384-aH7F59TKSh8OEAivbclch9UUnWn/Uy8AQlYYKzpVaQkAp8W6IF2VocW/knEeRwT0" crossorigin="anonymous"></script>
-<link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" integrity="sha384-q94+BZtLrkL1/ohfjR8c6L+A6qzNH9R2hBLwyoAfu3i/WCvQjzL2RQJ3uNHDISdU" crossorigin="anonymous">
-<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha384-vtXRMe3mGCbOeY7l30aIg8H9p3GdeSe4IFlP6G8JMa7o7lXvnz3GFKzPxzJdPfGK" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" integrity="sha384-8Vi8VHwn3vjQ9eUHUxex3JSN/NFqUg3QbPyX8kWyb93+8AC/pPWTzj+nHtbC5bxD" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@rails/actioncable@7.1.3/app/assets/javascripts/actioncable.js" integrity="sha384-/3qbW/AOg0O3yr5TeMwqjGav1BcBFsO2OosS6b+fvilTrzrh3wnKpL7aV0HIHpJ3" crossorigin="anonymous"></script>
+<!-- Load chess libraries via CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@rails/actioncable@7.1.3/app/assets/javascripts/actioncable.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  const container = document.querySelector('.chess-game-container');
-  if (!container) return;
+(function() {
+  var retryCount = 0;
+  function initChessMatch() {
+    const container = document.querySelector('.chess-game-container');
+    if (!container) return;
 
-  const matchId = container.dataset.matchId;
-  let isCompleted = container.dataset.status === 'completed';
-  const myColor = container.dataset.myColor || 'spectator';
+    // Ha a külső CDN scriptek még töltődnek, próbáljuk újra
+    if (typeof Chessboard === 'undefined' || typeof Chess === 'undefined' || typeof $ === 'undefined') {
+      if (retryCount < 100) {
+        retryCount++;
+        setTimeout(initChessMatch, 50);
+      }
+      return;
+    }
+
+    if (container._chessInitialized) return;
+    container._chessInitialized = true;
+
+    const matchId = container.dataset.matchId;
+    let isCompleted = container.dataset.status === 'completed';
+    const myColor = container.dataset.myColor || 'spectator';
   const isSpectator = myColor === 'spectator';
   const timeControlSeconds = parseInt(container.dataset.timeControl) || null;
 
@@ -2153,20 +2167,50 @@ document.addEventListener("DOMContentLoaded", function() {
 
   $('#btn-quick-download-pgn, #btn-modal-download-pgn').on('click', downloadPgnFile);
 
-  // Copy Invitation Link with clipboard API & execCommand fallback
-  $('#btn-copy-link').on('click', function() {
+  // Copy Invitation Link with clipboard API & execCommand fallback + immediate visual feedback
+  function copyInvitationLink() {
     var copyText = document.getElementById("share-link-input");
+    var btn = document.getElementById("btn-copy-link");
     if (!copyText) return;
     copyText.select();
     copyText.setSelectionRange(0, 99999);
+    var urlVal = copyText.value;
+
+    function handleSuccess() {
+      if (btn) {
+        var originalText = btn.innerHTML;
+        btn.innerHTML = "<span>✓</span> Másolva!";
+        btn.classList.add("btn-success");
+        setTimeout(function() {
+          btn.innerHTML = originalText;
+          btn.classList.remove("btn-success");
+        }, 2500);
+      }
+      showChessToast({ title: "Sikeres másolás", message: "Meccs linkje a vágólapra másolva!", type: "success", icon: "🔗" });
+    }
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(copyText.value).then(function() {
-        showChessToast({ title: "Sikeres másolás", message: "Meccs linkje a vágólapra másolva!", type: "success", icon: "🔗" });
-      }).catch(function() {
-        fallbackCopyText(copyText.value, "Meccs linkje a vágólapra másolva!");
+      navigator.clipboard.writeText(urlVal).then(handleSuccess).catch(function() {
+        fallbackCopyText(urlVal, "Meccs linkje a vágólapra másolva!");
+        if (btn) {
+          btn.innerHTML = "<span>✓</span> Másolva!";
+          setTimeout(function() { btn.innerHTML = "Link Másolása"; }, 2500);
+        }
       });
     } else {
-      fallbackCopyText(copyText.value, "Meccs linkje a vágólapra másolva!");
+      fallbackCopyText(urlVal, "Meccs linkje a vágólapra másolva!");
+      if (btn) {
+        btn.innerHTML = "<span>✓</span> Másolva!";
+        setTimeout(function() { btn.innerHTML = "Link Másolása"; }, 2500);
+      }
+    }
+  }
+
+  $('#btn-copy-link').on('click', copyInvitationLink);
+  document.addEventListener('click', function(e) {
+    if (e.target && (e.target.id === 'btn-copy-link' || e.target.closest('#btn-copy-link'))) {
+      e.preventDefault();
+      copyInvitationLink();
     }
   });
 
@@ -2576,5 +2620,14 @@ document.addEventListener("DOMContentLoaded", function() {
     showChessToast({ title: "Kérelem Elküldve", message: "Visszalépési kérelem elküldve az ellenfélnek.", type: "info", icon: "↩️" });
     applyButtonCooldown('#btn-takeback', 'Visszalépés Kérése', 20);
   });
-});
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initChessMatch);
+  } else {
+    initChessMatch();
+  }
+  document.addEventListener('turbo:load', initChessMatch);
+  document.addEventListener('turbo:render', initChessMatch);
+})();
 </script>
