@@ -67,10 +67,10 @@
      data-my-color="<%= my_color %>"
      data-guest-id="<%= session[:guest_id] %>">
 
-  <!-- Floating Toast Notification Container -->
+  <%# Floating Toast Notification Container %>
   <div id="chess-toast-container" class="chess-toast-container"></div>
 
-  <!-- In-Game Modal Overlay for Events (e.g. Challenge Cancelled) -->
+  <%# In-Game Modal Overlay for Events (e.g. Challenge Cancelled) %>
   <div id="chess-modal-overlay" class="chess-modal-overlay" style="display: none;">
     <div class="chess-modal-card">
       <div class="chess-modal-icon" id="chess-modal-icon">⚠️</div>
@@ -87,7 +87,7 @@
     </div>
   </div>
 
-  <!-- Formázott PGN Modal Ablak (Dialog) -->
+  <%# Formázott PGN Modal Ablak (Dialog) %>
   <div id="pgn-modal-overlay" class="chess-modal-overlay" style="display: none;">
     <div class="pgn-modal-card">
       <div class="pgn-modal-header">
@@ -98,7 +98,7 @@
         <button type="button" class="chess-toast-close" id="btn-close-pgn-modal" style="font-size: 1.4rem; cursor: pointer;" title="Bezárás">&times;</button>
       </div>
 
-      <!-- PGN Metaadat Kártya -->
+      <%# PGN Metaadat Kártya %>
       <div class="pgn-meta-grid">
         <div class="pgn-meta-item">
           <span class="pgn-meta-label">Esemény:</span>
@@ -136,23 +136,23 @@
         </div>
       </div>
 
-      <!-- Tab Váltó -->
+      <%# Tab Váltó %>
       <div class="pgn-tabs">
         <button type="button" class="pgn-tab-btn active" id="tab-btn-formatted">📋 Formázott Lépések</button>
         <button type="button" class="pgn-tab-btn" id="tab-btn-raw">📝 Nyers PGN Szöveg</button>
       </div>
 
-      <!-- 1. Formázott Lépéslista Panel -->
+      <%# 1. Formázott Lépéslista Panel %>
       <div id="pgn-panel-formatted" class="pgn-tab-content active">
         <div id="pgn-moves-table-wrap" class="pgn-moves-table-wrap"></div>
       </div>
 
-      <!-- 2. Nyers PGN Szöveg Panel -->
+      <%# 2. Nyers PGN Szöveg Panel %>
       <div id="pgn-panel-raw" class="pgn-tab-content">
         <textarea id="pgn-raw-textarea" class="pgn-raw-textarea" readonly></textarea>
       </div>
 
-      <!-- Akciógombok -->
+      <%# Akciógombok %>
       <div class="pgn-modal-actions">
         <button type="button" id="btn-modal-copy-pgn" class="btn btn-secondary">
           <span id="copy-btn-icon">📋</span>
@@ -166,9 +166,9 @@
     </div>
   </div>
 
-  <!-- Main Game Layout -->
+  <%# Main Game Layout %>
   <div class="game-layout">
-    <!-- Notifications & Game Over Banner -->
+    <%# Notifications & Game Over Banner %>
     <div id="game-over-banner" class="game-banner <%= @match.completed? ? 'active' : '' %>" style="<%= @match.completed? ? '' : 'display: none;' %>">
       <h3 id="banner-title"><%= @match.completed? ? "Játszma véget ért" : "" %></h3>
       <p id="banner-reason">
@@ -214,7 +214,7 @@
       </div>
     <% end %>
 
-    <!-- Opponent / Top Player Info -->
+    <%# Opponent / Top Player Info %>
     <div class="player-info opponent-info">
       <div class="player-name">
         <span class="role-label" id="opponent-role-label"><%= top_role_label %></span>
@@ -223,7 +223,7 @@
       <div class="player-clock" id="opponent-clock">--:--</div>
     </div>
 
-    <!-- Center: Board with SVG arrows layer and resize handle -->
+    <%# Center: Board with SVG arrows layer and resize handle %>
     <div class="board-wrapper" id="board-wrapper">
       <div class="board-relative-container" id="board-relative-container">
         <div id="chess-board"></div>
@@ -245,7 +245,7 @@
       </div>
     </div>
 
-    <!-- Replay Controls (Visible for completed games or upon game over) -->
+    <%# Replay Controls (Visible for completed games or upon game over) %>
     <div id="replay-panel" class="replay-panel" style="<%= @match.completed? ? '' : 'display: none;' %>">
       <div class="replay-controls">
         <button type="button" id="btn-replay-first" class="btn btn-secondary btn-replay" title="Kezdőállás">⏮ Első</button>
@@ -257,7 +257,7 @@
       <small class="replay-hint">Tipp: A billentyűzet ← és → gombjaival is lépegethetsz.</small>
     </div>
 
-    <!-- User / Bottom Player Info -->
+    <%# User / Bottom Player Info %>
     <div class="player-info user-info">
       <div class="player-name">
         <span class="role-label" id="user-role-label"><%= bottom_role_label %></span>
@@ -267,7 +267,7 @@
     </div>
   </div>
 
-  <!-- Sidebar Controls -->
+  <%# Sidebar Controls %>
   <div class="sidebar-controls">
     <h3>Játszma Állapota</h3>
     <div id="status-display" class="status-box status-<%= @match.status %>">
@@ -287,7 +287,7 @@
       </div>
     </div>
 
-    <!-- Pending interactive prompt for draw / takeback -->
+    <%# Pending interactive prompt for draw / takeback %>
     <div id="prompt-card" class="prompt-card" style="display: none;">
       <p id="prompt-message"></p>
       <div class="prompt-buttons">
@@ -308,7 +308,7 @@
       </div>
       <textarea id="pgn-content" readonly style="display: none;"><%= @match.pgn %></textarea>
 
-      <!-- Strukturált Kétoszlopos Lépéslista -->
+      <%# Strukturált Kétoszlopos Lépéslista %>
       <div id="pgn-structured-container" class="pgn-structured-container">
         <div id="pgn-structured-list" class="pgn-structured-list">
           <div class="pgn-empty-text">Még nem történt lépés.</div>
@@ -333,7 +333,7 @@
 
 </div>
 
-<!-- CSS Styles for Deep Dark Theme & Responsive Design -->
+<%# CSS Styles for Deep Dark Theme & Responsive Design %>
 <style>
   .chess-game-container {
     display: flex;
@@ -1201,12 +1201,12 @@
   .chess-toast.toast-info .chess-toast-title { color: #38bdf8; }
 </style>
 
-<!-- Load chess libraries via CDN -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@rails/actioncable@7.1.3/app/assets/javascripts/actioncable.js"></script>
+<%# Load chess libraries via local vendor assets %>
+<script src="/vendor/chess/chess.min.js"></script>
+<link rel="stylesheet" href="/vendor/chess/chessboard-1.0.0.min.css">
+<script src="/vendor/chess/jquery-3.6.0.min.js"></script>
+<script src="/vendor/chess/chessboard-1.0.0.min.js"></script>
+<script src="/vendor/actioncable/actioncable.js"></script>
 
 <script>
 (function() {
@@ -1830,7 +1830,7 @@
   var targetOrientation = (myColor === 'black') ? 'black' : 'white';
 
   var config = {
-    pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+    pieceTheme: '/vendor/chess/img/chesspieces/wikipedia/{piece}.png',
     draggable: !isCompleted && !isSpectator && (container.dataset.status === 'active'),
     position: game.fen(),
     orientation: targetOrientation,

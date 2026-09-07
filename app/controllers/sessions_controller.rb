@@ -6,12 +6,24 @@
 # ==============================================================================
 
 class SessionsController < ApplicationController
+  SQL_INJECTION_PATTERN = /(--|\/\*|\*\/|;\s*$|'\s*or\s+|"\s*or\s+|'\s*and\s+|"\s*and\s+|\bunion\s+select\b)/i
+  before_action :set_no_cache_headers
+
   def new
     redirect_to root_path if logged_in?
   end
 
   def create
-    login_input = params[:login].to_s.strip.downcase
+    raw_login = params[:login].to_s.strip
+    raw_password = params[:password].to_s
+
+    # SQL Injection szűrés: gyanús injekciós tokenek azonnali elutasítása adatbázis lekérdezés nélkül
+    if raw_login.match?(SQL_INJECTION_PATTERN) || raw_password.match?(SQL_INJECTION_PATTERN)
+      flash.now[:alert] = "Érvénytelen bejelentkezési adatok! Ellenőrizd a felhasználónevet/e-mail címet és a jelszót."
+      render :new, status: :unprocessable_entity and return
+    end
+
+    login_input = raw_login.downcase
     user = User.find_by("LOWER(username) = ? OR LOWER(email) = ?", login_input, login_input)
 
     # 1. Fiók zárolásának ellenőrzése
@@ -85,5 +97,13 @@ class SessionsController < ApplicationController
     reset_session
     flash[:notice] = "Sikeresen kijelentkeztél."
     redirect_to root_path
+  end
+
+  private
+
+  def set_no_cache_headers
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, private"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
   end
 end

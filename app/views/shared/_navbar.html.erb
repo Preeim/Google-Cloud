@@ -5,7 +5,7 @@
 <header class="global-navbar" id="global-navbar">
   <div class="navbar-container">
     
-    <!-- 1. BAL OLDAL: Navigáció, Brand & Intelligens Vissza Gomb -->
+    <%# 1. BAL OLDAL: Navigáció, Brand & Intelligens Vissza Gomb %>
     <div class="nav-zone nav-zone-left">
       <a href="<%= app_root_path %>" class="navbar-brand" title="Kezdőlap / Műszerfal">
         <span class="brand-icon">
@@ -65,7 +65,7 @@
       <% end %>
     </div>
 
-    <!-- 2. KÖZÉP: Dinamikus Oldalcím & Modul Jelvény -->
+    <%# 2. KÖZÉP: Dinamikus Oldalcím & Modul Jelvény %>
     <div class="nav-zone nav-zone-center">
       <% 
         mod_info = if respond_to?(:current_module_info)
@@ -165,7 +165,7 @@
             </svg>
           </button>
 
-          <!-- Lenyíló Profil Menü -->
+          <%# Lenyíló Profil Menü %>
           <div class="user-dropdown-panel" id="user-dropdown-menu" role="menu">
             <div class="dropdown-header">
               <div class="user-avatar-lg" style="background: <%= (current_user.custom_avatar_color rescue '#38bdf8') %>;">
@@ -200,7 +200,7 @@
               <% end %>
             </div>
 
-            <!-- Mobilos Gyors Modulválasztó Szekció -->
+            <%# Mobilos Gyors Modulválasztó Szekció %>
             <div class="dropdown-mobile-section">
               <div class="dropdown-section-title">Modulok & Játékok</div>
               <div class="dropdown-links">
@@ -242,7 +242,7 @@
           </div>
         </div>
       <% else %>
-        <!-- KIJELENTKEZETT VENDÉG ÁLLAPOT -->
+        <%# KIJELENTKEZETT VENDÉG ÁLLAPOT %>
         <div class="guest-auth-actions">
           <a href="<%= app_login_path %>" class="btn btn-navbar-secondary">Belépés</a>
           <a href="<%= app_register_path %>" class="btn btn-navbar-primary">Regisztráció</a>

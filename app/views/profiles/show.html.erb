@@ -113,7 +113,7 @@
   }
 </style>
 
-<!-- Hero Fejléc Szekció -->
+<%# Hero Fejléc Szekció %>
 <div class="profile-hero">
   <div class="profile-hero-content">
     <div class="profile-identity">
@@ -156,7 +156,7 @@
       </div>
     </div>
 
-    <!-- Műveleti Gombok (Szerkesztés / Vissza a Dashboardra) -->
+    <%# Műveleti Gombok (Szerkesztés / Vissza a Dashboardra) %>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <a href="/" class="btn btn-secondary">
         ← Vissza a Kezdőlapra
@@ -170,7 +170,7 @@
   </div>
 </div>
 
-<!-- Dinamikus Moduláris Profil Widget Grid -->
+<%# Dinamikus Moduláris Profil Widget Grid %>
 <div class="profile-widget-grid">
   <% @widgets.each do |widget| %>
     <%= render "profiles/widget_container", widget: widget do %>
@@ -179,7 +179,7 @@
   <% end %>
 </div>
 
-<!-- Profil Szerkesztő Ablak (Modal) -->
+<%# Profil Szerkesztő Ablak (Modal) %>
 <% if @can_edit %>
   <%= render "profiles/edit_modal", user: @user %>
 <% end %>

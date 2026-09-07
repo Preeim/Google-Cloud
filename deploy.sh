@@ -5,7 +5,20 @@ echo "====================================================="
 echo "   Starting Deployment on Google Cloud VM"
 echo "====================================================="
 
-# Nginx handles port 80 & 443 proxying to port 3000
+# 1. Nginx Hardening (Server header & version leak mitigation)
+if [ -d "/etc/nginx" ] && command -v nginx >/dev/null 2>&1; then
+    echo "[1/5] Hardening Nginx server tokens and headers..."
+    SUDO_CMD=""
+    [ "$EUID" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO_CMD="sudo"
+    $SUDO_CMD bash -c 'cat > /etc/nginx/conf.d/security_hardening.conf << "EOF"
+server_tokens off;
+proxy_hide_header Server;
+proxy_hide_header X-Powered-By;
+EOF' 2>/dev/null || true
+    if $SUDO_CMD nginx -t >/dev/null 2>&1; then
+        $SUDO_CMD systemctl reload nginx 2>/dev/null || $SUDO_CMD service nginx reload 2>/dev/null || true
+    fi
+fi
 
 
 # 2. Pull latest changes

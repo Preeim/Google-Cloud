@@ -6,7 +6,7 @@
   <title><%= page_title %> | Bánk's Repository</title>
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
-  <script src="https://cdn.jsdelivr.net/npm/@rails/actioncable@7.1.3/app/assets/javascripts/actioncable.js"></script>
+  <script src="/vendor/actioncable/actioncable.js"></script>
   <style>
     :root {
       --bg-canvas: #0a0f1d;
@@ -198,10 +198,10 @@
   </style>
 </head>
 <body>
-  <!-- 1. Globális Egységes Felső Navigációs Sáv (Navbar) -->
+  <%# 1. Globális Egységes Felső Navigációs Sáv (Navbar) %>
   <%= render "shared/navbar" %>
 
-  <!-- Kontextuális Sakk Admin Al-menüsor -->
+  <%# Kontextuális Sakk Admin Al-menüsor %>
   <nav class="chess-subnav" style="background: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); padding: 8px 20px;">
     <div style="max-width: 1300px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
       <div style="display: flex; align-items: center; gap: 8px; overflow-x: auto; white-space: nowrap;">
@@ -239,7 +239,7 @@
     <%= yield %>
   </main>
 
-  <!-- Globális Chat Lebegő Rendszer -->
+  <%# Globális Chat Lebegő Rendszer %>
   <%= render "shared/global_chat" %>
 </body>
 </html>

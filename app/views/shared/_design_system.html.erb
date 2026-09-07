@@ -2,12 +2,15 @@
 <%# Bánk's Repository - Központi Dizájnrendszer & Tokenek (_design_system.html.erb)  %>
 <%# ============================================================================== %>
 
-<!-- 1. Modern Tipográfia: Geist és Geist Mono -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+<%# 1. Modern Tipográfia: Geist és Geist Mono %>
 <style id="bankrepo-design-system">
+  @font-face {
+    font-family: 'Geist';
+    font-style: normal;
+    font-weight: 300 800;
+    font-display: swap;
+    src: url('/vendor/fonts/geist.ttf') format('truetype');
+  }
   :root {
     /* Természetes, meleg sötétszürke színpaletta (steril és kékesfekete helyett) */
     --bg-canvas: #121212;

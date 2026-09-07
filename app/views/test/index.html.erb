@@ -43,7 +43,7 @@
 </div>
 
 <div class="dashboard-grid">
-  <!-- Card 1: MySQL Database Diagnostics -->
+  <%# Card 1: MySQL Database Diagnostics %>
   <div class="card">
     <div class="card-title">
       <span>🗄️ MySQL Database</span>
@@ -99,7 +99,7 @@
     <% end %>
   </div>
 
-  <!-- Card 2: Action Cable WebSocket Live Test -->
+  <%# Card 2: Action Cable WebSocket Live Test %>
   <div class="card">
     <div class="card-title">
       <span>⚡ WebSocket (Action Cable)</span>
@@ -132,7 +132,7 @@
     </div>
   </div>
 
-  <!-- Card 3: Server Environment Diagnostics -->
+  <%# Card 3: Server Environment Diagnostics %>
   <div class="card">
     <div class="card-title">
       <span>☁️ Server & Environment</span>
@@ -165,7 +165,7 @@
   </div>
 </div>
 
-<!-- Simple Native WebSocket Client Script for Action Cable -->
+<%# Simple Native WebSocket Client Script for Action Cable %>
 <script>
   (function() {
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";

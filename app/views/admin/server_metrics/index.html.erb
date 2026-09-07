@@ -318,9 +318,9 @@
   }
 </style>
 
-<!-- ======================================================================== -->
-<!-- 1. Fejléc & Globális Vezérlősáv                                          -->
-<!-- ======================================================================== -->
+<%# ======================================================================== %>
+<%# 1. Fejléc & Globális Vezérlősáv %>
+<%# ======================================================================== %>
 <div class="metrics-header">
   <div>
     <h1 class="metrics-title">
@@ -332,13 +332,13 @@
   </div>
 
   <div class="metrics-controls">
-    <!-- Élő Kapcsolati Állapotjelző -->
+    <%# Élő Kapcsolati Állapotjelző %>
     <span class="status-badge live" id="live-connection-badge">
       <span class="pulse-dot"></span>
       <span id="live-connection-text">ActionCable Élő</span>
     </span>
 
-    <!-- Frissítési Gyakoriság -->
+    <%# Frissítési Gyakoriság %>
     <select id="select-refresh-interval" class="select-dark" title="Frissítési időköz">
       <option value="2000">Frissítés: 2 mp</option>
       <option value="3000" selected>Frissítés: 3 mp</option>
@@ -347,7 +347,7 @@
       <option value="0">Szüneteltetve</option>
     </select>
 
-    <!-- Kézi Frissítés Gomb -->
+    <%# Kézi Frissítés Gomb %>
     <button type="button" id="btn-manual-refresh" class="btn-refresh" title="Azonnali frissítés">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="23 4 23 10 17 10"></polyline>
@@ -359,9 +359,9 @@
   </div>
 </div>
 
-<!-- ======================================================================== -->
-<!-- 2. Rendszer Egészségi Állapot Értékelő Banner                            -->
-<!-- ======================================================================== -->
+<%# ======================================================================== %>
+<%# 2. Rendszer Egészségi Állapot Értékelő Banner %>
+<%# ======================================================================== %>
 <div class="system-health-banner" id="system-health-banner">
   <div class="health-info">
     <div class="health-icon-box" id="health-icon-box">🛡️</div>
@@ -384,11 +384,11 @@
   </div>
 </div>
 
-<!-- ======================================================================== -->
-<!-- 3. Statisztikai Kártyák Rácsa (4 Fő Erőforrás)                           -->
-<!-- ======================================================================== -->
+<%# ======================================================================== %>
+<%# 3. Statisztikai Kártyák Rácsa (4 Fő Erőforrás) %>
+<%# ======================================================================== %>
 <div class="metrics-grid">
-  <!-- KÁRTYA 1: CPU HASZNÁLAT -->
+  <%# KÁRTYA 1: CPU HASZNÁLAT %>
   <div class="metric-card" id="card-cpu">
     <div>
       <div class="metric-header">
@@ -419,7 +419,7 @@
     </div>
   </div>
 
-  <!-- KÁRTYA 2: MEMÓRIA (RAM & SWAP) -->
+  <%# KÁRTYA 2: MEMÓRIA (RAM & SWAP) %>
   <div class="metric-card" id="card-mem">
     <div>
       <div class="metric-header">
@@ -450,7 +450,7 @@
     </div>
   </div>
 
-  <!-- KÁRTYA 3: HÁLÓZATI FORGALOM (NETWORK I/O) -->
+  <%# KÁRTYA 3: HÁLÓZATI FORGALOM (NETWORK I/O) %>
   <div class="metric-card" id="card-net">
     <div>
       <div class="metric-header">
@@ -481,7 +481,7 @@
     </div>
   </div>
 
-  <!-- KÁRTYA 4: FOLYAMATOK & TÁRHELY (PROCESSES & DISK) -->
+  <%# KÁRTYA 4: FOLYAMATOK & TÁRHELY (PROCESSES & DISK) %>
   <div class="metric-card" id="card-disk">
     <div>
       <div class="metric-header">
@@ -513,11 +513,11 @@
   </div>
 </div>
 
-<!-- ======================================================================== -->
-<!-- 4. Idősoros Grafikonok Rácsa (Chart.js Idősorok)                         -->
-<!-- ======================================================================== -->
+<%# ======================================================================== %>
+<%# 4. Idősoros Grafikonok Rácsa (Chart.js Idősorok) %>
+<%# ======================================================================== %>
 <div class="charts-grid">
-  <!-- Grafikon 1: CPU Terhelés Idősor -->
+  <%# Grafikon 1: CPU Terhelés Idősor %>
   <div class="chart-card">
     <div class="chart-header">
       <h2 class="chart-title">
@@ -530,7 +530,7 @@
     </div>
   </div>
 
-  <!-- Grafikon 2: Memória Használat Idősor -->
+  <%# Grafikon 2: Memória Használat Idősor %>
   <div class="chart-card">
     <div class="chart-header">
       <h2 class="chart-title">
@@ -543,7 +543,7 @@
     </div>
   </div>
 
-  <!-- Grafikon 3: Hálózati Forgalom Sebesség (Rx / Tx) -->
+  <%# Grafikon 3: Hálózati Forgalom Sebesség (Rx / Tx) %>
   <div class="chart-card">
     <div class="chart-header">
       <h2 class="chart-title">
@@ -557,9 +557,9 @@
   </div>
 </div>
 
-<!-- ======================================================================== -->
-<!-- 5. Kliensoldali Valós Idejű Vezérlő Szkript                               -->
-<!-- ======================================================================== -->
+<%# ======================================================================== %>
+<%# 5. Kliensoldali Valós Idejű Vezérlő Szkript %>
+<%# ======================================================================== %>
 <script>
   (function() {
     // ------------------------------------------------------------------------

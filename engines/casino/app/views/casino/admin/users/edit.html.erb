@@ -9,9 +9,9 @@
 </div>
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
-  <!-- Bal oldal: Egyenleg módosító űrlapok -->
+  <%# Bal oldal: Egyenleg módosító űrlapok %>
   <div style="display: flex; flex-direction: column; gap: 20px;">
-    <!-- Jelenlegi Állapot -->
+    <%# Jelenlegi Állapot %>
     <div class="card" style="border-color: rgba(251, 191, 36, 0.3);">
       <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Jelenlegi Egyenleg</div>
       <div style="font-size: 2.2rem; font-weight: 900; color: #fef08a; margin: 8px 0;">
@@ -23,7 +23,7 @@
       </div>
     </div>
 
-    <!-- 1. Művelet: Zseton Hozzáadása (+) -->
+    <%# 1. Művelet: Zseton Hozzáadása (+) %>
     <div class="card">
       <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--success); margin-bottom: 12px;">
         ➕ Zseton Jóváírása (Hozzáadás)
@@ -38,7 +38,7 @@
       <% end %>
     </div>
 
-    <!-- 2. Művelet: Zseton Levonása (-) -->
+    <%# 2. Művelet: Zseton Levonása (-) %>
     <div class="card">
       <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--danger); margin-bottom: 12px;">
         ➖ Zseton Levonása (Csökkentés)
@@ -53,7 +53,7 @@
       <% end %>
     </div>
 
-    <!-- 3. Művelet: Fix összeg beállítása / 10k Reset -->
+    <%# 3. Művelet: Fix összeg beállítása / 10k Reset %>
     <div class="card">
       <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--casino-gold); margin-bottom: 12px;">
         ⚙️ Egyenleg Felülírása vagy Visszaállítása
@@ -75,7 +75,7 @@
     </div>
   </div>
 
-  <!-- Jobb oldal: Játékos Tranzakciós Előzményei -->
+  <%# Jobb oldal: Játékos Tranzakciós Előzményei %>
   <div class="card">
     <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-bottom: 14px;">
       📜 Játékos Legutóbbi Tranzakciói

@@ -51,7 +51,8 @@ Rails.application.configure do
     "X-Permitted-Cross-Domain-Policies" => "none",
     "Referrer-Policy" => "strict-origin-when-cross-origin",
     "Permissions-Policy" => "camera=(), microphone=(), geolocation=(), payment=()",
-    "Strict-Transport-Security" => "max-age=63072000; includeSubDomains; preload"
+    "Strict-Transport-Security" => "max-age=63072000; includeSubDomains; preload",
+    "Content-Security-Policy" => "default-src 'self'; font-src 'self' data:; img-src 'self' data: https://chessboardjs.com; object-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://code.jquery.com https://unpkg.com https://cdn.skypack.dev https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://unpkg.com; connect-src 'self' blob: wss://bankrepo.hu ws://bankrepo.hu wss://www.bankrepo.hu ws://www.bankrepo.hu https://bankrepo.hu http://bankrepo.hu ws://localhost:3000 ws://127.0.0.1:3000; frame-ancestors 'self'; form-action 'self'; base-uri 'self';"
   }
 
   # Action Cable WebSocket beállítások éles környezetben:

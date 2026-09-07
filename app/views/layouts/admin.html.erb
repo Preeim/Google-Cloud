@@ -6,8 +6,8 @@
   <title><%= page_title %> | Bánk's Repository</title>
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
-  <script src="https://cdn.jsdelivr.net/npm/@rails/actioncable@7.1.3/app/assets/javascripts/actioncable.js" integrity="sha384-/3qbW/AOg0O3yr5TeMwqjGav1BcBFsO2OosS6b+fvilTrzrh3wnKpL7aV0HIHpJ3" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+  <script src="/vendor/actioncable/actioncable.js"></script>
+  <script src="/vendor/chartjs/chart.umd.min.js"></script>
   <%= render "shared/design_system" %>
   <style>
     /* Admin Kontextuális Al-menüsor */
@@ -196,7 +196,7 @@
     <%= yield %>
   </main>
 
-  <!-- Globális Chat Lebegő Rendszer -->
+  <%# Globális Chat Lebegő Rendszer %>
   <%= render "shared/global_chat" %>
 </body>
 </html>

@@ -9,7 +9,7 @@
       </p>
     </div>
 
-    <!-- Kereső űrlap -->
+    <%# Kereső űrlap %>
     <div>
       <%= form_with url: admin_users_path, method: :get, local: true, style: "display: flex; gap: 8px;" do |f| %>
         <%= f.text_field :search, value: params[:search], placeholder: "Keresés felhasználónévre...", class: "form-control", style: "width: 240px; padding: 8px 12px;" %>

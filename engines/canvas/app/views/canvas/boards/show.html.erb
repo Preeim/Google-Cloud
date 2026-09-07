@@ -4,20 +4,20 @@
 %>
 
 <div class="whiteboard-wrapper">
-  <!-- 1. Felső jelenléti és állapotsáv -->
+  <%# 1. Felső jelenléti és állapotsáv %>
   <div class="presence-bar">
     <div class="presence-title">
       <span>👥 Aktív Résztvevők:</span>
       <span class="presence-count" id="active-count">0</span>
     </div>
     <div class="presence-list" id="presence-list">
-      <!-- Dinamikusan feltöltve WebSocket jelenlétből -->
+      <%# Dinamikusan feltöltve WebSocket jelenlétből %>
     </div>
   </div>
 
-  <!-- 2. Eszköztár (Toolbar) -->
+  <%# 2. Eszköztár (Toolbar) %>
   <div class="whiteboard-toolbar <%= 'toolbar-disabled' unless can_draw_board %>" id="canvas-toolbar">
-    <!-- Eszközök: Ecset & Radír -->
+    <%# Eszközök: Ecset & Radír %>
     <div class="tool-group">
       <button type="button" class="tool-btn active" id="tool-brush" data-tool="brush" title="Ecset (B billentyű)">
         <span>✏️</span>
@@ -31,7 +31,7 @@
 
     <div class="toolbar-divider"></div>
 
-    <!-- Színpaletta -->
+    <%# Színpaletta %>
     <div class="tool-group color-palette-group">
       <div class="swatches" id="color-swatches">
         <button type="button" class="color-swatch active" data-color="#38bdf8" style="background: #38bdf8;" title="Világoskék"></button>
@@ -49,7 +49,7 @@
 
     <div class="toolbar-divider"></div>
 
-    <!-- Vonalvastagság állítás -->
+    <%# Vonalvastagság állítás %>
     <div class="tool-group size-group">
       <span class="size-label">Méret:</span>
       <input type="range" id="brush-size-slider" min="1" max="40" value="4" class="brush-slider">
@@ -59,7 +59,7 @@
 
     <div class="toolbar-divider"></div>
 
-    <!-- Műveletek: Export / Letöltés -->
+    <%# Műveletek: Export / Letöltés %>
     <div class="tool-group action-group">
       <button type="button" class="btn btn-secondary" id="btn-export-png" title="Vászon letöltése nagyfelbontású PNG képként">
         <span>💾</span>
@@ -80,7 +80,7 @@
     </div>
   </div>
 
-  <!-- 3. Értesítés zárolt állapotról vagy néző módról -->
+  <%# 3. Értesítés zárolt állapotról vagy néző módról %>
   <% unless can_draw_board %>
     <div class="read-only-banner" id="read-only-banner">
       <% if @board.is_frozen? %>
@@ -91,7 +91,7 @@
     </div>
   <% end %>
 
-  <!-- 4. Rajzvászon Színpad -->
+  <%# 4. Rajzvászon Színpad %>
   <div class="canvas-stage-wrapper">
     <div class="canvas-aspect-box">
       <canvas id="whiteboard" width="1600" height="900"></canvas>

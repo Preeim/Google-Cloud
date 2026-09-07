@@ -207,7 +207,7 @@
   }
 </style>
 
-<!-- 1. Fő Üdvözlő Fejléc (Szoftverszerű, Border-first) -->
+<%# 1. Fő Üdvözlő Fejléc (Szoftverszerű, Border-first) %>
 <div style="margin-bottom: 20px;">
   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
     <div>
@@ -232,10 +232,10 @@
   </div>
 </div>
 
-<!-- 2. Aszimmetrikus Bento-Grid -->
+<%# 2. Aszimmetrikus Bento-Grid %>
 <div class="bento-grid">
 
-  <!-- A) Kiemelt Modulok Bento Panel (Span 8) -->
+  <%# A) Kiemelt Modulok Bento Panel (Span 8) %>
   <div class="bento-card bento-col-8">
     <div class="bento-header">
       <div class="bento-title">
@@ -284,7 +284,7 @@
     </div>
   </div>
 
-  <!-- B) Valós Idejű Jelenlét Bento Widget (Span 4) -->
+  <%# B) Valós Idejű Jelenlét Bento Widget (Span 4) %>
   <div class="bento-card bento-col-4">
     <div class="bento-header">
       <div class="bento-title">
@@ -304,7 +304,7 @@
       </span>
     </div>
 
-    <!-- Online Felhasználók Kompakt Rácsa -->
+    <%# Online Felhasználók Kompakt Rácsa %>
     <div id="online-users-grid" class="online-grid-compact">
       <% if @online_users.any? %>
         <% @online_users.each do |user| %>
@@ -348,7 +348,7 @@
     </div>
   </div>
 
-  <!-- C) Telemetria & Teszt Konzol Bento Panel (Span 6) -->
+  <%# C) Telemetria & Teszt Konzol Bento Panel (Span 6) %>
   <div class="bento-card bento-col-6">
     <div class="bento-header">
       <div class="bento-title">
@@ -376,7 +376,7 @@
     </div>
   </div>
 
-  <!-- D) Rendszer Architektúra & Biztonság Bento Panel (Span 6) -->
+  <%# D) Rendszer Architektúra & Biztonság Bento Panel (Span 6) %>
   <div class="bento-card bento-col-6">
     <div class="bento-header">
       <div class="bento-title">
@@ -410,7 +410,7 @@
 
 </div>
 
-<!-- 3. Valós Idejű WebSocket Jelenlét Kliens (ActionCable PresenceChannel) -->
+<%# 3. Valós Idejű WebSocket Jelenlét Kliens (ActionCable PresenceChannel) %>
 <script>
   (function() {
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";

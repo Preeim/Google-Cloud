@@ -401,7 +401,7 @@
   }
 </style>
 
-<!-- 1. Alsó Dokkolt Chat Tálca / Fül -->
+<%# 1. Alsó Dokkolt Chat Tálca / Fül %>
 <button type="button" class="global-chat-trigger" id="global-chat-btn" aria-label="Globális csevegés megnyitása">
   <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -410,9 +410,9 @@
   <span class="chat-unread-badge" id="chat-unread-badge">0</span>
 </button>
 
-<!-- 2. Lebegő Chat Panel -->
+<%# 2. Lebegő Chat Panel %>
 <div class="global-chat-panel" id="global-chat-panel" role="dialog" aria-label="Globális Chat" aria-hidden="true">
-  <!-- Fejléc -->
+  <%# Fejléc %>
   <div class="chat-header">
     <div class="chat-header-title">
       <span>💬 Globális Chat</span>
@@ -431,7 +431,7 @@
     </div>
   </div>
 
-  <!-- Üzenetek Lista -->
+  <%# Üzenetek Lista %>
   <div class="chat-body" id="chat-messages-list">
     <div class="chat-loading-state" id="chat-loading-placeholder">
       <span>Üzenetek betöltése...</span>
@@ -444,7 +444,7 @@
     </div>
   </div>
 
-  <!-- Lábléc / Beviteli sáv -->
+  <%# Lábléc / Beviteli sáv %>
   <div class="chat-footer">
     <div class="chat-alert-banner" id="chat-alert-banner"></div>
 
@@ -475,7 +475,7 @@
   </div>
 </div>
 
-<!-- 3. Kliensoldali Valós Idejű Chat Szkript -->
+<%# 3. Kliensoldali Valós Idejű Chat Szkript %>
 <script>
   (function() {
     // Globális állapottár (oldalváltások és Turbo navigáció között perzisztens)
@@ -629,7 +629,7 @@
         </div>
         <div class="chat-msg-content-wrap">
           <div class="chat-msg-header">
-            <a href="${safeProfilePath}" class="chat-msg-author">
+            <a data-profile-path="${safeProfilePath}" class="chat-msg-author">
               <span>${safeAuthor}</span>
               ${roleBadgeHtml}
             </a>
@@ -639,6 +639,11 @@
           <div class="chat-msg-text">${msg.content}</div>
         </div>
       `;
+
+      const authorLink = row.querySelector('.chat-msg-author');
+      if (authorLink && safeProfilePath && safeProfilePath !== '#') {
+        authorLink.setAttribute('href', safeProfilePath);
+      }
 
       els.messagesList.appendChild(row);
 
