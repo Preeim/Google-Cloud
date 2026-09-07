@@ -1,0 +1,55 @@
+<%# ============================================================================== %>
+<%# Bánk's Repository - Globális Lábléc (app/views/shared/_footer.html.erb)       %>
+<%# Letisztult, diszkrét lábléc nem kereskedelmi / hobbi jogi és projekt linkekkel %>
+<%# ============================================================================== %>
+<footer style="margin-top: auto; border-top: 1px solid var(--border-subtle); background: var(--bg-surface); padding: 32px 20px 24px; color: var(--text-muted); font-size: 0.88rem; width: 100%;">
+  <div style="max-width: 1300px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 24px;">
+    
+    <!-- Bal oldali blokk: Projekt és státusz -->
+    <div style="max-width: 460px;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <span style="font-size: 1.1rem;">💎</span>
+        <span style="font-weight: 700; font-size: 1.05rem; color: var(--text-main); letter-spacing: -0.01em;">Bánk's Repository</span>
+        <span style="font-size: 0.72rem; padding: 2px 7px; border-radius: 999px; background: rgba(56, 189, 248, 0.15); color: var(--accent); border: 1px solid rgba(56, 189, 248, 0.3); font-weight: 600;">v1.8.0</span>
+      </div>
+      <p style="margin: 0; line-height: 1.5; color: var(--text-muted); font-size: 0.85rem;">
+        Egyéni fejlesztésű tanulmányi és portfólióprojekt. A platform kizárólag bemutató, tesztelési és szórakoztató célokat szolgál; nem minősül kereskedelmi szolgáltatásnak vagy szerencsejátéknak.
+      </p>
+    </div>
+
+    <!-- Jobb oldali blokk: Jogi és navigációs linkek -->
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);">
+        Információ & Jogi Tudnivalók
+      </div>
+      <nav style="display: flex; flex-wrap: wrap; gap: 16px 20px; align-items: center;">
+        <%= link_to terms_path, style: "color: var(--text-main); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: color 0.15s;", onmouseover: "this.style.color='var(--accent)'", onmouseout: "this.style.color='var(--text-main)'" do %>
+          <span>📜</span> Feltételek & Felelősségkizárás
+        <% end %>
+
+        <%= link_to privacy_path, style: "color: var(--text-main); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: color 0.15s;", onmouseover: "this.style.color='var(--accent)'", onmouseout: "this.style.color='var(--text-main)'" do %>
+          <span>🔒</span> Adatkezelési Tájékoztató
+        <% end %>
+
+        <%= link_to about_path, style: "color: var(--text-main); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: color 0.15s;", onmouseover: "this.style.color='var(--accent)'", onmouseout: "this.style.color='var(--text-main)'" do %>
+          <span>ℹ️</span> Impresszum & Kapcsolat
+        <% end %>
+
+        <a href="https://github.com/Preeim/Google-Cloud" target="_blank" rel="noopener noreferrer" style="color: var(--text-main); text-decoration: none; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-main)'">
+          <span>💻</span> GitHub Tároló ↗
+        </a>
+      </nav>
+    </div>
+
+  </div>
+
+  <!-- Alsó szerzői jogi sáv -->
+  <div style="max-width: 1300px; margin: 24px auto 0; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; font-size: 0.8rem; color: #64748b;">
+    <div>
+      © <%= Time.current.year %> Hevesi Bánk. Minden jog fenntartva.
+    </div>
+    <div>
+      Kiadva a nyílt forráskódú <a href="https://github.com/Preeim/Google-Cloud/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" style="color: var(--text-muted); text-decoration: underline;">MIT Licenc</a> alatt.
+    </div>
+  </div>
+</footer>

@@ -72,6 +72,8 @@ module ApplicationHelper
       { name: "Admin Központ", icon: "🛡️", badge_class: "badge-admin", color: "var(--admin-accent, #a855f7)" }
     elsif path.start_with?("/profile")
       { name: "Felhasználói Fiók", icon: "👤", badge_class: "badge-profile", color: "var(--accent, #38bdf8)" }
+    elsif path.start_with?("/terms") || path.start_with?("/privacy") || path.start_with?("/about")
+      { name: "Információ", icon: "📜", badge_class: "badge-legal", color: "var(--accent, #38bdf8)" }
     elsif path.start_with?("/test")
       { name: "Teszt Konzol", icon: "🛠️", badge_class: "badge-test", color: "var(--accent, #38bdf8)" }
     else
@@ -99,6 +101,12 @@ module ApplicationHelper
       "Rendszer Adminisztráció"
     elsif path.start_with?("/profile")
       "Felhasználói Profil"
+    elsif path.start_with?("/terms")
+      "Feltételek & Felelősségkizárás"
+    elsif path.start_with?("/privacy")
+      "Adatkezelési Tájékoztató"
+    elsif path.start_with?("/about")
+      "Impresszum & Kapcsolat"
     elsif path.start_with?("/login")
       "Bejelentkezés"
     elsif path.start_with?("/register")

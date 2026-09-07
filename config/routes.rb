@@ -31,6 +31,11 @@ Rails.application.routes.draw do
   # 3/C. Globális Chat REST Végpontok
   resources :chat_messages, only: [:index, :create, :destroy]
 
+  # 3/D. Jogi Dokumentumok & Projekt Információk (PagesController)
+  get "/terms",   to: "pages#terms",   as: :terms
+  get "/privacy", to: "pages#privacy", as: :privacy
+  get "/about",   to: "pages#about",   as: :about
+
   # 4. Védett Rendszergazdai Névtér (/bank-admin)
   namespace :admin, path: "bank-admin" do
     root to: "dashboard#index"

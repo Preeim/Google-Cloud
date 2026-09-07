@@ -1,0 +1,166 @@
+<div style="max-width: 900px; margin: 0 auto; width: 100%;">
+  
+  <!-- Fejléc és Breadcrumb -->
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div style="font-size: 0.85rem; color: var(--accent); font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+        <a href="/" style="color: var(--text-muted); text-decoration: none;">Kezdőlap</a>
+        <span>/</span>
+        <span>Jogi Dokumentáció</span>
+      </div>
+      <h1 style="font-size: clamp(1.5rem, 3.5vw, 2rem); font-weight: 800; color: var(--text-main); margin: 0;">
+        Egyszerűsített Adatkezelési Tájékoztató
+      </h1>
+    </div>
+    <span style="font-size: 0.8rem; background: var(--bg-elevated); border: 1px solid var(--border-subtle); padding: 4px 10px; border-radius: 6px; color: var(--text-muted);">
+      Hatályos: 2026. szeptember 7.
+    </span>
+  </div>
+
+  <!-- Kiemelt Zöld Figyelmeztető Doboz: Adatminimalizálás & Biztonság -->
+  <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 18px 22px; margin-bottom: 24px; display: flex; gap: 14px; align-items: flex-start;">
+    <div style="font-size: 1.6rem; line-height: 1;">🔒</div>
+    <div>
+      <div style="font-weight: 700; color: #34d399; font-size: 1rem; margin-bottom: 4px;">
+        Adatminimalizálás és Teljes Átláthatóság
+      </div>
+      <div style="font-size: 0.92rem; color: var(--text-main); line-height: 1.5;">
+        A <strong>Bánk's Repository</strong> platformon kizárólag a működéshez és a fiókazonosításhoz elengedhetetlen technikai adatokat kezeljük. Nem gyűjtünk pénzügyi adatokat, nem adunk el személyes adatokat és nem folytatunk marketing tevékenységet.
+      </div>
+    </div>
+  </div>
+
+  <!-- 1. Adatkezelő Adatai -->
+  <div class="card">
+    <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+      <span>👤</span> 1. Az Adatkezelő Adatai
+    </h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+      <div style="background: var(--bg-elevated); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">Adatkezelő Neve</div>
+        <div style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">Hevesi Bánk</div>
+      </div>
+      <div style="background: var(--bg-elevated); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">Kapcsolattartási E-mail</div>
+        <div style="font-weight: 600; color: var(--accent); font-size: 0.95rem;">
+          <a href="mailto:admin@bankrepo.hu" style="color: var(--accent); text-decoration: none;">admin@bankrepo.hu</a>
+        </div>
+      </div>
+      <div style="background: var(--bg-elevated); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">Weboldal</div>
+        <div style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">bankrepo.hu</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Kezelt Adatok Köre és Célja -->
+  <div class="card">
+    <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 14px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+      <span>📋</span> 2. A Kezelt Adatok Köre és Jogalapja
+    </h2>
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; text-align: left;">
+        <thead>
+          <tr style="border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 0.82rem; text-transform: uppercase;">
+            <th style="padding: 10px 12px;">Adat megnevezése</th>
+            <th style="padding: 10px 12px;">Kezelés Célja</th>
+            <th style="padding: 10px 12px;">Biztonsági Mód</th>
+          </tr>
+        </thead>
+        <tbody style="color: var(--text-main);">
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <td style="padding: 12px; font-weight: 600;">Felhasználónév</td>
+            <td style="padding: 12px; color: var(--text-muted);">Azonosítás a játékokban, ranglistákon és csevegőben</td>
+            <td style="padding: 12px;"><span class="badge badge-live">Nyilvános</span></td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <td style="padding: 12px; font-weight: 600;">E-mail cím</td>
+            <td style="padding: 12px; color: var(--text-muted);">Egyedi fiókhozzáférés, jelszóhelyreállítás</td>
+            <td style="padding: 12px;"><span style="color: var(--accent); font-weight: 600;">Bizalmas, nem nyilvános</span></td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <td style="padding: 12px; font-weight: 600;">Jelszó</td>
+            <td style="padding: 12px; color: var(--text-muted);">Biztonságos bejelentkezés</td>
+            <td style="padding: 12px;"><span style="color: #34d399; font-weight: 600;">Sózott bcrypt kriptográfiai hash</span></td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <td style="padding: 12px; font-weight: 600;">Munkamenet adatok & IP</td>
+            <td style="padding: 12px; color: var(--text-muted);">Session token, brute-force & spam elleni védelem</td>
+            <td style="padding: 12px; color: var(--text-muted);">Időhöz kötött tokenek</td>
+          </tr>
+          <tr>
+            <td style="padding: 12px; font-weight: 600;">Alkalmazás adatok</td>
+            <td style="padding: 12px; color: var(--text-muted);">Virtuális zsetonállás, sakk partik, rajzok</td>
+            <td style="padding: 12px; color: var(--text-muted);">Játékfunkciók kiszolgálása</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3. Harmadik Fél Kizárása -->
+  <div class="card">
+    <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+      <span>🚫</span> 3. Harmadik Fél Kizárása és Marketing Tilalom
+    </h2>
+    <div style="display: flex; flex-direction: column; gap: 10px; color: var(--text-muted); font-size: 0.95rem; line-height: 1.6;">
+      <p>
+        <strong style="color: var(--text-main);">Nincs adatértékesítés:</strong> Személyes adataidat soha nem adjuk el, nem adjuk bérbe és nem engedünk harmadik félnek hozzáférést semmilyen kereskedelmi vagy adatbrókeri célra.
+      </p>
+      <p>
+        <strong style="color: var(--text-main);">Nincs marketing vagy kéretlen levél:</strong> Az e-mail címedre nem küldünk reklámokat, harmadik féltől származó ajánlatokat vagy marketing hírleveleket.
+      </p>
+      <p>
+        <strong style="color: var(--text-main);">Nincsenek invazív analitikai trackerek:</strong> Nem használunk olyan külső nyomkövetőket (Facebook Pixel, hirdetési sütik), amelyek a netes tevékenységedet több oldalon át követnék.
+      </p>
+    </div>
+  </div>
+
+  <!-- 4. Sütik és Technikai Tárolás -->
+  <div class="card">
+    <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+      <span>🍪</span> 4. Sütik (Cookies) Használata
+    </h2>
+    <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 8px;">
+      A weboldal kizárólag a működéshez elengedhetetlen, szigorúan funkcionális sütiket alkalmaz:
+    </p>
+    <ul style="list-style: disc; margin-left: 20px; color: var(--text-muted); font-size: 0.92rem; line-height: 1.6;">
+      <li><strong style="color: var(--text-main);">Session süti (_session_id):</strong> A bejelentkezett állapot fenntartása böngészés közben.</li>
+      <li><strong style="color: var(--text-main);">CSRF Token:</strong> Kérések hamisítása elleni biztonsági azonosító.</li>
+    </ul>
+  </div>
+
+  <!-- 5. Adattörlési Jog (Right to Erasure) -->
+  <div class="card" style="border-color: rgba(56, 189, 248, 0.4); background: linear-gradient(180deg, var(--bg-surface) 0%, rgba(56, 189, 248, 0.04) 100%);">
+    <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; color: var(--accent); display: flex; align-items: center; gap: 8px;">
+      <span>🗑️</span> 5. Fiók és Adatok Törlésének Joga (Right to Erasure)
+    </h2>
+    <p style="color: var(--text-main); font-size: 0.95rem; line-height: 1.6; margin-bottom: 12px;">
+      Bármikor kérheted a felhasználói fiókod, e-mail címed, valamint minden hozzá kapcsolódó játék- és tevékenységi adatod azonnali és végleges törlését.
+    </p>
+    <div style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+      <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem; margin-bottom: 6px;">Hogyan kérhetsz adattörlést?</div>
+      <div style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5;">
+        Küldj egy rövid törlési kérelmet a regisztrált e-mail címedről az alábbi címre:  
+        <div style="margin-top: 8px; font-size: 1rem;">
+          📧 <a href="mailto:admin@bankrepo.hu?subject=Adattorlesi%20Kerelem" style="color: var(--accent); font-weight: 700; text-decoration: underline;">admin@bankrepo.hu</a>
+        </div>
+      </div>
+    </div>
+    <p style="font-size: 0.85rem; color: var(--text-muted);">
+      A kérelmek feldolgozása manuálisan, legfeljebb 72 órán belül megtörténik, melynek során minden kapcsolódó rekord véglegesen megsemmisítésre kerül az adatbázisból.
+    </p>
+  </div>
+
+  <!-- Kapcsolati és Visszanavigálási Blokkoló -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 12px;">
+    <a href="/" class="btn btn-secondary">
+      <span>⬅</span> Vissza a Főoldalra
+    </a>
+    <div style="display: flex; gap: 10px;">
+      <%= link_to "Feltételek & Felelősségkizárás ➔", terms_path, class: "btn btn-secondary" %>
+      <%= link_to "Impresszum & Kapcsolat ➔", about_path, class: "btn btn-primary" %>
+    </div>
+  </div>
+
+</div>
