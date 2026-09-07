@@ -113,7 +113,7 @@ module Chess
     end
 
     # Move validator using the chess gem, relying on client FEN/PGN for saving state to avoid gem API limits
-    def make_move!(san_move, client_fen, client_pgn, current_player_color)
+    def make_move!(san_move, client_fen, client_pgn, current_player_color, options = {})
       raise "A játszma nem aktív vagy már befejeződött!" unless active?
 
       if check_timeout!
@@ -172,12 +172,15 @@ module Chess
       self.pgn = clean_pgn[0..10000]
       
       is_checkmate = san_move.to_s.include?('#') ||
+                     options[:in_checkmate] == true || options["in_checkmate"] == true ||
                      client_pgn.to_s.match?(/(?:#|#\s*(?:1-0|0-1|\*))\s*$/) ||
                      (game.respond_to?(:checkmate?) && game.checkmate?) ||
                      (game.respond_to?(:in_checkmate?) && game.in_checkmate?) ||
                      (game.respond_to?(:over?) && game.over? && game.respond_to?(:status) && [:white_won, :black_won].include?(game.status))
 
-      is_draw = client_pgn.to_s.match?(/(?:1\/2-1\/2|\bdraw\b|\bstalemate\b)\s*$/) ||
+      is_draw = options[:in_stalemate] == true || options["in_stalemate"] == true ||
+                options[:in_draw] == true || options["in_draw"] == true ||
+                client_pgn.to_s.match?(/(?:1\/2-1\/2|\bdraw\b|\bstalemate\b)\s*$/) ||
                 (game.respond_to?(:stalemate?) && game.stalemate?) ||
                 (game.respond_to?(:in_stalemate?) && game.in_stalemate?) ||
                 (game.respond_to?(:over?) && game.over? && game.respond_to?(:status) && [:stalemate, :draw].include?(game.status))

@@ -28,7 +28,7 @@ module Chess
           return
         end
 
-        @match.make_move!(data["san_move"], data["fen"], data["pgn"], current_player_color)
+        @match.make_move!(data["san_move"], data["fen"], data["pgn"], current_player_color, data)
 
         # Invalidate any pending draw or takeback offer once a move is made
         Rails.cache.delete("chess_match_draw_offer:#{@match.id}")
@@ -199,7 +199,7 @@ module Chess
     end
 
     def effective_guest_id
-      guest_id.to_s
+      params[:guest_id].presence || guest_id.to_s
     end
 
     def current_player_color

@@ -13,7 +13,7 @@
   white_open = @match.white_user_id.nil? && @match.white_guest_id.nil?
   black_open = @match.black_user_id.nil? && @match.black_guest_id.nil?
   can_join = @match.pending? && is_spectator && (white_open || black_open)
-  is_creator = !is_spectator
+  is_creator = @match.creator?(current_user, current_guest)
 
   if is_spectator
     top_role_label = "Sötét:"
@@ -1204,6 +1204,15 @@ document.addEventListener("DOMContentLoaded", function() {
     game.load_pgn(pgnText);
   }
 
+  // Safe ActionCable dispatcher
+  function sendMatchAction(action, payload) {
+    if (window.matchSubscription && typeof window.matchSubscription.perform === 'function') {
+      window.matchSubscription.perform(action, payload || {});
+      return true;
+    }
+    return false;
+  }
+
   // Replay Data
   let replayFens = [];
   let currentReplayStep = 0;
@@ -1330,16 +1339,16 @@ document.addEventListener("DOMContentLoaded", function() {
       if (activeTurn === 'w') {
         if (whiteTimeMs !== null) {
           whiteTimeMs = Math.max(0, whiteTimeMs - delta);
-          if (whiteTimeMs <= 0 && window.matchSubscription) {
-            window.matchSubscription.perform("claim_timeout");
+          if (whiteTimeMs <= 0) {
+            sendMatchAction("claim_timeout");
             clearInterval(clockInterval);
           }
         }
       } else {
         if (blackTimeMs !== null) {
           blackTimeMs = Math.max(0, blackTimeMs - delta);
-          if (blackTimeMs <= 0 && window.matchSubscription) {
-            window.matchSubscription.perform("claim_timeout");
+          if (blackTimeMs <= 0) {
+            sendMatchAction("claim_timeout");
             clearInterval(clockInterval);
           }
         }
@@ -1366,17 +1375,24 @@ document.addEventListener("DOMContentLoaded", function() {
     } catch (e) {}
   }
 
+  function reapplyPremoveHighlight() {
+    $('#chess-board [data-square]').removeClass('square-premove');
+    if (pendingPremove) {
+      $('#chess-board [data-square="' + pendingPremove.from + '"]').addClass('square-premove');
+      $('#chess-board [data-square="' + pendingPremove.to + '"]').addClass('square-premove');
+    }
+  }
+
   function clearPremove() {
     pendingPremove = null;
     selectedPremoveSource = null;
-    $('#chess-board [data-square]').removeClass('square-premove');
+    reapplyPremoveHighlight();
   }
 
   function setPremove(from, to) {
     clearPremove();
     pendingPremove = { from: from, to: to, promotion: 'q' };
-    $('#chess-board [data-square="' + from + '"]').addClass('square-premove');
-    $('#chess-board [data-square="' + to + '"]').addClass('square-premove');
+    reapplyPremoveHighlight();
     showChessToast({ title: "Premove beállítva", message: from.toUpperCase() + " ➔ " + to.toUpperCase(), type: "info", duration: 1800, icon: "⚡" });
   }
 
@@ -1451,13 +1467,14 @@ document.addEventListener("DOMContentLoaded", function() {
         removeHighlights();
         clearPremove();
         board.position(game.fen());
-        if (window.matchSubscription) {
-          window.matchSubscription.perform("make_move", { 
-            san_move: move.san,
-            fen: game.fen(),
-            pgn: game.pgn()
-          });
-        }
+        sendMatchAction("make_move", { 
+          san_move: move.san,
+          fen: game.fen(),
+          pgn: game.pgn(),
+          in_checkmate: (typeof game.in_checkmate === 'function' ? game.in_checkmate() : false),
+          in_stalemate: (typeof game.in_stalemate === 'function' ? game.in_stalemate() : false),
+          in_draw: (typeof game.in_draw === 'function' ? game.in_draw() : false)
+        });
         updateStatus();
         return;
       }
@@ -1555,19 +1572,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
     clearPremove();
 
-    if (window.matchSubscription) {
-      window.matchSubscription.perform("make_move", { 
-        san_move: move.san,
-        fen: game.fen(),
-        pgn: game.pgn()
-      });
-    }
+    sendMatchAction("make_move", { 
+      san_move: move.san,
+      fen: game.fen(),
+      pgn: game.pgn(),
+      in_checkmate: (typeof game.in_checkmate === 'function' ? game.in_checkmate() : false),
+      in_stalemate: (typeof game.in_stalemate === 'function' ? game.in_stalemate() : false),
+      in_draw: (typeof game.in_draw === 'function' ? game.in_draw() : false)
+    });
     
     updateStatus();
   }
 
   function onSnapEnd () {
     board.position(game.fen());
+    reapplyPremoveHighlight();
   }
 
   function updateStatus () {
@@ -1577,6 +1596,7 @@ document.addEventListener("DOMContentLoaded", function() {
     updateStructuredPgnList();
     updatePgnModalContent();
     renderArrowsAndHighlights();
+    reapplyPremoveHighlight();
   }
 
   function updateStructuredPgnList() {
@@ -1774,8 +1794,12 @@ document.addEventListener("DOMContentLoaded", function() {
     const boardEl = document.getElementById('chess-board');
     if (!boardEl) return null;
     const rect = boardEl.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const clientX = e.clientX !== undefined ? e.clientX : (e.originalEvent?.touches?.[0]?.clientX || e.originalEvent?.changedTouches?.[0]?.clientX);
+    const clientY = e.clientY !== undefined ? e.clientY : (e.originalEvent?.touches?.[0]?.clientY || e.originalEvent?.changedTouches?.[0]?.clientY);
+    if (clientX === undefined || clientY === undefined) return null;
+
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
     if (x < 0 || x > rect.width || y < 0 || y > rect.height) return null;
 
@@ -2368,13 +2392,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
             if (moveResult !== null) {
               board.position(game.fen());
-              if (window.matchSubscription) {
-                window.matchSubscription.perform("make_move", {
-                  san_move: moveResult.san,
-                  fen: game.fen(),
-                  pgn: game.pgn()
-                });
-              }
+              sendMatchAction("make_move", {
+                san_move: moveResult.san,
+                fen: game.fen(),
+                pgn: game.pgn(),
+                in_checkmate: (typeof game.in_checkmate === 'function' ? game.in_checkmate() : false),
+                in_stalemate: (typeof game.in_stalemate === 'function' ? game.in_stalemate() : false),
+                in_draw: (typeof game.in_draw === 'function' ? game.in_draw() : false)
+              });
               updateStatus();
             } else {
               showChessToast({
@@ -2394,9 +2419,9 @@ document.addEventListener("DOMContentLoaded", function() {
       } else if (data.action === "takeback_requested") {
         if (isSpectator || data.color === myColor) return;
         showPrompt("Az ellenfél visszalépést kért. Elfogadod?", function() {
-          window.matchSubscription.perform("answer_takeback", { accepted: true });
+          sendMatchAction("answer_takeback", { accepted: true });
         }, function() {
-          window.matchSubscription.perform("answer_takeback", { accepted: false });
+          sendMatchAction("answer_takeback", { accepted: false });
         }, 20);
       } else if (data.action === "takeback_rejected") {
         if (isSpectator || data.color === myColor) return;
@@ -2405,9 +2430,9 @@ document.addEventListener("DOMContentLoaded", function() {
       } else if (data.action === "draw_offered") {
         if (isSpectator || data.color === myColor) return;
         showPrompt("Az ellenfél döntetlent ajánlott fel. Elfogadod?", function() {
-          window.matchSubscription.perform("accept_draw");
+          sendMatchAction("accept_draw");
         }, function() {
-          window.matchSubscription.perform("decline_draw");
+          sendMatchAction("decline_draw");
         }, 20);
       } else if (data.action === "draw_declined") {
         if (isSpectator || data.color === myColor) return;
@@ -2492,19 +2517,19 @@ document.addEventListener("DOMContentLoaded", function() {
       cancelText: "Mégse",
       confirmBtnClass: "btn-danger",
       onConfirm: function() {
-        window.matchSubscription.perform("resign");
+        sendMatchAction("resign");
       }
     });
   });
 
   $('#btn-draw').on('click', function() {
-    window.matchSubscription.perform("offer_draw");
+    sendMatchAction("offer_draw");
     showChessToast({ title: "Ajánlat Elküldve", message: "Döntetlen ajánlat elküldve az ellenfélnek.", type: "info", icon: "🤝" });
     applyButtonCooldown('#btn-draw', 'Döntetlen Ajánlat', 20);
   });
 
   $('#btn-takeback').on('click', function() {
-    window.matchSubscription.perform("request_takeback");
+    sendMatchAction("request_takeback");
     showChessToast({ title: "Kérelem Elküldve", message: "Visszalépési kérelem elküldve az ellenfélnek.", type: "info", icon: "↩️" });
     applyButtonCooldown('#btn-takeback', 'Visszalépés Kérése', 20);
   });
