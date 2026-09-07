@@ -205,7 +205,7 @@
           <strong>Várakozás az ellenfélre...</strong> Oszd meg ezt a linket a barátoddal:
         </div>
         <div class="share-link-group">
-          <input type="text" id="share-link-input" readonly value="<%= match_url(@match.uuid, join: true) %>" class="share-input">
+          <input type="text" id="share-link-input" readonly value="<%= match_url(@match.uuid, join: true) %>" class="share-input" onclick="this.select();" title="Kattints a kijelöléshez">
           <button type="button" id="btn-copy-link" class="btn btn-primary btn-sm">Link Másolása</button>
         </div>
         <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
@@ -512,6 +512,44 @@
     pointer-events: none;
     z-index: 10;
   }
+
+  /* ========================================================================== */
+  /* Chessboard.js Beépített Alapstílusok (Garantált Megjelenés)               */
+  /* ========================================================================== */
+  .clearfix-7da63 { clear: both; }
+  .board-b72b1 {
+    border: 2px solid #23304d;
+    box-sizing: content-box;
+    width: 100%;
+    height: 100%;
+  }
+  .square-55d63 {
+    float: left;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .white-1e1d7 {
+    background-color: #f0d9b5 !important;
+    color: #b58863;
+  }
+  .black-3c85d {
+    background-color: #b58863 !important;
+    color: #f0d9b5;
+  }
+  .highlight1-32417, .highlight2-9c5d2 {
+    box-shadow: inset 0 0 3px 3px #ff0;
+  }
+  .notation-322f9 {
+    cursor: default;
+    font-family: var(--font-family, sans-serif);
+    font-size: 11px;
+    font-weight: 700;
+    position: absolute;
+  }
+  .alpha-d2270 { bottom: 2px; right: 4px; }
+  .numeric-fc462 { top: 2px; left: 4px; }
+
   .pgn-structured-container {
     width: 100%;
     height: 165px;
@@ -1802,6 +1840,11 @@
   };
   
   board = Chessboard('chess-board', config);
+  if (board) {
+    board.resize();
+    setTimeout(function() { if (board) board.resize(); renderArrowsAndHighlights(); }, 80);
+    setTimeout(function() { if (board) board.resize(); renderArrowsAndHighlights(); }, 350);
+  }
   updateStatus();
   renderClocks();
   if (container.dataset.status === 'active') {

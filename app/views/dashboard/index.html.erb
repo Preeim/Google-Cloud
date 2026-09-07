@@ -575,5 +575,12 @@
     }
 
     connectPresence();
+
+    document.addEventListener('turbo:before-cache', function() {
+      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      if (socket) {
+        try { socket.close(); } catch(e) {}
+      }
+    }, { once: true });
   })();
 </script>

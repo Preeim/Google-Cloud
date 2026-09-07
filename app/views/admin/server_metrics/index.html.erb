@@ -999,11 +999,18 @@
     }
 
     // ------------------------------------------------------------------------
-    // Indítás Betöltéskor
+    // Indítás Betöltéskor & Turbo Tisztítás
     // ------------------------------------------------------------------------
     initCharts();
     initWebSocket();
     schedulePolling();
+
+    document.addEventListener('turbo:before-cache', function() {
+      if (timerId) clearTimeout(timerId);
+      if (cableSubscription) {
+        try { cableSubscription.unsubscribe(); } catch(e) {}
+      }
+    }, { once: true });
 
   })();
 </script>
