@@ -256,30 +256,27 @@
 
 <style>
   /* ========================================================================== */
-  /* Globális Navbar Stílusok (Scoped & Kompatibilis)                           */
+  /* Globális Navbar Stílusok (Border-First, Precíz Szoftveres Esztétika)       */
   /* ========================================================================== */
   header.global-navbar {
-    background: rgba(17, 25, 46, 0.92);
-    border-bottom: 1px solid var(--border-subtle, #23304d);
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
     position: sticky;
     top: 0;
     left: 0;
     width: 100%;
     z-index: 500;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   }
 
   .navbar-container {
     max-width: 1440px;
     margin: 0 auto;
-    padding: 10px 24px;
+    padding: 8px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    min-height: 60px;
+    min-height: 56px;
   }
 
   .nav-zone {
@@ -298,11 +295,12 @@
     align-items: center;
     gap: 10px;
     text-decoration: none;
-    color: var(--text-main, #f1f5f9);
+    color: var(--text-main);
     font-weight: 700;
-    font-size: 1.15rem;
-    transition: opacity 0.15s;
+    font-size: 1.1rem;
+    transition: opacity var(--transition-fast);
     user-select: none;
+    letter-spacing: -0.02em;
   }
   .navbar-brand:hover {
     opacity: 0.9;
@@ -311,38 +309,38 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--accent, #38bdf8);
+    color: var(--accent);
   }
   .brand-name span {
-    color: var(--accent, #38bdf8);
+    color: var(--accent);
   }
 
   .nav-divider {
     width: 1px;
-    height: 22px;
-    background: var(--border-subtle, #23304d);
+    height: 20px;
+    background: var(--border-subtle);
   }
 
   .nav-back-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
-    background: var(--bg-elevated, #1a243b);
-    border: 1px solid var(--border-subtle, #23304d);
-    border-radius: 6px;
-    color: var(--text-muted, #94a3b8);
+    padding: 5px 10px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
     text-decoration: none;
-    font-size: 0.84rem;
-    font-weight: 600;
+    font-size: 0.82rem;
+    font-weight: 500;
     cursor: pointer;
     user-select: none;
-    transition: all 0.15s ease;
+    transition: all var(--transition-fast);
   }
   .nav-back-btn:hover {
-    color: var(--text-main, #f1f5f9);
-    border-color: var(--accent, #38bdf8);
-    background: #202c48;
+    color: var(--text-main);
+    border-color: var(--border-hover);
+    background: var(--bg-hover);
   }
 
   /* 2. Középső Zóna: Cím & Modul Jelvény */
@@ -357,9 +355,9 @@
   }
 
   .nav-page-title {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text-main, #f1f5f9);
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: var(--text-main);
     margin: 0;
     padding: 0;
     white-space: nowrap;
@@ -372,44 +370,44 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: var(--radius-sm);
+    font-size: 0.72rem;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    background: rgba(56, 189, 248, 0.12);
-    border: 1px solid var(--accent, #38bdf8);
-    color: var(--accent, #38bdf8);
+    background: var(--accent-subtle);
+    border: 1px solid var(--accent-border);
+    color: var(--accent);
     white-space: nowrap;
   }
   .module-badge.badge-chess {
-    background: rgba(251, 191, 36, 0.15);
-    border-color: var(--chess-gold, #fbbf24);
-    color: var(--chess-gold, #fbbf24);
+    background: var(--accent-subtle);
+    border-color: var(--accent-border);
+    color: var(--accent);
   }
   .module-badge.badge-casino {
-    background: rgba(251, 191, 36, 0.15);
-    border-color: var(--casino-gold, #fbbf24);
-    color: var(--casino-gold, #fbbf24);
+    background: var(--accent-subtle);
+    border-color: var(--accent-border);
+    color: var(--accent);
   }
   .module-badge.badge-admin {
-    background: rgba(168, 85, 247, 0.15);
-    border-color: var(--admin-accent, #a855f7);
-    color: var(--admin-accent, #a855f7);
+    background: var(--admin-subtle);
+    border-color: var(--admin-border);
+    color: var(--admin-accent);
   }
 
   /* 3. Jobb Zóna: Extra Slot & Fiókkezelés */
   .nav-zone-right {
     flex: 0 0 auto;
-    gap: 14px;
+    gap: 12px;
     justify-content: flex-end;
   }
 
   .navbar-extra-slot {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
 
   /* Dropdown Tároló */
@@ -420,35 +418,35 @@
   .user-menu-btn {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 4px 10px 4px 6px;
-    background: var(--bg-elevated, #1a243b);
-    border: 1px solid var(--border-subtle, #23304d);
-    border-radius: 24px;
-    color: var(--text-main, #f1f5f9);
+    gap: 8px;
+    padding: 4px 10px 4px 5px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--text-main);
     cursor: pointer;
-    font-size: 0.88rem;
-    font-weight: 600;
-    transition: all 0.15s ease;
+    font-size: 0.86rem;
+    font-weight: 500;
+    transition: all var(--transition-fast);
   }
   .user-menu-btn:hover, .user-menu-btn[aria-expanded="true"] {
-    border-color: var(--border-hover, #3b4b73);
-    background: #222f4c;
+    border-color: var(--border-hover);
+    background: var(--bg-elevated);
   }
   .user-menu-btn[aria-expanded="true"] .dropdown-caret {
     transform: rotate(180deg);
   }
 
   .user-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    color: #0a0f1d;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-sm);
+    color: #09090b;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-weight: 800;
-    font-size: 0.76rem;
+    font-weight: 700;
+    font-size: 0.74rem;
     flex-shrink: 0;
   }
 
@@ -460,24 +458,24 @@
   }
 
   .dropdown-caret {
-    color: var(--text-muted, #94a3b8);
-    transition: transform 0.2s ease;
+    color: var(--text-dim);
+    transition: transform var(--transition-fast);
   }
 
   /* Dropdown Panel */
   .user-dropdown-panel {
     position: absolute;
-    top: calc(100% + 10px);
+    top: calc(100% + 8px);
     right: 0;
-    width: 280px;
-    background: var(--bg-surface, #11192e);
-    border: 1px solid var(--border-subtle, #23304d);
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    width: 270px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     opacity: 0;
     visibility: hidden;
-    transform: translateY(-8px);
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(-4px);
+    transition: all var(--transition-fast);
     z-index: 600;
     overflow: hidden;
   }
@@ -488,22 +486,22 @@
   }
 
   .dropdown-header {
-    padding: 16px;
+    padding: 14px;
     display: flex;
     align-items: center;
     gap: 12px;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--bg-subtle);
   }
   .user-avatar-lg {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    color: #0a0f1d;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-md);
+    color: #09090b;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-weight: 800;
-    font-size: 1.1rem;
+    font-weight: 700;
+    font-size: 0.95rem;
     flex-shrink: 0;
   }
   .dropdown-user-meta {
@@ -511,16 +509,16 @@
     flex: 1;
   }
   .dropdown-user-title {
-    font-weight: 700;
-    color: var(--text-main, #f1f5f9);
-    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.92rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .dropdown-user-subtitle {
-    font-size: 0.8rem;
-    color: var(--text-muted, #94a3b8);
+    font-size: 0.78rem;
+    color: var(--text-muted);
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
@@ -530,41 +528,41 @@
   .badge-role-admin {
     display: inline-block;
     padding: 1px 6px;
-    background: rgba(168, 85, 247, 0.2);
-    border: 1px solid var(--admin-accent, #a855f7);
-    color: var(--admin-accent, #a855f7);
-    border-radius: 4px;
-    font-size: 0.72rem;
-    font-weight: 700;
+    background: var(--admin-subtle);
+    border: 1px solid var(--admin-border);
+    color: var(--admin-accent);
+    border-radius: var(--radius-xs);
+    font-size: 0.7rem;
+    font-weight: 600;
   }
   .badge-role-mod {
     display: inline-block;
     padding: 1px 6px;
-    background: rgba(56, 189, 248, 0.2);
-    border: 1px solid var(--accent, #38bdf8);
-    color: var(--accent, #38bdf8);
-    border-radius: 4px;
-    font-size: 0.72rem;
-    font-weight: 700;
+    background: var(--info-subtle);
+    border: 1px solid var(--info-border);
+    color: var(--info);
+    border-radius: var(--radius-xs);
+    font-size: 0.7rem;
+    font-weight: 600;
   }
   .badge-role-user {
     display: inline-block;
     padding: 1px 6px;
-    background: rgba(148, 163, 184, 0.2);
-    border: 1px solid var(--border-subtle, #23304d);
-    color: var(--text-muted, #94a3b8);
-    border-radius: 4px;
-    font-size: 0.72rem;
-    font-weight: 600;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+    border-radius: var(--radius-xs);
+    font-size: 0.7rem;
+    font-weight: 500;
   }
 
   .dropdown-divider {
     height: 1px;
-    background: var(--border-subtle, #23304d);
+    background: var(--border-subtle);
   }
 
   .dropdown-links {
-    padding: 8px;
+    padding: 6px;
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -574,106 +572,108 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 12px;
-    border-radius: 8px;
-    color: var(--text-main, #f1f5f9);
+    padding: 8px 10px;
+    border-radius: var(--radius-md);
+    color: var(--text-main);
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     font-weight: 500;
-    transition: all 0.15s ease;
+    transition: all var(--transition-fast);
   }
   .dropdown-item:hover, .dropdown-item.active {
-    background: var(--bg-elevated, #1a243b);
-    color: var(--accent, #38bdf8);
+    background: var(--bg-elevated);
+    color: var(--accent);
   }
   .dropdown-item-admin {
-    color: var(--admin-accent, #a855f7);
+    color: var(--admin-accent);
   }
   .dropdown-item-admin:hover {
-    background: rgba(168, 85, 247, 0.15);
-    color: var(--admin-accent, #a855f7);
+    background: var(--admin-subtle);
+    color: var(--admin-accent);
   }
   .item-icon {
-    font-size: 1rem;
-    width: 20px;
+    font-size: 0.95rem;
+    width: 18px;
     text-align: center;
   }
 
   .dropdown-mobile-section {
-    padding: 6px 8px;
-    background: rgba(10, 15, 29, 0.4);
-    border-top: 1px solid var(--border-subtle, #23304d);
-    border-bottom: 1px solid var(--border-subtle, #23304d);
+    padding: 6px;
+    background: var(--bg-subtle);
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
   }
   .dropdown-section-title {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--text-muted, #94a3b8);
+    color: var(--text-dim);
     font-weight: 700;
-    padding: 6px 12px 2px;
+    padding: 4px 8px 2px;
   }
 
   .dropdown-footer {
-    padding: 8px;
+    padding: 6px;
   }
   .dropdown-logout-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 9px 12px;
-    border-radius: 8px;
-    background: rgba(244, 63, 94, 0.15);
-    border: 1px solid rgba(244, 63, 94, 0.3);
-    color: #fb7185;
+    gap: 7px;
+    padding: 7px 10px;
+    border-radius: var(--radius-md);
+    background: var(--danger-subtle);
+    border: 1px solid var(--danger-border);
+    color: #fca5a5;
     text-decoration: none;
-    font-size: 0.88rem;
+    font-size: 0.84rem;
     font-weight: 600;
-    transition: all 0.15s ease;
+    transition: all var(--transition-fast);
     cursor: pointer;
     width: 100%;
     box-sizing: border-box;
   }
   .dropdown-logout-btn:hover {
-    background: var(--danger, #f43f5e);
+    background: var(--danger);
     color: #ffffff;
+    border-color: var(--danger);
   }
 
   /* Vendég Gombok */
   .guest-auth-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
   .btn-navbar-primary {
-    background: var(--accent, #38bdf8);
-    color: #0a0f1d;
-    padding: 6px 14px;
-    border-radius: 6px;
+    background: var(--accent);
+    color: var(--accent-text);
+    padding: 6px 13px;
+    border-radius: var(--radius-md);
     font-weight: 700;
-    font-size: 0.86rem;
+    font-size: 0.84rem;
     text-decoration: none;
-    transition: all 0.15s;
-    border: 1px solid var(--accent, #38bdf8);
+    transition: all var(--transition-fast);
+    border: 1px solid var(--accent);
   }
   .btn-navbar-primary:hover {
-    background: var(--accent-hover, #0284c7);
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
   }
   .btn-navbar-secondary {
-    background: var(--bg-elevated, #1a243b);
-    color: var(--text-main, #f1f5f9);
-    border: 1px solid var(--border-subtle, #23304d);
-    padding: 6px 14px;
-    border-radius: 6px;
+    background: var(--bg-surface);
+    color: var(--text-main);
+    border: 1px solid var(--border-subtle);
+    padding: 6px 13px;
+    border-radius: var(--radius-md);
     font-weight: 600;
-    font-size: 0.86rem;
+    font-size: 0.84rem;
     text-decoration: none;
-    transition: all 0.15s;
+    transition: all var(--transition-fast);
   }
   .btn-navbar-secondary:hover {
-    border-color: var(--border-hover, #3b4b73);
-    background: #222f4c;
+    border-color: var(--border-hover);
+    background: var(--bg-elevated);
   }
 
   /* ========================================================================== */

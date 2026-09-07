@@ -20,3 +20,4 @@ class PagesController < ApplicationController
     @page_title = "Impresszum & Kapcsolat"
   end
 end
+

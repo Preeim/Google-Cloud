@@ -58,3 +58,4 @@ A jelen nyilatkozat tartalma a projekt fejlődésével és a funkciók bővülé
 Bármilyen kérdés vagy észrevétel esetén az üzemeltető elérhetősége:  
 **E-mail:** [admin@bankrepo.hu](mailto:admin@bankrepo.hu)  
 **GitHub:** [https://github.com/Preeim/Google-Cloud](https://github.com/Preeim/Google-Cloud)
+

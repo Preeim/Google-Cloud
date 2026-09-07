@@ -6,108 +6,95 @@
 
 <style>
   /* -------------------------------------------------------------------------- */
-  /* Globális Chat Konténerek & Lebegő Gomb                                    */
+  /* Globális Chat Dokkolt Tálca (Bottom Docked Status Tab)                     */
   /* -------------------------------------------------------------------------- */
   .global-chat-trigger {
     position: fixed;
-    bottom: 24px;
+    bottom: 0;
     right: 24px;
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent) 0%, #0284c7 100%);
-    color: #0a0f1d;
-    border: none;
-    box-shadow: 0 8px 24px rgba(56, 189, 248, 0.35), 0 2px 6px rgba(0, 0, 0, 0.4);
+    height: 38px;
+    padding: 0 14px;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    background: var(--bg-surface);
+    color: var(--text-main);
+    border: 1px solid var(--border-subtle);
+    border-bottom: none;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.35);
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 8px;
     z-index: 990;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all var(--transition-fast);
     outline: none;
   }
   .global-chat-trigger:hover {
-    transform: scale(1.08) translateY(-2px);
-    box-shadow: 0 12px 30px rgba(56, 189, 248, 0.5), 0 4px 10px rgba(0, 0, 0, 0.5);
-  }
-  .global-chat-trigger:active {
-    transform: scale(0.96);
+    background: var(--bg-elevated);
+    border-color: var(--border-hover);
+    color: var(--accent);
   }
   .global-chat-trigger svg {
-    width: 26px;
-    height: 26px;
-    stroke: #0a0f1d;
+    width: 17px;
+    height: 17px;
+    stroke: currentColor;
     fill: none;
-    transition: transform 0.2s;
   }
 
   /* Olvasatlan üzenet badge */
   .chat-unread-badge {
-    position: absolute;
-    top: -3px;
-    right: -3px;
-    background: var(--danger);
-    color: white;
+    background: var(--accent);
+    color: var(--accent-text);
     font-size: 0.72rem;
-    font-weight: 800;
-    min-width: 20px;
-    height: 20px;
-    border-radius: 10px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: var(--radius-sm);
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 0 5px;
-    border: 2px solid var(--bg-canvas);
-    box-shadow: 0 2px 8px rgba(244, 63, 94, 0.6);
-    animation: pulse-badge 2s infinite;
+    padding: 0 4px;
   }
   .chat-unread-badge.visible {
     display: inline-flex;
   }
 
-  @keyframes pulse-badge {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-  }
-
   /* -------------------------------------------------------------------------- */
-  /* Lebegő Chat Ablak (Window Panel)                                          */
+  /* Dokkolt Chat Ablak (Window Panel)                                         */
   /* -------------------------------------------------------------------------- */
   .global-chat-panel {
     position: fixed;
-    bottom: 90px;
+    bottom: 44px;
     right: 24px;
     width: 380px;
-    height: 540px;
+    height: 520px;
     max-width: calc(100vw - 32px);
-    max-height: calc(100vh - 120px);
+    max-height: calc(100vh - 80px);
     background: var(--bg-surface);
-    border: 1px solid var(--border-subtle);
-    border-radius: 16px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
     display: flex;
     flex-direction: column;
     z-index: 990;
     overflow: hidden;
     opacity: 0;
     pointer-events: none;
-    transform: scale(0.92) translateY(20px);
-    transform-origin: bottom right;
-    transition: opacity 0.22s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translateY(8px);
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
   }
   .global-chat-panel.open {
     opacity: 1;
     pointer-events: auto;
-    transform: scale(1) translateY(0);
+    transform: translateY(0);
   }
 
   /* Fejléc */
   .chat-header {
-    background: var(--bg-elevated);
+    background: var(--bg-subtle);
     border-bottom: 1px solid var(--border-subtle);
-    padding: 12px 16px;
+    padding: 10px 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -117,35 +104,36 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    font-weight: 700;
-    font-size: 0.98rem;
+    font-weight: 600;
+    font-size: 0.92rem;
     color: var(--text-main);
   }
   .chat-status-indicator {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 600;
     color: var(--success);
-    background: rgba(16, 185, 129, 0.15);
-    padding: 2px 8px;
-    border-radius: 10px;
+    background: var(--success-subtle);
+    border: 1px solid var(--success-border);
+    padding: 1px 6px;
+    border-radius: var(--radius-xs);
+    font-family: var(--font-mono);
   }
   .chat-status-indicator .dot {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: var(--success);
-    box-shadow: 0 0 6px var(--success);
   }
   .chat-status-indicator.offline {
     color: var(--text-muted);
-    background: rgba(148, 163, 184, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--border-subtle);
   }
   .chat-status-indicator.offline .dot {
-    background: var(--text-muted);
-    box-shadow: none;
+    background: var(--text-dim);
   }
 
   .chat-header-actions {
@@ -158,39 +146,28 @@
     border: none;
     color: var(--text-muted);
     cursor: pointer;
-    width: 30px;
-    height: 30px;
-    border-radius: 6px;
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-sm);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s;
+    transition: all var(--transition-fast);
   }
   .chat-btn-icon:hover {
     color: var(--text-main);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--bg-elevated);
   }
 
   /* Üzenetek Görgethető Területe */
   .chat-body {
     flex: 1;
     overflow-y: auto;
-    padding: 14px 16px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     background: var(--bg-surface);
-    scroll-behavior: smooth;
-  }
-  .chat-body::-webkit-scrollbar {
-    width: 6px;
-  }
-  .chat-body::-webkit-scrollbar-thumb {
-    background: var(--border-subtle);
-    border-radius: 3px;
-  }
-  .chat-body::-webkit-scrollbar-thumb:hover {
-    background: var(--border-hover);
   }
 
   /* Üres és Betöltési Állapot */
@@ -202,12 +179,13 @@
     text-align: center;
     height: 100%;
     color: var(--text-muted);
-    gap: 10px;
+    gap: 8px;
     padding: 20px;
+    font-size: 0.86rem;
   }
   .chat-empty-state svg {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     stroke: var(--border-hover);
   }
 
@@ -215,22 +193,22 @@
   .chat-msg-row {
     display: flex;
     align-items: flex-start;
-    gap: 10px;
-    animation: fadeInMsg 0.2s ease;
+    gap: 9px;
+    animation: fadeInMsg 0.15s ease;
     position: relative;
   }
   @keyframes fadeInMsg {
-    from { opacity: 0; transform: translateY(6px); }
+    from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
   .chat-msg-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    color: #0a0f1d;
-    font-weight: 800;
-    font-size: 0.75rem;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    color: #09090b;
+    font-weight: 700;
+    font-size: 0.72rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -240,11 +218,11 @@
   .chat-msg-content-wrap {
     flex: 1;
     min-width: 0;
-    background: var(--bg-canvas);
+    background: var(--bg-subtle);
     border: 1px solid var(--border-subtle);
-    border-radius: 10px;
-    padding: 8px 12px;
-    transition: border-color 0.15s;
+    border-radius: var(--radius-md);
+    padding: 7px 10px;
+    transition: border-color var(--transition-fast);
   }
   .chat-msg-content-wrap:hover {
     border-color: var(--border-hover);
@@ -254,14 +232,14 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
   .chat-msg-author {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.85rem;
-    font-weight: 700;
+    gap: 5px;
+    font-size: 0.82rem;
+    font-weight: 600;
     color: var(--text-main);
     text-decoration: none;
   }
@@ -270,29 +248,29 @@
   }
   .chat-badge-role {
     font-size: 0.65rem;
-    padding: 1px 5px;
-    border-radius: 4px;
-    font-weight: 700;
-    text-transform: uppercase;
+    padding: 1px 4px;
+    border-radius: var(--radius-xs);
+    font-weight: 600;
   }
   .chat-badge-admin {
-    background: rgba(168, 85, 247, 0.2);
+    background: var(--admin-subtle);
     color: var(--admin-accent);
-    border: 1px solid var(--admin-accent);
+    border: 1px solid var(--admin-border);
   }
   .chat-badge-mod {
-    background: rgba(56, 189, 248, 0.2);
-    color: var(--accent);
-    border: 1px solid var(--accent);
+    background: var(--info-subtle);
+    color: var(--info);
+    border: 1px solid var(--info-border);
   }
   .chat-msg-time {
-    font-size: 0.72rem;
-    color: var(--text-muted);
+    font-size: 0.7rem;
+    color: var(--text-dim);
     margin-left: auto;
     flex-shrink: 0;
+    font-family: var(--font-mono);
   }
   .chat-msg-text {
-    font-size: 0.88rem;
+    font-size: 0.86rem;
     color: var(--text-main);
     line-height: 1.45;
     word-break: break-word;
@@ -303,12 +281,12 @@
   .chat-btn-delete {
     background: transparent;
     border: none;
-    color: var(--text-muted);
+    color: var(--text-dim);
     cursor: pointer;
     padding: 2px 4px;
-    border-radius: 4px;
+    border-radius: var(--radius-xs);
     opacity: 0;
-    transition: all 0.15s;
+    transition: all var(--transition-fast);
   }
   .chat-msg-row:hover .chat-btn-delete {
     opacity: 0.8;
@@ -316,14 +294,14 @@
   .chat-btn-delete:hover {
     opacity: 1 !important;
     color: var(--danger);
-    background: rgba(244, 63, 94, 0.15);
+    background: var(--danger-subtle);
   }
 
   /* Lábléc / Beviteli Sáv */
   .chat-footer {
-    background: var(--bg-elevated);
+    background: var(--bg-subtle);
     border-top: 1px solid var(--border-subtle);
-    padding: 10px 14px;
+    padding: 10px 12px;
     flex-shrink: 0;
   }
   .chat-form {
@@ -335,67 +313,67 @@
     flex: 1;
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
-    border-radius: 8px;
-    padding: 9px 12px;
+    border-radius: var(--radius-md);
+    padding: 8px 11px;
     color: var(--text-main);
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     outline: none;
-    transition: border-color 0.15s;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   }
   .chat-input:focus {
     border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-subtle);
   }
   .chat-send-btn {
     background: var(--accent);
-    color: #0a0f1d;
-    border: none;
-    border-radius: 8px;
-    width: 38px;
-    height: 38px;
+    color: var(--accent-text);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-md);
+    width: 34px;
+    height: 34px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all var(--transition-fast);
     flex-shrink: 0;
   }
   .chat-send-btn:hover {
     background: var(--accent-hover);
-    transform: translateY(-1px);
+    border-color: var(--accent-hover);
   }
   .chat-send-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    transform: none;
   }
 
   /* Vendég bejelentkezési figyelmeztető sáv */
   .chat-guest-box {
     text-align: center;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     color: var(--text-muted);
-    padding: 6px 4px;
+    padding: 4px 2px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
   .chat-guest-actions {
     display: flex;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
   }
 
   /* Hiba és figyelmeztető csík */
   .chat-alert-banner {
     display: none;
-    background: rgba(244, 63, 94, 0.18);
-    border: 1px solid var(--danger);
-    color: #fb7185;
+    background: var(--danger-subtle);
+    border: 1px solid var(--danger-border);
+    color: #fca5a5;
     padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 0.78rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.76rem;
     margin-bottom: 8px;
-    animation: fadeInMsg 0.2s ease;
+    animation: fadeInMsg 0.15s ease;
   }
   .chat-alert-banner.visible {
     display: block;
@@ -411,28 +389,24 @@
       height: 80vh;
       max-width: 100vw;
       max-height: 80vh;
-      border-radius: 20px 20px 0 0;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
       border-bottom: none;
-      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.7);
     }
     .global-chat-trigger {
-      bottom: 18px;
-      right: 18px;
-      width: 48px;
-      height: 48px;
-    }
-    .global-chat-trigger svg {
-      width: 22px;
-      height: 22px;
+      right: 12px;
+      height: 34px;
+      font-size: 0.8rem;
+      padding: 0 10px;
     }
   }
 </style>
 
-<!-- 1. Lebegő Trigger Gomb -->
+<!-- 1. Alsó Dokkolt Chat Tálca / Fül -->
 <button type="button" class="global-chat-trigger" id="global-chat-btn" aria-label="Globális csevegés megnyitása">
   <svg viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
   </svg>
+  <span>💬 Chat</span>
   <span class="chat-unread-badge" id="chat-unread-badge">0</span>
 </button>
 

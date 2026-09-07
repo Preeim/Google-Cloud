@@ -36,3 +36,4 @@ A **Bánk's Repository** egy modern, moduláris webes keretrendszer demonstráci
 - **Infrastruktúra Szolgáltató:** Google Cloud Platform (GCP) Compute Engine
   - **Régió:** Európai Unió (`europe-west1`, Belgium)
 - **Domain Regisztrátor:** Rackhost Zrt.
+

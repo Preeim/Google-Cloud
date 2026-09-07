@@ -74,3 +74,4 @@ Adatvédelmi kérdésekkel, észrevételekkel vagy törlési kérelmekkel kapcso
 **Név:** Hevesi Bánk  
 **E-mail:** [admin@bankrepo.hu](mailto:admin@bankrepo.hu)  
 **Weboldal:** [https://bankrepo.hu](https://bankrepo.hu)
+

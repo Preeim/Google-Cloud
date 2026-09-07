@@ -6,10 +6,10 @@
   /* Kezdőlap Jelenlét és Aktivitás Stílusok */
   @keyframes presence-pulse {
     0% {
-      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
     }
     70% {
-      box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
     }
     100% {
       box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
@@ -17,70 +17,147 @@
   }
 
   .pulse-indicator {
-    width: 9px;
-    height: 9px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--success);
     display: inline-block;
     animation: presence-pulse 2s infinite ease-out;
   }
 
+  /* Aszimmetrikus Bento-Grid Elrendezés */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .bento-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: border-color var(--transition-fast);
+  }
+  .bento-card:hover {
+    border-color: var(--border-hover);
+  }
+  .bento-col-8 { grid-column: span 8; }
+  .bento-col-4 { grid-column: span 4; }
+  .bento-col-6 { grid-column: span 6; }
+  .bento-col-12 { grid-column: span 12; }
+
+  .bento-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .bento-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  /* Alkalmazás kártyák listája a Bento Hero panelen */
+  .apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    flex: 1;
+  }
+  .app-item {
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all var(--transition-fast);
+  }
+  .app-item:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-elevated);
+  }
+  .app-item-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .app-item-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .app-item-desc {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 14px;
+    flex: 1;
+  }
+
+  /* Online felhasználók kártyái */
   .online-user-card {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    background: var(--bg-surface);
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--bg-subtle);
     border: 1px solid var(--border-subtle);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     text-decoration: none;
     color: inherit;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all var(--transition-fast);
     position: relative;
-    overflow: hidden;
   }
-
   .online-user-card:hover {
-    border-color: var(--accent);
+    border-color: var(--border-hover);
     background: var(--bg-elevated);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
   }
-
   .online-user-card .avatar-box {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 800;
-    font-size: 1rem;
-    color: #0a0f1d;
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #09090b;
     position: relative;
     flex-shrink: 0;
   }
-
   .online-user-card .avatar-dot {
     position: absolute;
-    bottom: -1px;
-    right: -1px;
-    width: 13px;
-    height: 13px;
+    bottom: -2px;
+    right: -2px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     border: 2px solid var(--bg-surface);
     background: var(--success);
-    box-shadow: 0 0 6px var(--success);
   }
-
   .online-user-card .user-info {
     flex: 1;
     min-width: 0;
   }
-
   .online-user-card .user-name {
-    font-weight: 700;
-    font-size: 0.95rem;
+    font-weight: 600;
+    font-size: 0.88rem;
     color: var(--text-main);
     display: flex;
     align-items: center;
@@ -89,228 +166,251 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
   .online-user-card .user-status {
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-top: 2px;
+    margin-top: 1px;
   }
 
-  .presence-container {
-    background: linear-gradient(145deg, #0e172a 0%, #111e38 100%);
+  .online-grid-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 290px;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+
+  /* Telemetria mutató sor */
+  .telemetry-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--bg-subtle);
     border: 1px solid var(--border-subtle);
-    border-radius: 14px;
-    padding: 20px 22px;
-    margin-bottom: 30px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    border-radius: var(--radius-md);
+    margin-bottom: 8px;
+    font-size: 0.86rem;
+  }
+  .telemetry-row:last-child {
+    margin-bottom: 0;
   }
 
-  .online-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 12px;
-  }
-
-  @media (max-width: 768px) {
-    .presence-container {
-      padding: 16px;
-    }
-    .online-grid {
-      grid-template-columns: 1fr;
-      gap: 10px;
+  @media (max-width: 960px) {
+    .bento-col-8, .bento-col-4, .bento-col-6 {
+      grid-column: span 12;
     }
   }
 </style>
 
-<!-- 1. Fő Üdvözlő Fejléc -->
-<div style="margin-bottom: 24px;">
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+<!-- 1. Fő Üdvözlő Fejléc (Szoftverszerű, Border-first) -->
+<div style="margin-bottom: 20px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
     <div>
-      <h1 style="font-size: clamp(1.4rem, 4vw, 1.85rem); font-weight: 800; color: var(--text-main); letter-spacing: -0.02em;">
-        Üdvözlünk a Bánk's Repository Hubon!
+      <h1 style="font-size: clamp(1.3rem, 3vw, 1.65rem); font-weight: 700; color: var(--text-main); letter-spacing: -0.02em;">
+        Bánk's Repository Hub
       </h1>
-      <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 6px; line-height: 1.4;">
-        Valós idejű közösségi tér, moduláris webalkalmazások és interaktív többjátékos élmény.
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; line-height: 1.5;">
+        Valós idejű közösségi munkatér, moduláris webalkalmazások és WebSocket telemetria.
       </p>
     </div>
-    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-      <span style="display: inline-flex; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.12); border: 1px solid var(--success); color: #34d399; padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 600;">
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <span style="display: inline-flex; align-items: center; gap: 7px; background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-main); padding: 5px 12px; border-radius: var(--radius-md); font-size: 0.82rem; font-weight: 500;">
         <span class="pulse-indicator"></span>
-        Platform: Online
+        <span>Platform: <strong style="color: #34d399;">Online</strong></span>
       </span>
       <% if logged_in? %>
-        <a href="<%= app_my_profile_path %>" class="btn btn-secondary" style="font-size: 0.82rem; padding: 6px 12px;">
-          <span>👤</span> Saját Profilom →
+        <a href="<%= app_my_profile_path %>" class="btn btn-secondary" style="font-size: 0.82rem; padding: 5px 12px;">
+          <span>👤 Profil</span>
         </a>
       <% end %>
     </div>
   </div>
 </div>
 
-<!-- 2. Valós Idejű Online Fiókok & Aktivitás Panel -->
-<div class="presence-container">
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); padding-bottom: 12px;">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <span style="font-size: 1.4rem;">👥</span>
-      <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
-        <span>Online Felhasználók & Élő Aktivitás</span>
-      </h2>
-      <span id="online-counter-badge" class="badge badge-live" style="font-size: 0.75rem;">
-        <span id="online-counter"><%= @online_count %></span> aktív
-      </span>
-    </div>
+<!-- 2. Aszimmetrikus Bento-Grid -->
+<div class="bento-grid">
 
-    <div style="display: flex; align-items: center; gap: 12px; font-size: 0.82rem; color: var(--text-muted);">
-      <span>Összes tag: <strong style="color: var(--text-main);"><%= @total_users_count %></strong></span>
-      <span style="color: var(--border-subtle);">|</span>
-      <span id="ws-presence-indicator" style="color: #34d399; display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
-        <span style="width: 6px; height: 6px; border-radius: 50%; background: #34d399;"></span>
-        Élő kapcsolat (WebSocket)
-      </span>
-    </div>
-  </div>
-
-  <!-- Online Felhasználók Dinamikus Rácsa -->
-  <div id="online-users-grid" class="online-grid">
-    <% if @online_users.any? %>
-      <% @online_users.each do |user| %>
-        <%= link_to app_user_profile_path(user.id), class: "online-user-card", id: "presence-user-#{user.id}", title: "#{user.effective_name} profiljának megtekintése" do %>
-          <div class="avatar-box" style="background: <%= user.custom_avatar_color %>;">
-            <%= user.avatar_initials %>
-            <span class="avatar-dot"></span>
-          </div>
-          <div class="user-info">
-            <div class="user-name">
-              <span><%= user.effective_name %></span>
-              <% if user.admin? %>
-                <span class="badge badge-admin" style="font-size: 0.65rem; padding: 1px 5px;">Admin</span>
-              <% end %>
-            </div>
-            <div class="user-status">
-              <% if user.custom_status.present? %>
-                "<%= user.custom_status %>"
-              <% else %>
-                Épp most aktív
-              <% end %>
-            </div>
-          </div>
-          <div style="color: var(--accent); font-size: 0.9rem; opacity: 0.6; transition: opacity 0.2s;" class="card-arrow">
-            →
-          </div>
-        <% end %>
-      <% end %>
-    <% else %>
-      <%# Ha épp senki sincs online, megjelenítjük a legutóbb látott tagokat, hogy ne legyen üres a felület %>
-      <div id="no-online-placeholder" style="grid-column: 1 / -1; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-subtle); border-radius: 8px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
-        Jelenleg nincs aktív látogató a szerveren. 
-        <% if @recent_active_users.any? %>
-          <div style="margin-top: 8px; font-size: 0.82rem; color: var(--text-main);">
-            Legutóbb aktív tagok:
-            <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 6px;">
-              <% @recent_active_users.limit(4).each do |u| %>
-                <%= link_to app_user_profile_path(u.id), style: "color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: var(--bg-elevated); padding: 4px 10px; border-radius: 12px; border: 1px solid var(--border-subtle);" do %>
-                  <span><%= u.effective_name %></span>
-                  <span style="color: var(--text-muted); font-size: 0.72rem;">(<%= time_ago_in_words(u.last_seen_at) %>)</span>
-                <% end %>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
+  <!-- A) Kiemelt Modulok Bento Panel (Span 8) -->
+  <div class="bento-card bento-col-8">
+    <div class="bento-header">
+      <div class="bento-title">
+        <span>📦</span>
+        <span>Elérhető Alkalmazások & Eszközök</span>
       </div>
-    <% end %>
+      <span class="badge badge-amber font-mono">Moduláris Monolit</span>
+    </div>
+
+    <div class="apps-grid">
+      <% 
+        dashboard_apps = (admin? rescue false) ? AppDefinition.order(:name) : AppDefinition.available_to_users.order(:name)
+      %>
+      <% dashboard_apps.each do |app| %>
+        <% 
+          app_icon = case app.slug
+                     when "chess" then "♟️"
+                     when "casino" then "🎰"
+                     when "canvas" then "🎨"
+                     when "test" then "🛠️"
+                     else "📦"
+                     end
+        %>
+        <div class="app-item">
+          <div>
+            <div class="app-item-icon"><%= app_icon %></div>
+            <div class="app-item-title">
+              <span><%= app.name %></span>
+              <% if app.state_active? %>
+                <span class="badge badge-live">Live</span>
+              <% else %>
+                <span class="badge badge-soon"><%= app.state.upcase %></span>
+              <% end %>
+            </div>
+            <p class="app-item-desc">
+              <%= app.description.presence || "Önálló in-app modul valós idejű ActionCable integrációval." %>
+            </p>
+          </div>
+          <div>
+            <a href="<%= app.mount_path %>" class="btn btn-primary" style="width: 100%; font-size: 0.86rem; padding: 7px 10px;">
+              Megnyitás →
+            </a>
+          </div>
+        </div>
+      <% end %>
+    </div>
   </div>
-</div>
 
-<!-- 3. Alkalmazás Modulok Kártyarács -->
-<h2 style="font-size: 1.15rem; font-weight: 700; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-  <span>📦</span> Elérhető Alkalmazások & Eszközök
-</h2>
+  <!-- B) Valós Idejű Jelenlét Bento Widget (Span 4) -->
+  <div class="bento-card bento-col-4">
+    <div class="bento-header">
+      <div class="bento-title">
+        <span>👥</span>
+        <span>Élő Jelenlét</span>
+      </div>
+      <span id="online-counter-badge" class="badge badge-live font-mono">
+        <span id="online-counter"><%= @online_count %></span> online
+      </span>
+    </div>
 
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; margin-bottom: 32px;">
-  <% 
-    dashboard_apps = (admin? rescue false) ? AppDefinition.order(:name) : AppDefinition.available_to_users.order(:name)
-  %>
-  <% dashboard_apps.each do |app| %>
-    <% 
-      app_icon = case app.slug
-                 when "chess" then "♟️"
-                 when "casino" then "🎰"
-                 when "test" then "🛠️"
-                 else "📦"
-                 end
-    %>
-    <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-color: rgba(56, 189, 248, 0.3); background: linear-gradient(145deg, #11192e 0%, #13203c 100%);">
-      <div>
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-          <div style="font-size: 2.2rem;"><%= app_icon %></div>
-          <% if app.state_active? %>
-            <span class="badge badge-live">Elérhető</span>
-          <% else %>
-            <span class="badge badge-soon" style="color: var(--warning); border: 1px solid var(--warning);"><%= app.state.upcase %></span>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.8rem; color: var(--text-muted);">
+      <span>Összes tag: <strong style="color: var(--text-main);" class="font-mono"><%= @total_users_count %></strong></span>
+      <span id="ws-presence-indicator" style="color: #34d399; display: inline-flex; align-items: center; gap: 5px; font-weight: 500;">
+        <span style="width: 5px; height: 5px; border-radius: 50%; background: #34d399;"></span>
+        WebSocket Élő
+      </span>
+    </div>
+
+    <!-- Online Felhasználók Kompakt Rácsa -->
+    <div id="online-users-grid" class="online-grid-compact">
+      <% if @online_users.any? %>
+        <% @online_users.each do |user| %>
+          <%= link_to app_user_profile_path(user.id), class: "online-user-card", id: "presence-user-#{user.id}", title: "#{user.effective_name} profilja" do %>
+            <div class="avatar-box" style="background: <%= user.custom_avatar_color %>;">
+              <%= user.avatar_initials %>
+              <span class="avatar-dot"></span>
+            </div>
+            <div class="user-info">
+              <div class="user-name">
+                <span><%= user.effective_name %></span>
+                <% if user.admin? %>
+                  <span class="badge badge-admin" style="font-size: 0.65rem; padding: 1px 4px;">Admin</span>
+                <% end %>
+              </div>
+              <div class="user-status">
+                <%= user.custom_status.present? ? "\"#{user.custom_status}\"" : "Épp most aktív" %>
+              </div>
+            </div>
+            <div style="color: var(--accent); font-size: 0.82rem; opacity: 0.7;">→</div>
+          <% end %>
+        <% end %>
+      <% else %>
+        <div id="no-online-placeholder" style="padding: 14px; background: var(--bg-subtle); border: 1px dashed var(--border-subtle); border-radius: var(--radius-md); text-align: center; color: var(--text-muted); font-size: 0.84rem;">
+          Jelenleg nincs aktív látogató.
+          <% if @recent_active_users.any? %>
+            <div style="margin-top: 8px; font-size: 0.78rem; color: var(--text-main);">
+              Legutóbb aktív:
+              <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 6px;">
+                <% @recent_active_users.limit(3).each do |u| %>
+                  <%= link_to app_user_profile_path(u.id), style: "color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: var(--bg-elevated); padding: 3px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);" do %>
+                    <span><%= u.effective_name %></span>
+                    <span style="color: var(--text-muted); font-size: 0.7rem;">(<%= time_ago_in_words(u.last_seen_at) %>)</span>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
           <% end %>
         </div>
-        <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
-          <%= app.name %>
-        </h3>
-        <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; margin-bottom: 16px;">
-          <%= app.description.presence || "Önálló beépülő modul valós idejű integrációval." %>
-        </p>
-      </div>
-      <div>
-        <a href="<%= app.mount_path %>" class="btn btn-primary" style="width: 100%; text-align: center; font-size: 0.95rem; padding: 10px;">
-          <%= app.name %> Megnyitása →
-        </a>
-      </div>
+      <% end %>
     </div>
-  <% end %>
+  </div>
 
-  <!-- Fejlesztői Teszt Konzol Kártya -->
-  <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
-    <div>
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-        <div style="font-size: 2.2rem;">🛠️</div>
-        <span class="badge badge-live">Live</span>
+  <!-- C) Telemetria & Teszt Konzol Bento Panel (Span 6) -->
+  <div class="bento-card bento-col-6">
+    <div class="bento-header">
+      <div class="bento-title">
+        <span>🛠️</span>
+        <span>Action Cable Teszt Konzol</span>
       </div>
-      <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
-        Action Cable Teszt Konzol
-      </h3>
-      <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; margin-bottom: 16px;">
-        WebSocket késleltetés mérés, kétirányú ping-pong tesztek és Redis pub/sub közvetítés ellenőrzése.
-      </p>
-    </div>
-    <div>
-      <a href="/test" class="btn btn-secondary" style="width: 100%; text-align: center; font-size: 0.95rem; padding: 10px;">
-        Konzol Futtatása →
+      <a href="/test" class="btn btn-secondary" style="font-size: 0.78rem; padding: 4px 8px;">
+        Konzol Megnyitása →
       </a>
     </div>
+    <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin-bottom: 14px;">
+      Valós idejű WebSocket késleltetés mérés, kétirányú ping-pong tesztek és Redis közvetítés ellenőrzése.
+    </p>
+    <div class="telemetry-row">
+      <span style="color: var(--text-muted);">Protokoll:</span>
+      <span class="font-mono" style="color: var(--text-main); font-size: 0.82rem;">WSS (Action Cable 7.1)</span>
+    </div>
+    <div class="telemetry-row">
+      <span style="color: var(--text-muted);">Pub/Sub közvetítő:</span>
+      <span class="font-mono" style="color: var(--text-main); font-size: 0.82rem;">Redis Production Adapter</span>
+    </div>
+    <div class="telemetry-row">
+      <span style="color: var(--text-muted);">Csatorna feliratkozás:</span>
+      <span class="badge badge-live font-mono">PresenceChannel OK</span>
+    </div>
   </div>
 
-  <!-- Jövőbeli Modulok Helyőrző -->
-  <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; border-style: dashed; opacity: 0.85;">
-    <div>
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-        <div style="font-size: 2.2rem;">⚡</div>
-        <span class="badge badge-soon">Hamarosan</span>
+  <!-- D) Rendszer Architektúra & Biztonság Bento Panel (Span 6) -->
+  <div class="bento-card bento-col-6">
+    <div class="bento-header">
+      <div class="bento-title">
+        <span>🛡️</span>
+        <span>Rendszer & Biztonsági Központ</span>
       </div>
-      <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
-        Következő Beépülő Eszköz
-      </h3>
-      <p style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; margin-bottom: 16px;">
-        A moduláris monolit architektúrának köszönhetően új mini-appok (pl. feladatkezelő vagy jegyzetelő) azonnal felcsatolhatóak.
-      </p>
+      <% if admin? %>
+        <a href="/bank-admin" class="btn btn-admin" style="font-size: 0.78rem; padding: 4px 8px;">
+          Adminisztráció →
+        </a>
+      <% else %>
+        <span class="badge badge-muted font-mono">Monolit v<%= File.read(Rails.root.join("VERSION")).strip rescue "1.9.0" %></span>
+      <% end %>
     </div>
-    <div>
-      <button class="btn btn-secondary" disabled style="width: 100%; opacity: 0.5; cursor: not-allowed; padding: 10px;">
-        Fejlesztés Alatt
-      </button>
+    <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin-bottom: 14px;">
+      Ubuntu 22.04 LTS VM környezet, Nginx SSL terminálás és Puma alkalmazásszerver automatizált deploy folyamattal.
+    </p>
+    <div class="telemetry-row">
+      <span style="color: var(--text-muted);">Alkalmazás-keretrendszer:</span>
+      <span class="font-mono" style="color: var(--text-main); font-size: 0.82rem;">Ruby on Rails 7.1.4</span>
+    </div>
+    <div class="telemetry-row">
+      <span style="color: var(--text-muted);">Adatbázis motor:</span>
+      <span class="font-mono" style="color: var(--text-main); font-size: 0.82rem;">MySQL 8.0 Active Record</span>
+    </div>
+    <div class="telemetry-row">
+      <span style="color: var(--text-muted);">Dizájnrendszer:</span>
+      <span class="badge badge-amber font-mono">Geist Border-First v2</span>
     </div>
   </div>
+
 </div>
 
-<!-- 4. Valós Idejű WebSocket Jelenlét Kliens (ActionCable PresenceChannel) -->
+<!-- 3. Valós Idejű WebSocket Jelenlét Kliens (ActionCable PresenceChannel) -->
 <script>
   (function() {
     const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
@@ -328,13 +428,13 @@
       card.href = u.profile_path || ("/profile/" + u.id);
       card.className = "online-user-card";
       card.id = "presence-user-" + u.id;
-      card.title = (u.display_name || u.username) + " profiljának megtekintése";
+      card.title = (u.display_name || u.username) + " profilja";
 
-      const adminBadge = u.role === "admin" ? '<span class="badge badge-admin" style="font-size: 0.65rem; padding: 1px 5px;">Admin</span>' : '';
+      const adminBadge = u.role === "admin" ? '<span class="badge badge-admin" style="font-size: 0.65rem; padding: 1px 4px;">Admin</span>' : '';
       const statusText = u.custom_status ? ('"' + escapeHtml(u.custom_status) + '"') : 'Épp most aktív';
 
       card.innerHTML = `
-        <div class="avatar-box" style="background: ${escapeHtml(u.avatar_color || '#38bdf8')};">
+        <div class="avatar-box" style="background: ${escapeHtml(u.avatar_color || '#f59e0b')};">
           ${escapeHtml(u.avatar_initials || 'U')}
           <span class="avatar-dot"></span>
         </div>
@@ -345,12 +445,11 @@
           </div>
           <div class="user-status">${statusText}</div>
         </div>
-        <div style="color: var(--accent); font-size: 0.9rem; opacity: 0.6;" class="card-arrow">
-          →
-        </div>
+        <div style="color: var(--accent); font-size: 0.82rem; opacity: 0.7;">→</div>
       `;
       return card;
     }
+
 
     function escapeHtml(str) {
       if (!str) return '';

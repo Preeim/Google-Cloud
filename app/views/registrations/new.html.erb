@@ -1,26 +1,26 @@
-<div style="max-width: 440px; margin: 20px auto; width: 100%; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: clamp(18px, 5vw, 28px);">
-  <h2 style="font-size: clamp(1.3rem, 4vw, 1.5rem); font-weight: 700; margin-bottom: 8px;">Új Fiók Regisztrációja</h2>
-  <p style="color: var(--text-muted); font-size: 0.92rem; margin-bottom: 20px;">Hozz létre egy fiókot a Bánk's Repository modulok használatához.</p>
+<div style="max-width: 440px; margin: 30px auto; width: 100%; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: clamp(20px, 5vw, 30px);">
+  <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; color: var(--text-main);">Új Fiók Regisztrációja</h2>
+  <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 22px; line-height: 1.5;">Hozz létre egy fiókot a Bánk's Repository modulok használatához.</p>
 
   <%= form_with model: @user, url: register_path, local: true do |f| %>
-    <div style="margin-bottom: 16px;">
-      <label style="display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted);">Felhasználónév</label>
-      <%= f.text_field :username, required: true, autofocus: true, autocapitalize: "none", autocomplete: "username", placeholder: "pl. sakk_mester", style: "width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 11px 14px; color: var(--text-main); font-size: 0.95rem;" %>
+    <div class="form-group">
+      <label>Felhasználónév</label>
+      <%= f.text_field :username, required: true, autofocus: true, autocapitalize: "none", autocomplete: "username", placeholder: "pl. sakk_mester", class: "form-control" %>
     </div>
 
-    <div style="margin-bottom: 16px;">
-      <label style="display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted);">E-mail Cím</label>
-      <%= f.email_field :email, required: true, autocapitalize: "none", autocomplete: "email", placeholder: "pelda@domain.hu", style: "width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 11px 14px; color: var(--text-main); font-size: 0.95rem;" %>
+    <div class="form-group">
+      <label>E-mail Cím</label>
+      <%= f.email_field :email, required: true, autocapitalize: "none", autocomplete: "email", placeholder: "pelda@domain.hu", class: "form-control" %>
     </div>
 
-    <div style="margin-bottom: 16px;">
-      <label style="display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted);">Jelszó (legalább 8 karakter)</label>
-      <%= f.password_field :password, required: true, autocomplete: "new-password", placeholder: "••••••••", style: "width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 11px 14px; color: var(--text-main); font-size: 0.95rem;" %>
+    <div class="form-group">
+      <label>Jelszó (legalább 8 karakter)</label>
+      <%= f.password_field :password, required: true, autocomplete: "new-password", placeholder: "••••••••", class: "form-control font-mono" %>
     </div>
 
-    <div style="margin-bottom: 22px;">
-      <label style="display: block; font-size: 0.88rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted);">Jelszó Megerősítése</label>
-      <%= f.password_field :password_confirmation, required: true, autocomplete: "new-password", placeholder: "••••••••", style: "width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 11px 14px; color: var(--text-main); font-size: 0.95rem;" %>
+    <div class="form-group" style="margin-bottom: 22px;">
+      <label>Jelszó Megerősítése</label>
+      <%= f.password_field :password_confirmation, required: true, autocomplete: "new-password", placeholder: "••••••••", class: "form-control font-mono" %>
     </div>
 
     <%# Honeypot mező automatizált spam botok kiszűrésére (emberek számára rejtett) %>
@@ -29,15 +29,14 @@
       <%= text_field_tag :hp_security_verification, "", tabindex: "-1", autocomplete: "off" %>
     </div>
 
-    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 0.95rem;">Fiók Létrehozása</button>
+    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 0.92rem;">Fiók Létrehozása</button>
 
-    <div style="margin-top: 14px; text-align: center; font-size: 0.82rem; color: var(--text-muted); line-height: 1.4;">
+    <div style="margin-top: 14px; text-align: center; font-size: 0.8rem; color: var(--text-muted); line-height: 1.45;">
       A fiók létrehozásával tudomásul veszed a platform <%= link_to "Feltételeit és Felelősségkizárását", terms_path, target: "_blank", style: "color: var(--accent); text-decoration: underline;" %>, valamint az <%= link_to "Adatkezelési tájékoztatót", privacy_path, target: "_blank", style: "color: var(--accent); text-decoration: underline;" %>.
     </div>
-
   <% end %>
 
-  <div style="margin-top: 20px; text-align: center; font-size: 0.88rem; color: var(--text-muted);">
+  <div style="margin-top: 20px; text-align: center; font-size: 0.86rem; color: var(--text-muted);">
     Már van fiókod? <%= link_to "Jelentkezz be itt", login_path, style: "color: var(--accent); font-weight: 600; text-decoration: none;" %>
   </div>
 </div>

@@ -7,25 +7,8 @@
   <%= csrf_meta_tags %>
   <script src="https://cdn.jsdelivr.net/npm/@rails/actioncable@7.1.3/app/assets/javascripts/actioncable.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <%= render "shared/design_system" %>
   <style>
-    :root {
-      --bg-canvas: #0a0f1d;
-      --bg-surface: #11192e;
-      --bg-elevated: #1a243b;
-      --border-subtle: #23304d;
-      --border-hover: #3b4b73;
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --accent-blue: #38bdf8;
-      --admin-accent: #a855f7;
-      --admin-accent-hover: #9333ea;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #f43f5e;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
-    body { background-color: var(--bg-canvas); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; width: 100%; }
-    
     /* Admin Kontextuális Al-menüsor */
     .admin-subnav {
       background: var(--bg-surface);
@@ -42,7 +25,7 @@
     .admin-subnav-links {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       overflow-x: auto;
       white-space: nowrap;
       padding: 4px 0;
@@ -50,55 +33,41 @@
     .admin-subnav-links a {
       color: var(--text-muted);
       text-decoration: none;
-      font-size: 0.88rem;
-      font-weight: 600;
+      font-size: 0.86rem;
+      font-weight: 500;
       padding: 6px 12px;
-      border-radius: 6px;
+      border-radius: var(--radius-md);
       border: 1px solid transparent;
-      transition: all 0.15s;
+      transition: all var(--transition-fast);
     }
     .admin-subnav-links a:hover {
       color: var(--text-main);
       background: var(--bg-elevated);
+      border-color: var(--border-subtle);
     }
     .admin-subnav-links a.active {
-      color: var(--admin-accent);
-      background: rgba(168, 85, 247, 0.15);
-      border-color: rgba(168, 85, 247, 0.3);
+      color: var(--accent);
+      background: var(--accent-subtle);
+      border-color: var(--accent-border);
+      font-weight: 600;
     }
 
     .flash-container { max-width: 1300px; margin: 16px auto 0; padding: 0 20px; width: 100%; }
-    .flash-notice { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: #34d399; padding: 12px 18px; border-radius: 8px; margin-bottom: 12px; }
-    .flash-alert { background: rgba(244, 63, 94, 0.15); border: 1px solid var(--danger); color: #fb7185; padding: 12px 18px; border-radius: 8px; margin-bottom: 12px; }
+    .flash-notice { background: var(--success-subtle); border: 1px solid var(--success-border); color: #34d399; padding: 10px 16px; border-radius: var(--radius-md); margin-bottom: 12px; font-size: 0.9rem; }
+    .flash-alert { background: var(--danger-subtle); border: 1px solid var(--danger-border); color: #fca5a5; padding: 10px 16px; border-radius: var(--radius-md); margin-bottom: 12px; font-size: 0.9rem; }
 
     .admin-container { max-width: 1300px; margin: 24px auto; width: 100%; padding: 0 20px; flex: 1; }
-    .card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
-    
-    .btn { padding: 8px 16px; border-radius: 6px; font-weight: 600; text-decoration: none; display: inline-block; cursor: pointer; border: none; font-size: 0.88rem; transition: all 0.2s; }
-    .btn-admin { background: var(--admin-accent); color: white; }
-    .btn-admin:hover { background: var(--admin-accent-hover); }
-    .btn-secondary { background: var(--bg-elevated); color: var(--text-main); border: 1px solid var(--border-subtle); }
-    .btn-secondary:hover { border-color: var(--border-hover); }
-    .btn-danger { background: rgba(244, 63, 94, 0.2); border: 1px solid var(--danger); color: #fb7185; }
-    .btn-danger:hover { background: var(--danger); color: white; }
-    .btn-success { background: rgba(16, 185, 129, 0.2); border: 1px solid var(--success); color: #34d399; }
-    .btn-success:hover { background: var(--success); color: white; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th { text-align: left; padding: 12px 16px; background: var(--bg-elevated); color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-subtle); }
-    td { padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); font-size: 0.92rem; color: var(--text-main); vertical-align: middle; }
+    th { text-align: left; padding: 10px 14px; background: var(--bg-elevated); color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-subtle); font-weight: 600; }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--border-subtle); font-size: 0.9rem; color: var(--text-main); vertical-align: middle; }
     tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
-    .tag { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
-    .tag-admin { background: rgba(168, 85, 247, 0.2); color: var(--admin-accent); border: 1px solid var(--admin-accent); }
-    .tag-active { background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success); }
-    .tag-locked { background: rgba(244, 63, 94, 0.2); color: var(--danger); border: 1px solid var(--danger); }
-    .tag-user { background: rgba(148, 163, 184, 0.2); color: var(--text-muted); border: 1px solid var(--border-subtle); }
-
-    .form-group { margin-bottom: 18px; }
-    .form-group label { display: block; font-size: 0.88rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
-    .form-control { width: 100%; background: var(--bg-elevated); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 10px 14px; color: var(--text-main); font-size: 0.95rem; }
-    .form-control:focus { outline: none; border-color: var(--admin-accent); }
+    .tag { display: inline-block; padding: 2px 7px; border-radius: var(--radius-sm); font-size: 0.72rem; font-weight: 600; }
+    .tag-admin { background: var(--admin-subtle); color: var(--admin-accent); border: 1px solid var(--admin-border); }
+    .tag-active { background: var(--success-subtle); color: #34d399; border: 1px solid var(--success-border); }
+    .tag-locked { background: var(--danger-subtle); color: #f87171; border: 1px solid var(--danger-border); }
+    .tag-user { background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid var(--border-subtle); }
 
     /* Mobil Reszponzivitás & Kártyás Táblázatok */
     @media (max-width: 768px) {
