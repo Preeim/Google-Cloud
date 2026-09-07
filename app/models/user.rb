@@ -37,6 +37,12 @@ class User < ApplicationRecord
   # Jelenlét és profil scope-ok
   scope :online, -> { where("last_seen_at >= ?", 5.minutes.ago) }
 
+  # Hitelesítési adatok normalizálása és tisztítása a validáció előtt
+  before_validation :normalize_credentials
+
+  # Szigorú RFC-kompatibilis e-mail formátum (megakadályozza az SQL injection karaktereket, vezérlőjeleket és szóközöket)
+  STRICT_EMAIL_REGEX = /\A[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+\z/
+
   # Validációk
   validates :username, presence: true,
                        uniqueness: { case_sensitive: false },
@@ -45,7 +51,8 @@ class User < ApplicationRecord
 
   validates :email, presence: true,
                     uniqueness: { case_sensitive: false },
-                    format: { with: URI::MailTo::EMAIL_REGEXP, message: "érvénytelen formátum" }
+                    length: { maximum: 254 },
+                    format: { with: STRICT_EMAIL_REGEX, message: "érvénytelen formátum" }
 
   # Jelszó komplexitás: legalább 8 karakter új jelszó megadásakor
   validates :password, length: { minimum: 8 }, if: -> { new_record? || !password.nil? }
@@ -152,5 +159,13 @@ class User < ApplicationRecord
   # Biztonságos hex avatar szín
   def custom_avatar_color
     avatar_color.presence || "#38bdf8"
+  end
+
+  private
+
+  # Felhasználónév és email cím normalizálása (whitespace és kisbetűsítés)
+  def normalize_credentials
+    self.username = username.to_s.strip if username.present?
+    self.email = email.to_s.strip.downcase if email.present?
   end
 end

@@ -36,6 +36,24 @@ Rails.application.configure do
   # Nginx fordított proxy kezeli az SSL-t (Let's Encrypt) és a domaineket
   config.hosts.clear
 
+  # Szigorú SSL/TLS és HSTS kényszerítés (Strict-Transport-Security)
+  config.force_ssl = true
+  config.ssl_options = {
+    hsts: { subdomains: true, preload: true, expires: 2.years },
+    redirect: { exclude: ->(request) { request.path.start_with?("/up") } }
+  }
+
+  # Szigorú HTTP biztonsági fejlécek (HSTS, Anti-Clickjacking, Sniffing és Jogosultság védelem)
+  config.action_dispatch.default_headers = {
+    "X-Frame-Options" => "SAMEORIGIN",
+    "X-XSS-Protection" => "0",
+    "X-Content-Type-Options" => "nosniff",
+    "X-Permitted-Cross-Domain-Policies" => "none",
+    "Referrer-Policy" => "strict-origin-when-cross-origin",
+    "Permissions-Policy" => "camera=(), microphone=(), geolocation=(), payment=()",
+    "Strict-Transport-Security" => "max-age=63072000; includeSubDomains; preload"
+  }
+
   # Action Cable WebSocket beállítások éles környezetben:
   # Engedélyezzük a szigorú Origin védelmet (CSWSH megelőzése) az allowed_request_origins alapján
   config.action_cable.disable_request_forgery_protection = false

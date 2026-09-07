@@ -140,10 +140,10 @@
       </h1>
     </div>
 
-    <!-- 3. JOBB OLDAL: Modul-specifikus Bővítmények & Fiókkezelés -->
+    <%# 3. JOBB OLDAL: Modul-specifikus Bővítmények & Fiókkezelés %>
     <div class="nav-zone nav-zone-right">
       
-      <!-- Modul-specifikus dinamikus tartalom (zsetonok, admin fülek, socket badge stb.) -->
+      <%# Modul-specifikus dinamikus tartalom (zsetonok, admin fülek, socket badge stb.) %>
       <% if content_for?(:navbar_extra) %>
         <div class="navbar-extra-slot">
           <%= yield :navbar_extra %>
@@ -151,7 +151,7 @@
       <% end %>
 
       <% if logged_in? %>
-        <!-- BEJELENTKEZETT FELHASZNÁLÓ: Profil Avatar & Dropdown -->
+        <%# BEJELENTKEZETT FELHASZNÁLÓ: Profil Avatar & Dropdown %>
         <div class="user-menu-wrapper" id="user-menu-wrapper">
           <button type="button" class="user-menu-btn" id="user-menu-toggle" aria-expanded="false" aria-haspopup="true">
             <span class="user-avatar" style="background: <%= (current_user.custom_avatar_color rescue '#38bdf8') %>;">

@@ -91,7 +91,11 @@ class Rack::Attack
 
     headers = {
       "Content-Type" => req.env["HTTP_ACCEPT"]&.include?("application/json") ? "application/json" : "text/html; charset=utf-8",
-      "Retry-After"  => retry_after.to_s
+      "Retry-After"  => retry_after.to_s,
+      "Content-Security-Policy" => "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'self'",
+      "X-Frame-Options" => "SAMEORIGIN",
+      "X-Content-Type-Options" => "nosniff",
+      "Referrer-Policy" => "strict-origin-when-cross-origin"
     }
 
     if req.env["HTTP_ACCEPT"]&.include?("application/json")

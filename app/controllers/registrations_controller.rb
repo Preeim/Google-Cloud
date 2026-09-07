@@ -65,9 +65,12 @@ class RegistrationsController < ApplicationController
     end
   end
 
-  # Tömeges hozzárendelés (Mass Assignment) elleni védelem: csak a szükséges mezők
+  # Tömeges hozzárendelés (Mass Assignment) elleni védelem: csak a szükséges mezők, bemeneti adatok előtisztítása
   def user_params
-    params.require(:user).permit(:username, :email, :password, :password_confirmation)
+    cleaned = params.require(:user).permit(:username, :email, :password, :password_confirmation)
+    cleaned[:username] = cleaned[:username].to_s.strip if cleaned[:username].present?
+    cleaned[:email] = cleaned[:email].to_s.strip.downcase if cleaned[:email].present?
+    cleaned
   end
 end
 

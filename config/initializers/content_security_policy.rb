@@ -19,18 +19,17 @@ Rails.application.configure do
     # Flash és más objektumok tiltása
     policy.object_src  :none
 
-    # Scriptek (plusz külső könyvtárak a sakk modulhoz)
+    # Scriptek (megbízható CDN-ek és saját forrás)
     policy.script_src  :self, :unsafe_inline, "https://cdnjs.cloudflare.com", "https://code.jquery.com", "https://unpkg.com", "https://cdn.skypack.dev", "https://cdn.jsdelivr.net"
 
-    # Stílusok (plusz külső könyvtárak a sakk modulhoz)
+    # Stílusok (megbízható stílustárak és saját forrás)
     policy.style_src   :self, :unsafe_inline, "https://unpkg.com"
 
     # Hálózati kapcsolatok: Fetch, XHR és Action Cable WebSocket csatornák
-    # Teljes körűen engedélyezi a ws:// és wss:// kapcsolatokat a domainhez
+    # Megszüntetve a tág 'wss:' és 'ws:' helyettesítő karaktereket a szigorú domain-specifikus engedélyezésért
     policy.connect_src :self, :blob,
                        "wss://bankrepo.hu", "ws://bankrepo.hu",
                        "wss://www.bankrepo.hu", "ws://www.bankrepo.hu",
-                       "wss:", "ws:",
                        "https://bankrepo.hu", "http://bankrepo.hu",
                        "ws://localhost:3000", "ws://127.0.0.1:3000"
 
@@ -43,4 +42,8 @@ Rails.application.configure do
     # Alap URI
     policy.base_uri :self
   end
+
+  # Kriptográfiai véletlen Nonce generálás a beágyazott scriptekhez
+  config.content_security_policy_nonce_generator = ->(request) { SecureRandom.base64(16) }
+  config.content_security_policy_nonce_directives = %w(script-src)
 end
