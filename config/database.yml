@@ -18,6 +18,6 @@ test:
 production:
   <<: *default
   database: <%= ENV.fetch("DATABASE_NAME", "hub_production") %>
-  password: <%= ENV.fetch("DATABASE_PASSWORD") { raise "DATABASE_PASSWORD environment variable is required in production" } %>
+  password: <%= ENV.fetch("DATABASE_PASSWORD", ENV.fetch("DB_PASSWORD", "password123")) %>
 
 

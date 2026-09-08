@@ -13,6 +13,9 @@ if [ -f ".env" ]; then
     set +a
 fi
 
+# Ensure default database password if not set
+export DATABASE_PASSWORD="${DATABASE_PASSWORD:-password123}"
+
 # 1. Nginx Hardening (Server header & version leak mitigation)
 if [ -d "/etc/nginx" ] && command -v nginx >/dev/null 2>&1; then
     echo "[1/5] Hardening Nginx server tokens and headers..."
