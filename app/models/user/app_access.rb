@@ -1,16 +1,13 @@
 # frozen_string_literal: true
 
 # ==============================================================================
-# Bánk's Repository - Modulhozzáférési Jogosultság Concern (User::AppAccess)
-# ==============================================================================
-# Kezeli a platformhoz kapcsolt önálló modulok (pl. Sakk, Kaszinó, Rajzvászon)
-# felhasználói szintű hozzáférési jogosultságainak ellenőrzését.
+# Bánk's Repository - Modulhozzáférési Jogosultság Modul (User::AppAccess)
 # ==============================================================================
 
-module User::AppAccess
-  extend ActiveSupport::Concern
+class User < ApplicationRecord
+  module AppAccess
+    extend ActiveSupport::Concern
 
-  included do
     # Eldönti, hogy a felhasználó jogosult-e egy adott app (pl. "chess") megnyitására
     def can_access_app?(app_slug)
       # Az adminisztrátor mindenhez hozzáfér
@@ -34,4 +31,3 @@ module User::AppAccess
     end
   end
 end
-

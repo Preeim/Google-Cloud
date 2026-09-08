@@ -1,16 +1,13 @@
 # frozen_string_literal: true
 
 # ==============================================================================
-# Bánk's Repository - Felhasználói Megjelenítési Concern (User::Presentable)
-# ==============================================================================
-# Felelős a profil megjelenítési adatok, avatar színek, monogramok és
-# az online aktivitási állapotok formázásáért.
+# Bánk's Repository - Felhasználói Megjelenítési Modul (User::Presentable)
 # ==============================================================================
 
-module User::Presentable
-  extend ActiveSupport::Concern
+class User < ApplicationRecord
+  module Presentable
+    extend ActiveSupport::Concern
 
-  included do
     # Igaz, ha az utolsó aktivitás 5 percen belül történt
     def online?
       last_seen_at.present? && last_seen_at >= 5.minutes.ago
@@ -42,4 +39,3 @@ module User::Presentable
     end
   end
 end
-

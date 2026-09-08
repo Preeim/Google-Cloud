@@ -1,16 +1,13 @@
 # frozen_string_literal: true
 
 # ==============================================================================
-# Bánk's Repository - Felhasználói Fiókzárolási Concern (User::Lockable)
-# ==============================================================================
-# Felelős a brute-force elleni védelemért, a hibás próbálkozások számlálásáért
-# és az ideiglenes fiókzárolási mechanizmusokért.
+# Bánk's Repository - Felhasználói Fiókzárolási Modul (User::Lockable)
 # ==============================================================================
 
-module User::Lockable
-  extend ActiveSupport::Concern
+class User < ApplicationRecord
+  module Lockable
+    extend ActiveSupport::Concern
 
-  included do
     # Ellenőrzi, hogy a fiók jelenleg ideiglenesen le van-e zárva
     def locked?
       locked_until.present? && locked_until > Time.current
@@ -46,4 +43,3 @@ module User::Lockable
     end
   end
 end
-

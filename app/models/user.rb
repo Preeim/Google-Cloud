@@ -6,6 +6,10 @@
 # és az egyes beépülő modulokhoz (pl. Sakk) való hozzáférést.
 # ==============================================================================
 
+require_relative "user/lockable"
+require_relative "user/presentable"
+require_relative "user/app_access"
+
 class User < ApplicationRecord
   has_secure_password
 
