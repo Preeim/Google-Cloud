@@ -31,7 +31,8 @@ fi
 
 # 2. Pull latest changes
 echo "[2/5] Pulling latest code from GitHub..."
-git pull origin main
+git fetch origin main
+git reset --hard origin/main
 
 # 3. Install bundle dependencies
 echo "[3/5] Checking Gem dependencies..."
