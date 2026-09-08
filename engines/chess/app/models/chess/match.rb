@@ -167,24 +167,28 @@ module Chess
         end
       end
       
-      # If no error was raised, the move is legal. Validate and save strings safely.
-      valid_fen = client_fen.to_s.strip.match?(%r{\A(?:[rnbqkpRNBQKP1-8]+/){7}[rnbqkpRNBQKP1-8]+\s+[wb]\s+(?:[KQkq]+|-)\s+(?:[a-h][1-8]|-)\s+\d+\s+\d+\z})
-      self.fen = valid_fen ? client_fen.to_s.strip : (game.respond_to?(:to_fen) ? game.to_fen : client_fen.to_s.strip)
+      # If no error was raised, the move is legal. Compute FEN directly from the server-validated engine.
+      calculated_fen = if game.board.respond_to?(:to_fen)
+                         game.board.to_fen
+                       elsif game.respond_to?(:to_fen)
+                         game.to_fen
+                       elsif game.respond_to?(:fen)
+                         game.fen
+                       elsif game.board.respond_to?(:fen)
+                         game.board.fen
+                       end
+
+      self.fen = calculated_fen.presence || (client_fen.to_s.strip.match?(%r{\A(?:[rnbqkpRNBQKP1-8]+/){7}[rnbqkpRNBQKP1-8]+\s+[wb]\s+(?:[KQkq]+|-)\s+(?:[a-h][1-8]|-)\s+\d+\s+\d+\z}) ? client_fen.to_s.strip : self.fen)
       
       clean_pgn = client_pgn.to_s.gsub(/<[^>]*>/, '').strip
       self.pgn = clean_pgn[0..10000]
       
-      is_checkmate = san_move.to_s.include?('#') ||
-                     options[:in_checkmate] == true || options["in_checkmate"] == true ||
-                     client_pgn.to_s.match?(/(?:#|#\s*(?:1-0|0-1|\*))\s*$/) ||
-                     (game.respond_to?(:checkmate?) && game.checkmate?) ||
+      # Determine checkmate or draw strictly based on the server-side chess engine status
+      is_checkmate = (game.respond_to?(:checkmate?) && game.checkmate?) ||
                      (game.respond_to?(:in_checkmate?) && game.in_checkmate?) ||
                      (game.respond_to?(:over?) && game.over? && game.respond_to?(:status) && [:white_won, :black_won].include?(game.status))
 
-      is_draw = options[:in_stalemate] == true || options["in_stalemate"] == true ||
-                options[:in_draw] == true || options["in_draw"] == true ||
-                client_pgn.to_s.match?(/(?:1\/2-1\/2|\bdraw\b|\bstalemate\b)\s*$/) ||
-                (game.respond_to?(:stalemate?) && game.stalemate?) ||
+      is_draw = (game.respond_to?(:stalemate?) && game.stalemate?) ||
                 (game.respond_to?(:in_stalemate?) && game.in_stalemate?) ||
                 (game.respond_to?(:over?) && game.over? && game.respond_to?(:status) && [:stalemate, :draw].include?(game.status))
 

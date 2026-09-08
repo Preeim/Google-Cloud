@@ -1,22 +1,30 @@
 class TestChannel < ApplicationCable::Channel
   def subscribed
+    unless current_user&.admin?
+      reject
+      return
+    end
+
     stream_from "test_channel"
   end
 
   def unsubscribed
-    # Cleanup when disconnected
+    stop_all_streams
   end
 
   # Live latency ping/pong
   def ping(data)
+    return unless current_user&.admin?
     transmit({ action: "pong", client_time: data["client_time"], server_time: (Time.now.to_f * 1000).round })
   end
 
-  # Broadcast message to all open browser windows
+  # Broadcast message to all open browser windows (Admin-only diagnostic)
   def speak(data)
+    return unless current_user&.admin?
+
     clean_message = ERB::Util.html_escape(data["message"].to_s.strip[0..500])
-    raw_sender = current_user&.username || data["sender"].to_s.strip[0..50]
-    clean_sender = ERB::Util.html_escape(raw_sender.presence || "Guest")
+    raw_sender = current_user.username
+    clean_sender = ERB::Util.html_escape(raw_sender)
 
     ActionCable.server.broadcast(
       "test_channel",

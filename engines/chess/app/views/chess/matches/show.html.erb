@@ -13,7 +13,6 @@
   white_open = @match.white_user_id.nil? && @match.white_guest_id.nil?
   black_open = @match.black_user_id.nil? && @match.black_guest_id.nil?
   can_join = @match.pending? && is_spectator && (white_open || black_open)
-  is_creator = !is_spectator
   is_creator = @match.creator?(current_user, current_guest)
 
   if is_spectator

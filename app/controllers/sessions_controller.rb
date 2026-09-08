@@ -9,6 +9,8 @@ class SessionsController < ApplicationController
   SQL_INJECTION_PATTERN = /(--|\/\*|\*\/|;\s*$|'\s*or\s+|"\s*or\s+|'\s*and\s+|"\s*and\s+|\bunion\s+select\b)/i
   before_action :set_no_cache_headers
 
+  DUMMY_DIGEST = "$2a$12$e8Y5t11.zEekZ7j674vMoeT7ZkK.v52y/w4w0eM15V61f5kF.m/2m"
+
   def new
     redirect_to root_path if logged_in?
   end
@@ -39,8 +41,15 @@ class SessionsController < ApplicationController
       render :new, status: :forbidden and return
     end
 
-    # 3. Hitelesítés bcrypt jelszó alapján
-    if user&.authenticate(params[:password])
+    # 3. Hitelesítés bcrypt jelszó alapján (időzítés-alapú user enumeráció elleni dummy ellenőrzéssel)
+    authenticated = if user
+      user.authenticate(raw_password)
+    else
+      BCrypt::Password.new(DUMMY_DIGEST) == raw_password
+      false
+    end
+
+    if authenticated
       # Sikeres bejelentkezés naplózása és számlálók törlése
       user.record_successful_login!
 

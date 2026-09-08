@@ -633,12 +633,17 @@
               <span>${safeAuthor}</span>
               ${roleBadgeHtml}
             </a>
-            <span class="chat-msg-time">${msg.formatted_time}</span>
+            <span class="chat-msg-time">${escapeHtml(msg.formatted_time)}</span>
             ${deleteBtnHtml}
           </div>
-          <div class="chat-msg-text">${msg.content}</div>
+          <div class="chat-msg-text"></div>
         </div>
       `;
+
+      const msgTextEl = row.querySelector('.chat-msg-text');
+      if (msgTextEl) {
+        msgTextEl.textContent = msg.content;
+      }
 
       const authorLink = row.querySelector('.chat-msg-author');
       if (authorLink && safeProfilePath && safeProfilePath !== '#') {

@@ -13,8 +13,16 @@ module Casino
             deck << { suit: suit, rank: rank }
           end
         end
+      secure_shuffle(deck)
+    end
+
+    def self.secure_shuffle(array)
+      shuffled = array.dup
+      (shuffled.size - 1).downto(1) do |i|
+        j = SecureRandom.random_number(i + 1)
+        shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
       end
-      deck.shuffle
+      shuffled
     end
 
     def self.card_point(rank)

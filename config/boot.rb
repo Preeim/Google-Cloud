@@ -30,7 +30,7 @@ begin
   require "json"
   module JSON
     class << self
-      if method_defined?(:load)
+      if method_defined?(:load) && !method_defined?(:_original_boot_load)
         alias_method :_original_boot_load, :load
         def load(source, proc = nil, options = {})
           if options.is_a?(Hash)
@@ -40,6 +40,20 @@ begin
             _original_boot_load(source, proc, opts)
           else
             _original_boot_load(source, proc, options)
+          end
+        end
+      end
+
+      if method_defined?(:parse) && !method_defined?(:_original_boot_parse)
+        alias_method :_original_boot_parse, :parse
+        def parse(source, opts = {})
+          if opts.is_a?(Hash)
+            o = opts.dup
+            o.delete(:quirks_mode)
+            o.delete("quirks_mode")
+            _original_boot_parse(source, o)
+          else
+            _original_boot_parse(source, opts)
           end
         end
       end

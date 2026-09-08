@@ -53,7 +53,7 @@ class AppBackupService
   def safe_export_records(scope, limit: MAX_BACKUP_RECORDS_PER_TABLE)
     return [] unless scope
     records = []
-    scope.order(id: :desc).limit(limit).find_each(batch_size: 500) do |rec|
+    scope.order(id: :desc).limit(limit).each do |rec|
       records << (block_given? ? yield(rec) : rec.as_json)
     end
     records

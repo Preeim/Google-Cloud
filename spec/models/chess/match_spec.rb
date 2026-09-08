@@ -49,5 +49,34 @@ RSpec.describe Chess::Match, type: :model do
       expect(match.winner).to eq("black")
     end
   end
+
+  describe "#apply_move!" do
+    it "applies a valid move and updates FEN and current turn" do
+      match = Chess::Match.create!(
+        white_player: white_user,
+        black_player: black_user,
+        status: "active"
+      )
+
+      success = match.apply_move!(from: "e2", to: "e4")
+      expect(success).to be true
+      expect(match.reload.current_turn).to eq("black")
+      expect(match.fen).to include("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3")
+    end
+
+    it "rejects illegal moves without altering game state" do
+      match = Chess::Match.create!(
+        white_player: white_user,
+        black_player: black_user,
+        status: "active"
+      )
+
+      initial_fen = match.fen
+      success = match.apply_move!(from: "e2", to: "e5") # illegal jump for pawn
+      expect(success).to be false
+      expect(match.reload.fen).to eq(initial_fen)
+      expect(match.current_turn).to eq("white")
+    end
+  end
 end
 

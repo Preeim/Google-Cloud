@@ -64,7 +64,7 @@ module Canvas
     # Élő koordináta-köteg közvetítése rajzolás közben (15-30ms batch)
     def stream_points(data)
       return unless can_draw?(@board)
-      return if rate_limited?(min_interval: 0.015) # max ~66 fps per client
+      return if rate_limited?(:stream_points, min_interval: 0.015) # max ~66 fps per client
 
       points = data["points"]
       return unless points.is_a?(Array) && points.size <= MAX_STREAM_POINTS_BATCH
@@ -79,7 +79,7 @@ module Canvas
     # Vonal lezárása és véglegesítése adatbázisban
     def finish_stroke(data)
       return unless can_draw?(@board)
-      return if rate_limited?(min_interval: 0.15) # Cooldown between saved strokes
+      return if rate_limited?(:finish_stroke, min_interval: 0.15) # Cooldown between saved strokes
 
       points = data["points"]
       return if points.blank? || !points.is_a?(Array) || points.size > MAX_POINTS_PER_STROKE
@@ -190,12 +190,14 @@ module Canvas
       active
     end
 
-    def rate_limited?(min_interval: 0.1)
-      now = Time.now.to_f
-      if @last_action_at && (now - @last_action_at < min_interval)
+    def rate_limited?(action = :default, min_interval: 0.1)
+      @last_action_timestamps ||= {}
+      now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      last_at = @last_action_timestamps[action]
+      if last_at && (now - last_at < min_interval)
         return true
       end
-      @last_action_at = now
+      @last_action_timestamps[action] = now
       false
     end
 

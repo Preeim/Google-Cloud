@@ -13,8 +13,10 @@ if [ -f ".env" ]; then
     set +a
 fi
 
-# Ensure default database password if not set
-export DATABASE_PASSWORD="${DATABASE_PASSWORD:-password123}"
+# Validate database password
+if [ -z "$DATABASE_PASSWORD" ] && [ -n "$DB_PASSWORD" ]; then
+    export DATABASE_PASSWORD="$DB_PASSWORD"
+fi
 
 # 1. Nginx Hardening (Server header & version leak mitigation)
 if [ -d "/etc/nginx" ] && command -v nginx >/dev/null 2>&1; then
@@ -68,19 +70,21 @@ fi
 
 # 5. Restart server
 echo "[5/5] Restarting Rails server..."
-PID=$(pgrep -f "puma.*3000" || pgrep -f "rails.*3000" || true)
-if [ -n "$PID" ]; then
-    echo "Gracefully stopping Rails server (SIGTERM, PID: $PID)..."
-    kill -15 $PID 2>/dev/null || true
+PIDS=$(pgrep -f "puma.*3000" || pgrep -f "rails.*3000" || true)
+if [ -n "$PIDS" ]; then
+    echo "Gracefully stopping Rails server processes: $PIDS"
+    echo "$PIDS" | xargs -r kill -15 2>/dev/null || true
     for i in {1..8}; do
-        if ! kill -0 $PID 2>/dev/null; then
+        REMAINING=$(pgrep -f "puma.*3000" || pgrep -f "rails.*3000" || true)
+        if [ -z "$REMAINING" ]; then
             break
         fi
         sleep 1
     done
-    if kill -0 $PID 2>/dev/null; then
-        echo "Process still running, forcing termination (SIGKILL)..."
-        kill -9 $PID 2>/dev/null || true
+    STILL_ALIVE=$(pgrep -f "puma.*3000" || pgrep -f "rails.*3000" || true)
+    if [ -n "$STILL_ALIVE" ]; then
+        echo "Processes still running ($STILL_ALIVE), forcing termination (SIGKILL)..."
+        echo "$STILL_ALIVE" | xargs -r kill -9 2>/dev/null || true
     fi
     sleep 1
 fi
@@ -93,10 +97,18 @@ echo "Starting Rails in background (logs -> log/server.log)..."
 RAILS_ENV=production nohup bundle exec rails server -e production -b 0.0.0.0 -p 3000 > log/server.log 2>&1 &
 
 SERVER_UP=false
-for i in {1..12}; do
+for i in {1..15}; do
     if pgrep -f "puma.*3000" > /dev/null || pgrep -f "rails.*3000" > /dev/null; then
-        SERVER_UP=true
-        break
+        # Perform HTTP check if curl is available
+        if command -v curl >/dev/null 2>&1; then
+            if curl -s -k http://127.0.0.1:3000/ > /dev/null 2>&1; then
+                SERVER_UP=true
+                break
+            fi
+        else
+            SERVER_UP=true
+            break
+        fi
     fi
     sleep 1
 done

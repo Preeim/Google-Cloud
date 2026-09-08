@@ -13,8 +13,16 @@ module Casino
             shoe << { suit: suit, rank: rank, value: card_value(rank) }
           end
         end
+      secure_shuffle(shoe)
+    end
+
+    def self.secure_shuffle(array)
+      shuffled = array.dup
+      (shuffled.size - 1).downto(1) do |i|
+        j = SecureRandom.random_number(i + 1)
+        shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
       end
-      shoe.shuffle
+      shuffled
     end
 
     def self.card_value(rank)

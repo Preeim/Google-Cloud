@@ -55,5 +55,24 @@ RSpec.describe User, type: :model do
       expect(user.avatar_initials).to eq("BN")
     end
   end
+
+  describe "User::Authorizable concern" do
+    let(:admin_user) { User.create!(username: "admin_user", email: "admin@bankrepo.hu", password: "password123", role: "admin") }
+    let(:normal_user) { User.create!(username: "normal_user", email: "normal@bankrepo.hu", password: "password123", role: "user") }
+    let!(:app_def) { AppDefinition.create!(slug: "chess", name: "Sakk", mount_path: "/chess", state: "active", is_default_accessible: true) }
+
+    it "allows admin to access any app" do
+      expect(admin_user.can_access_app?("chess")).to be true
+    end
+
+    it "allows active normal user to access default accessible app" do
+      expect(normal_user.can_access_app?("chess")).to be true
+    end
+
+    it "denies locked user from accessing apps" do
+      normal_user.lock_access!
+      expect(normal_user.can_access_app?("chess")).to be false
+    end
+  end
 end
 
