@@ -13,6 +13,7 @@ module Casino
             shoe << { suit: suit, rank: rank, value: card_value(rank) }
           end
         end
+      end
       secure_shuffle(shoe)
     end
 

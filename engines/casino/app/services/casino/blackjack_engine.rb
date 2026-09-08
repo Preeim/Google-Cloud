@@ -13,6 +13,7 @@ module Casino
             deck << { suit: suit, rank: rank }
           end
         end
+      end
       secure_shuffle(deck)
     end
 
