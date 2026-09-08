@@ -16,3 +16,27 @@ if current_secret.empty?
   ENV["SECRET_KEY_BASE"] = current_secret
 end
 
+# JSON quirks_mode kompatibilitás Rails 7.1 számára
+begin
+  require "json"
+  module JSON
+    class << self
+      if method_defined?(:load)
+        alias_method :_original_boot_load, :load
+        def load(source, proc = nil, options = {})
+          if options.is_a?(Hash)
+            opts = options.dup
+            opts.delete(:quirks_mode)
+            opts.delete("quirks_mode")
+            _original_boot_load(source, proc, opts)
+          else
+            _original_boot_load(source, proc, options)
+          end
+        end
+      end
+    end
+  end
+rescue StandardError
+  # ignore during early boot if json not yet loaded
+end
+

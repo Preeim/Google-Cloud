@@ -21,6 +21,9 @@ gem "connection_pool", "~> 2.4.1"
 # Use Redis for Action Cable pubsub in production
 gem "redis", "~> 5.0"
 
+# Pin JSON gem for Rails 7.1 MessageEncryptor / CookieStore compatibility
+gem "json", "< 2.8.0"
+
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
