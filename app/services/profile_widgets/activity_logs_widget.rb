@@ -22,7 +22,8 @@ module ProfileWidgets
 
     def load_data(profile_user, viewer_user)
       logs = if defined?(AuditLog)
-               AuditLog.where("actor_user_id = :uid OR target_user_id = :uid", uid: profile_user.id)
+               AuditLog.includes(:actor, :target_user)
+                       .where("actor_user_id = :uid OR target_user_id = :uid", uid: profile_user.id)
                        .order(created_at: :desc)
                        .limit(8)
              else

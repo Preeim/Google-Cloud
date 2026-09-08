@@ -40,7 +40,7 @@ module ProfileWidgets
         losses = [completed_games - (wins + draws), 0].max
         win_rate = completed_games > 0 ? ((wins.to_f / completed_games) * 100).round(1) : 0
         active_match = matches.where(status: ["pending", "active"]).order(created_at: :desc).first
-        recent_matches = matches.order(created_at: :desc).limit(4)
+        recent_matches = matches.includes(:white_player, :black_player).order(created_at: :desc).limit(4)
       else
         wins = 0
         draws = 0
