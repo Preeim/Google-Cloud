@@ -67,7 +67,7 @@ class AppBackupService
     case @app.slug
     when "chess"
       if defined?(Chess::Match)
-        matches = Chess::Match.all.map do |m|
+        matches = Chess::Match.includes(:white_player, :black_player).all.map do |m|
           m.as_json.merge(
             "white_player" => m.white_player_name,
             "black_player" => m.black_player_name

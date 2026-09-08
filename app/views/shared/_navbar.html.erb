@@ -230,14 +230,14 @@
             <div class="dropdown-divider"></div>
 
             <div class="dropdown-footer">
-              <a href="<%= app_logout_path %>" class="dropdown-logout-btn" data-method="delete">
+              <%= button_to app_logout_path, method: :delete, class: "dropdown-logout-btn", form_class: "dropdown-logout-form", data: { turbo: false } do %>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                   <polyline points="16 17 21 12 16 7"></polyline>
                   <line x1="21" y1="12" x2="9" y2="12"></line>
                 </svg>
                 <span>Kijelentkezés</span>
-              </a>
+              <% end %>
             </div>
           </div>
         </div>
@@ -615,6 +615,12 @@
   .dropdown-footer {
     padding: 6px;
   }
+  .dropdown-logout-form {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    display: block;
+  }
   .dropdown-logout-btn {
     display: flex;
     align-items: center;
@@ -626,6 +632,7 @@
     border: 1px solid var(--danger-border);
     color: #fca5a5;
     text-decoration: none;
+    font-family: inherit;
     font-size: 0.84rem;
     font-weight: 600;
     transition: all var(--transition-fast);

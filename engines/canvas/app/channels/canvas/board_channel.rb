@@ -15,7 +15,7 @@ module Canvas
       register_presence
 
       # Kezdeti állapot azonnali átadása az új belépőnek
-      recent_strokes = @board.strokes.order(id: :asc).limit(200).map(&:as_payload)
+      recent_strokes = @board.strokes.includes(:user).order(id: :asc).limit(200).map(&:as_payload)
 
       transmit({
         type: "initial_state",

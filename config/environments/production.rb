@@ -11,11 +11,13 @@ Rails.application.configure do
   # Eager loading: minden osztály betöltése a memóriába induláskor
   config.eager_load = true
 
-  # Titkosítási kulcs (secret_key_base) éles környezetben
+  # Titkosítási kulcs (secret_key_base) éles környezetben (szigorú ellenőrzés, hardcoded fallback nélkül)
   secret_file_val = File.exist?(Rails.root.join(".secret_key_base")) ? File.read(Rails.root.join(".secret_key_base")).to_s.strip : nil
-  config.secret_key_base = (ENV["SECRET_KEY_BASE"].to_s.strip unless ENV["SECRET_KEY_BASE"].to_s.strip.empty?) ||
-                           (secret_file_val unless secret_file_val.to_s.empty?) ||
-                           "a4b2c8e1f0d3e5a7b9c6d4e2f1a0b8c7d5e3f2a1b9c0d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7"
+  effective_secret = ENV["SECRET_KEY_BASE"].presence || secret_file_val.presence
+  if effective_secret.blank?
+    raise "FATAL: SECRET_KEY_BASE környezeti változó vagy .secret_key_base fájl kötelező éles (production) környezetben!"
+  end
+  config.secret_key_base = effective_secret
 
   # Részletes hibaüzenetek elrejtése a látogatók elől
   config.consider_all_requests_local = false
@@ -33,8 +35,13 @@ Rails.application.configure do
   config.active_support.report_deprecations = false
   config.active_record.dump_schema_after_migration = false
 
-  # Nginx fordított proxy kezeli az SSL-t (Let's Encrypt) és a domaineket
-  config.hosts.clear
+  # Nginx fordított proxy és engedélyezett domainek szigorú szűrése (Host Authorization)
+  config.hosts = [
+    "bankrepo.hu",
+    "www.bankrepo.hu",
+    "127.0.0.1",
+    "localhost"
+  ]
 
   # Szigorú SSL/TLS és HSTS kényszerítés (Strict-Transport-Security)
   config.force_ssl = true
@@ -56,16 +63,12 @@ Rails.application.configure do
   }
 
   # Action Cable WebSocket beállítások éles környezetben:
-  # Engedélyezzük a szigorú Origin védelmet (CSWSH megelőzése) az allowed_request_origins alapján
+  # Engedélyezzük a szigorú Origin védelmet (CSWSH megelőzése) szigorúan horgonyzott regexekkel
   config.action_cable.disable_request_forgery_protection = false
   config.action_cable.url = "/cable"
   config.action_cable.allowed_request_origins = [
-    "https://bankrepo.hu",
-    "http://bankrepo.hu",
-    "https://www.bankrepo.hu",
-    "http://www.bankrepo.hu",
-    /https?:\/\/bankrepo\.hu.*/,
-    /https?:\/\/127\.0\.0\.1.*/,
-    /https?:\/\/localhost.*/
+    /\Ahttps?:\/\/(www\.)?bankrepo\.hu(:\d+)?\z/,
+    /\Ahttps?:\/\/127\.0\.0\.1(:\d+)?\z/,
+    /\Ahttps?:\/\/localhost(:\d+)?\z/
   ]
 end

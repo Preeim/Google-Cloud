@@ -48,13 +48,27 @@ fi
 # Run database migrations
 RAILS_ENV=production bundle exec rails db:prepare
 
+# Precompile static assets (fallback tolerant)
+echo "Precompiling static assets..."
+RAILS_ENV=production bundle exec rails assets:precompile 2>/dev/null || true
+
 # 5. Restart server
 echo "[5/5] Restarting Rails server..."
 PID=$(pgrep -f "puma.*3000" || pgrep -f "rails.*3000" || true)
 if [ -n "$PID" ]; then
-    echo "Stopping current server process (PID: $PID)..."
-    kill -9 $PID 2>/dev/null || true
-    sleep 2
+    echo "Gracefully stopping Rails server (SIGTERM, PID: $PID)..."
+    kill -15 $PID 2>/dev/null || true
+    for i in {1..8}; do
+        if ! kill -0 $PID 2>/dev/null; then
+            break
+        fi
+        sleep 1
+    done
+    if kill -0 $PID 2>/dev/null; then
+        echo "Process still running, forcing termination (SIGKILL)..."
+        kill -9 $PID 2>/dev/null || true
+    fi
+    sleep 1
 fi
 
 # Ensure log and pids directory exist and remove stale server.pid

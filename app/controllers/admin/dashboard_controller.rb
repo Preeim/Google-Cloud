@@ -13,7 +13,7 @@ module Admin
       @locked_users_count   = User.where("locked_until > ?", Time.current).count
       @active_sessions_count = ActiveSession.where("expires_at > ?", Time.current).count
       @apps                 = AppDefinition.all
-      @recent_audit_logs    = AuditLog.order(created_at: :desc).limit(8)
+      @recent_audit_logs    = AuditLog.includes(:actor, :target_user).order(created_at: :desc).limit(8)
     end
   end
 end

@@ -7,6 +7,10 @@ module Chess
     enum :winner, { white: "white", black: "black", draw: "draw" }
     enum :termination_reason, { checkmate: "checkmate", resign: "resign", timeout: "timeout", draw_agreed: "draw_agreed", stalemate: "stalemate" }
 
+    # Asszociációk a játékosokhoz
+    belongs_to :white_player, class_name: "::User", foreign_key: :white_user_id, optional: true
+    belongs_to :black_player, class_name: "::User", foreign_key: :black_user_id, optional: true
+
     # Callbacks
     before_validation :generate_uuid, on: :create
     
@@ -17,8 +21,7 @@ module Chess
     # Helpers
     def white_player_name
       if white_user_id
-        # Using Core User model. Note: In a true decoupled monolith, you might want to fetch this via a service.
-        User.find_by(id: white_user_id)&.username || "Unknown"
+        white_player&.username || "Unknown"
       else
         "Vendég ##{white_guest_id.to_s[0..3]}"
       end
@@ -26,7 +29,7 @@ module Chess
 
     def black_player_name
       if black_user_id
-        User.find_by(id: black_user_id)&.username || "Unknown"
+        black_player&.username || "Unknown"
       else
         "Vendég ##{black_guest_id.to_s[0..3]}"
       end

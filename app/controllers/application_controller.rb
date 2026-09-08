@@ -105,15 +105,29 @@ class ApplicationController < ActionController::Base
 
       if raw_token.present? && user_id.present?
         # 1. Megkeressük az aktív munkamenet rekordot a token alapján
-        active_session = ActiveSession.find_by_raw_token(raw_token) rescue nil
+        active_session = begin
+          ActiveSession.find_by_raw_token(raw_token)
+        rescue StandardError => e
+          Rails.logger.warn("[ApplicationController] Hiba az ActiveSession keresésekor: #{e.message}")
+          nil
+        end
 
         if active_session && active_session.user_id == user_id
           # Munkamenet frissítése (sliding expiration)
-          active_session.touch_activity! rescue nil
+          begin
+            active_session.touch_activity!
+          rescue StandardError => e
+            Rails.logger.warn("[ApplicationController] Hiba az aktivitás frissítésekor: #{e.message}")
+          end
+
           @current_active_session = active_session
           user = active_session.user
           if user && (user.last_seen_at.nil? || user.last_seen_at < 2.minutes.ago)
-            user.touch_last_seen! rescue nil
+            begin
+              user.touch_last_seen!
+            rescue StandardError => e
+              Rails.logger.warn("[ApplicationController] Hiba a last_seen frissítésekor: #{e.message}")
+            end
           end
           user
         else
@@ -122,7 +136,13 @@ class ApplicationController < ActionController::Base
           nil
         end
       elsif user_id.present?
-        user = User.find_by(id: user_id) rescue nil
+        user = begin
+          User.find_by(id: user_id)
+        rescue StandardError => e
+          Rails.logger.warn("[ApplicationController] Hiba a User keresésekor: #{e.message}")
+          nil
+        end
+
         if user
           begin
             new_token, new_session = ActiveSession.create_from_request!(user, request)
@@ -132,7 +152,11 @@ class ApplicationController < ActionController::Base
             Rails.logger.warn("[ApplicationController] ActiveSession automatikus pótlása sikertelen: #{e.message}")
           end
           if user.last_seen_at.nil? || user.last_seen_at < 2.minutes.ago
-            user.touch_last_seen! rescue nil
+            begin
+              user.touch_last_seen!
+            rescue StandardError => e
+              Rails.logger.warn("[ApplicationController] Hiba a last_seen frissítésekor: #{e.message}")
+            end
           end
         end
         user

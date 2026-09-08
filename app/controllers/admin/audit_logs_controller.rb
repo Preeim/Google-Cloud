@@ -7,7 +7,7 @@
 module Admin
   class AuditLogsController < BaseController
     def index
-      @audit_logs = AuditLog.order(created_at: :desc).limit(100)
+      @audit_logs = AuditLog.includes(:actor, :target_user).order(created_at: :desc).limit(100)
     end
   end
 end

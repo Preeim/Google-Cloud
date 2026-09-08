@@ -14,13 +14,17 @@ class TestChannel < ApplicationCable::Channel
 
   # Broadcast message to all open browser windows
   def speak(data)
+    clean_message = ERB::Util.html_escape(data["message"].to_s.strip[0..500])
+    raw_sender = current_user&.username || data["sender"].to_s.strip[0..50]
+    clean_sender = ERB::Util.html_escape(raw_sender.presence || "Guest")
+
     ActionCable.server.broadcast(
       "test_channel",
       {
         action: "new_message",
-        message: data["message"],
-        sender: (current_user&.username || data["sender"] || "Guest"),
-        time: Time.now.strftime("%H:%M:%S")
+        message: clean_message,
+        sender: clean_sender,
+        time: Time.current.strftime("%H:%M:%S")
       }
     )
   end

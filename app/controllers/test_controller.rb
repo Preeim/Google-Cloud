@@ -25,7 +25,7 @@ class TestController < ApplicationController
     @ruby_version = RUBY_VERSION
     @rails_version = Rails.version
     @server_time = Time.now.strftime("%Y-%m-%d %H:%M:%S %Z")
-    @hostname = `hostname`.strip rescue "Google Cloud VM"
+    @hostname = Socket.gethostname rescue "Google Cloud VM"
   end
 end
 

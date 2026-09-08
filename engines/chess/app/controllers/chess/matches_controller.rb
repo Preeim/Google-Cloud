@@ -3,8 +3,8 @@ module Chess
     before_action :load_settings
 
     def index
-      @pending_matches = Match.where(status: "pending").order(created_at: :desc)
-      @user_matches = Match.where(
+      @pending_matches = Match.includes(:white_player, :black_player).where(status: "pending").order(created_at: :desc)
+      @user_matches = Match.includes(:white_player, :black_player).where(
         "white_user_id = :uid OR black_user_id = :uid OR white_guest_id = :gid OR black_guest_id = :gid",
         uid: current_user&.id, gid: session[:guest_id]
       ).order(created_at: :desc).limit(10)
