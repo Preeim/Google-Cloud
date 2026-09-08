@@ -9,8 +9,6 @@ class RegistrationsController < ApplicationController
   before_action :check_honeypot, only: [:create]
   before_action :set_no_cache_headers
 
-  SQL_INJECTION_PATTERN = /(--|\/\*|\*\/|;\s*$|'\s*or\s+|"\s*or\s+|'\s*and\s+|"\s*and\s+|\bunion\s+select\b)/i
-
   def new
     redirect_to root_path if logged_in?
     @user = User.new
@@ -20,14 +18,8 @@ class RegistrationsController < ApplicationController
     redirect_to root_path if logged_in?
 
     u_params = user_params
-    # SQL Injection szűrés: gyanús injekciós tokenek azonnali elutasítása a felhasználónévben és emailben
-    if [u_params[:username], u_params[:email]].any? { |val| val.to_s.match?(SQL_INJECTION_PATTERN) }
-      flash.now[:alert] = "A megadott adatok érvénytelen karaktereket tartalmaznak."
-      @user = User.new(u_params.except(:password, :password_confirmation))
-      render :new, status: :unprocessable_entity and return
-    end
-
     @user = User.new(u_params)
+
     # A regisztrált felhasználók kizárólag 'user' szerepkört kaphatnak
     @user.role = "user"
     @user.status = "active"

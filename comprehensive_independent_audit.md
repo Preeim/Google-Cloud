@@ -1,430 +1,399 @@
-# Független, Nulla Előfeltételezéses (Blind Audit) Rendszerelemzési Jelentés
-**Projekt:** Bánk's Repository (Google Cloud Hub)  
-**Vizsgált technológiai stack:** Ruby on Rails 7.1.4, Ruby 3.2+, MySQL 8, Puma, Action Cable (WebSockets), In-App Rails Engines (Canvas, Casino, Chess)  
-**Audit Típusa:** Teljes körű független biztonsági, kódminőségi, adatbázis, megbízhatósági és üzemeltetési felülvizsgálat  
-**Dátum:** 2026. szeptember 8.  
+# Átfogó Független Rendszeraudit Jelentés (Blind Codebase Audit)
+**Platform:** Bánk's Repository (GoogleCloudHub / Ruby on Rails 7.1)  
+**Vizsgálat Dátuma:** 2026. szeptember 8.  
+**Auditor:** Független Vezető Ruby on Rails Rendszerarchitekt és Biztonsági Szakértő  
+**Megközelítés:** Zero-Trust, „Nulla előfeltételezéses” mélyelemzés (Blind Static & Architectural Audit)  
 
 ---
 
-## Vezetői Összefoglaló (Executive Summary)
+## 1. Vezetői Összefoglaló (Executive Summary)
 
-A vizsgálat során a teljes kódbázis statikus forráskódját, konfigurációs állományait, adatbázis-migrációit, izolált moduljait (Rails Engines), WebSocket csatornáit, nézeteit és deployment szkriptjeit elemeztük, külső szakértői megközelítéssel, feltételezve, hogy a rendszer élesítés előtt áll.
+A vizsgálat célja a **Bánk's Repository** teljes forráskódjának, adatmodelljének, konfigurációinak, moduláris motorjainak (Rails Engines: Sakk, Kaszinó, Rajzvászon), WebSocket kommunikációjának és üzemeltetési szkriptjeinek átvilágítása volt átadás-átvétel és éles üzem előtti minőségbiztosítás céljából.
 
-A projekt felépítése ambiciózus és modern: a modularizáció (Rails Engines: Sakk, Kaszinó, Rajzvászon), a valós idejű WebSocket kommunikáció (Action Cable), a testreszabható profilrendszer, a dedikált Admin felület és a telemetriai monitorozás kiváló funkcionális alapot nyújtanak. Ugyanakkor az átadás-átvétel és a biztonságos éles üzemeltetés előtt **több kritikus biztonsági rés, hitelesítési anomália, N+1 lekérdezési adósság és súlyos tesztlefedettségi hiányosság** szorul azonnali elhárításra.
+### Főbb megállapítások:
+- **Erősségek:**
+  - A projekt modern Ruby on Rails 7.1 alapokra épül, fejlett ActiveModel és ActiveRecord mintákat alkalmaz (pl. `has_secure_password`, `ActiveSession` SHA-256 token hashing, csúszóablakos munkamenet-lejárat).
+  - Magas szintű védelem a tipikus webes támadások ellen: `Rack::Attack` brute-force és throttling konfiguráció, Session Fixation elleni védelem (`reset_session`), szigorú felhasználónév/email normalizáció és honeypot botvédelem.
+  - Tiszta elrendezésű moduláris motorok (`isolate_namespace`), tranzakciókezelés és pesszimista zárolás (`with_lock`) a kritikus pénzügyi/kaszinó műveleteknél.
+  - Alapos, valós idejű telemetria és hardverfigyelés (`ServerMetricsService` Linux `/proc` alapokon).
 
-### Észrevételek Összesítése Súlyosság Szerint
-- 🔴 **[KRITIKUS / BLOCKER]: 3 db** (Azonnali éles üzemi és biztonsági veszély)
-- 🟠 **[MAGAS / HIGH]: 6 db** (Súlyos biztonsági, adatintegritási vagy stabilitási kockázat)
-- 🟡 **[KÖZEPES / MEDIUM]: 6 db** (Teljesítménybeli, architektúrális és skálázhatósági adósság)
-- 🟢 **[ALACSONY / LOW]: 4 db** (Stilisztikai, karbantarthatósági és pipeline javaslat)
-
----
-
-## Részletes Észrevételek és Javítási Útmutató
-
----
-
-### 1. 🔴 KRITIKUS / BLOCKER ÉSZREVÉTELEK
+- **Kritikus és Magas Kockázatok:**
+  1. **Háttérszál többfolyamatos környezetben (`Casino::Scheduler`):** A nyers `Thread.new` szál a Puma szerver minden worker folyamatában külön elindul, ami versenyhelyzeteket, adatbázis-kapcsolat szivárgást és lock contention-t eredményez.
+  2. **Üzemeltetési és folyamatvezérlési hiányosságok (`deploy.sh`):** A `nohup` és `kill -9` alapú szerverindítás Linux systemd és automatikus újraindítás nélkül instabilitást okozhat, különösen a szűkös erőforrású (1 GB RAM) GCP e2-micro környezetben.
+  3. **Zombi session újraélesztési rés (`ApplicationController`):** A hibás vagy elavult tokenek pótlásánál a rendszer fiókstátusz-ellenőrzés nélkül hozhat létre új munkamenetet.
+  4. **Adatbázis-szintű idegen kulcs hiányosságok:** A kaszinó táblákon hiányoznak a deklaratív `ON DELETE CASCADE` szabályok, ami közvetlen SQL törlések esetén integritási hibát vagy árva rekordokat okoz.
+  5. **Architektúrális adósság:** Monolitikus nézetsablonok (több ezer soros inline JavaScript és CSS a `.html.erb` fájlokban).
 
 ---
 
-#### 1.1. Hardcoded Nyilvános `SECRET_KEY_BASE` a Verziókövetett Kódban
-- **Érintett fájlok:**
-  - [`config/boot.rb:15`](file:///f:/Workplace/Google-Cloud/config/boot.rb#L15)
-  - [`config/environments/production.rb:19`](file:///f:/Workplace/Google-Cloud/config/environments/production.rb#L19)
-- **Kategória:** Biztonság / Autentikáció / RCE kockázat
-- **A probléma leírása:**
-  A rendszer konfigurációjában mind a boot folyamatban, mind az éles környezeti beállításokban egy statikus, publikusan a git repóban tárolt 128 karakteres hexa kulcs szerepel tartalékként:
-  `"a4b2c8e1f0d3e5a7b9c6d4e2f1a0b8c7d5e3f2a1b9c0d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7"`.
-  Amennyiben az `ENV["SECRET_KEY_BASE"]` környezeti változó hiányzik vagy hibásan van átadva, a Rails élesben ezzel a nyilvános kulccsal inicializálja az üzenettitkosítást és a cookie-kezelést. Ezzel egy támadó tetszőlegesen aláírt session cookie-t gyárthat, tetszőleges felhasználó (beleértve a rendszergazdát) nevében bejelentkezhet, és a MessageEncryptor / ActiveSupport deserialization mechanizmusokon keresztül akár távoli kódfuttatást (RCE) is elérhet.
-- **Javítási kód:**
-  ```ruby
-  # config/environments/production.rb
-  # Töröljük a hardcoded stringet; kötelezővé tesszük a környezeti változót:
-  effective_secret = ENV["SECRET_KEY_BASE"].to_s.strip
-  if effective_secret.blank?
-    raise "KRITIKUS HIBA: A SECRET_KEY_BASE környezeti változó nincs beállítva éles környezetben!"
-  end
-  config.secret_key_base = effective_secret
-  ```
+## 2. Észrevételek Súlyossági Mátrixa (Severity Matrix)
+
+| Kategória | 🔴 Kritikus | 🟠 Magas | 🟡 Közepes | 🟢 Alacsony | Összesen |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **1. Biztonság & Jogosultságkezelés** | 1 | 1 | 1 | 0 | **3** |
+| **2. Kódminőség & Rails Konvenciók** | 0 | 0 | 2 | 2 | **4** |
+| **3. Adatbázis & Skálázhatóság** | 1 | 2 | 1 | 0 | **4** |
+| **4. Megbízhatóság, Tesztek & Hibák** | 0 | 0 | 0 | 2 | **2** |
+| **5. Üzemeltetés & Konfiguráció** | 1 | 1 | 1 | 0 | **3** |
+| **Összesen** | **3** | **4** | **5** | **4** | **16** |
 
 ---
 
-#### 1.2. ActionCable Guest Identity Impersonation (Hitelesítési Megkerülés a Sakk Modulban)
-- **Érintett fájl:** [`engines/chess/app/channels/chess/match_channel.rb:201-203`](file:///f:/Workplace/Google-Cloud/engines/chess/app/channels/chess/match_channel.rb#L201-L203)
-- **Kategória:** Biztonság / Jogosultságkezelés / IDOR
-- **A probléma leírása:**
-  A `Chess::MatchChannel` a játékos színének (`current_player_color`) meghatározásakor az `effective_guest_id` segédmetódust hívja meg:
-  ```ruby
-  def effective_guest_id
-    params[:guest_id].presence || guest_id.to_s
-  end
-  ```
-  A `params[:guest_id]` a feliratkozó kliens által tetszőlegesen megadott WebSocket paraméter, ami felülbírálja a titkosított session cookie-ból ellenőrzött `guest_id`-t. Így egy támadó a WebSocket kézfogáskor átadott `{ guest_id: "áldozat_guest_id" }` paraméterrel tetszőleges vendégjátékos nevében léphet, visszalépést kérhet vagy feladhatja a játszmát.
-- **Javítási kód:**
-  ```ruby
-  # engines/chess/app/channels/chess/match_channel.rb
-  def effective_guest_id
-    # Kizárólag a kapcsolat létesítésekor ellenőrzött session guest_id fogadható el!
-    guest_id.to_s
-  end
-  ```
+## 3. Részletes Elemzés és Javítási Javaslatok
 
 ---
 
-#### 1.3. Kritikus Tesztlefedettségi Hiány (Mindössze 3 db Modell Teszt a Teljes Alkalmazásra)
-- **Érintett mappa:** [`spec/`](file:///f:/Workplace/Google-Cloud/spec)
-- **Kategória:** Megbízhatóság / Tesztelés / Élesítési Blocker
-- **A probléma leírása:**
-  A teljes alkalmazásban mindössze három darab izolált modell teszt létezik (`user_spec.rb`, `casino/profile_spec.rb`, `chess/match_spec.rb`). Teljesen hiányoznak:
-  - Request / Controller specifikációk (Autentikáció, RBAC admin jogosultságok, profil módosítások, brute-force védelem).
-  - Kaszinó játékmotor szabálytesztek (Rulett, Baccarat és Blackjack kifizetési szorzók, push állapotok, fedezetlevonás).
-  - Rajzvászon (Canvas) és Globális Chat WebSocket integritási tesztek.
-  - Sakk játszma érvényesítési és időtúllépési (timeout) folyamattesztek.
-  Ilyen állapotban a rendszer átadása vagy refaktorálása beláthatatlan regressziós kockázatot rejt.
-- **Javítási kód:**
-  Létre kell hozni a dedikált request és service teszteket:
-  ```ruby
-  # spec/requests/sessions_spec.rb
-  require "rails_helper"
+### 🔴 KRITIKUS / BLOCKER (Azonnali éles üzemi veszély)
 
-  RSpec.describe "Sessions", type: :request do
-    let!(:user) { User.create!(username: "tester", email: "tester@bankrepo.hu", password: "Password123!") }
+#### [KRITIKUS-1] `Casino::Scheduler` nem felügyelt háttérszál Clustered Puma környezetben
+- **Hivatkozás:** `engines/casino/lib/casino/scheduler.rb:12-24`, `engines/casino/lib/casino/engine.rb:16-23`
+- **A probléma leírása:**  
+  A `Casino::Scheduler.start!` metódus az alkalmazás inicializálásakor egy nyers Ruby szálat (`Thread.new`) indít, amely 2 másodpercenként futtat egy `tick!` ciklust az aktív asztalok kiértékelésére. Amennyiben a Puma szerver több workerrel fut (`WEB_CONCURRENCY > 1`), **minden egyes worker folyamat külön-külön elindítja a saját scheduler szálát**.  
+  Ez azt jelenti, hogy 4 worker esetén 4 független szál verseng másodpercenként a zárolásokért és kapcsolatokért, ami:
+  - Adatbázis lock contention-höz vezet.
+  - Kimeríti a MySQL connection pool-t.
+  - Worker újraindításkor vagy crash esetén a háttérszál azonnal elhalhat tranzakció közben.
+- **Kockázat:** Adatbázis túlterhelés, duplikált körkiértékelési kísérletek, szál-szivárgás.
+- **Javítási Javaslat:**  
+  A feladatot át kell helyezni egy dedikált periodikus háttérfeladatba (pl. Rails 7.1+ Solid Queue, GoodJob vagy Sidekiq-cron), vagy az in-process futtatást egy atomi zárral (Leader Lock) kell védeni:
 
-    it "blocks login when account is locked" do
-      user.lock_access!
-      post "/login", params: { login: user.username, password: "Password123!" }
-      expect(response).to have_http_status(:locked)
+```ruby
+# engines/casino/lib/casino/scheduler.rb JAVÍTVA
+module Casino
+  class Scheduler
+    LOCK_KEY = "casino_scheduler_leader_lock"
+
+    def self.tick!
+      return unless ActiveRecord::Base.connection.table_exists?("casino_tables")
+
+      # Csak az a worker futtatja, amelyik megszerzi az elosztott zárat
+      acquired = Rails.cache.write(LOCK_KEY, Process.pid, expires_in: 5.seconds, unless_exist: true)
+      return unless acquired
+
+      begin
+        tables = Casino::Table.active.where("betting_closes_at IS NOT NULL AND betting_closes_at <= ?", Time.current)
+        tables.find_each do |table|
+          if %w[betting player_turns].include?(table.state)
+            Casino::TableManager.resolve_round(table)
+          end
+        end
+      ensure
+        # Zár fenntartása vagy feloldása
+      end
     end
   end
-  ```
+end
+```
 
 ---
 
-### 2. 🟠 MAGAS / HIGH ÉSZREVÉTELEK
+#### [KRITIKUS-2] Éles üzemeltetés: `nohup rails server` folyamatvezérlés systemd / supervisor nélkül és OOM leállás
+- **Hivatkozás:** `deploy.sh:83-108`
+- **A probléma leírása:**  
+  A `deploy.sh` a szervert háttérben futó `nohup bundle exec rails server -e production ... > log/server.log 2>&1 &` folyamatként indítja, a leállítást pedig manuális `pgrep` és `kill -9` parancsokkal végzi.  
+  Egy GCP e2-micro virtuális gépen (1 GB fizikai RAM, 0.25 vCPU):
+  - Ha a Puma folyamat memóriatúllépés (OOM Killer) vagy kezeletlen hiba miatt összeomlik, **a szerver végleg leáll**, és nincs semmi, ami újraindítsa.
+  - A `log/server.log` fájl korlátlanul hízik (nincs logrotate integráció), ami napok alatt betöltheti a lemezt.
+  - A `kill -9` drasztikusan megszakítja az éppen folyamatban lévő HTTP/WebSocket kapcsolatokat és tranzakciókat.
+- **Kockázat:** Szolgáltatáskiesés, adatvesztés leállításkor, lemezterület megtelés.
+- **Javítási Javaslat:**  
+  Hozzon létre egy szabványos Linux `systemd` szolgáltatásfájlt a Pumához, és a `deploy.sh`-ban végezzen `systemctl reload` vagy `systemctl restart` hívást:
+
+```ini
+# /etc/systemd/system/banks-hub.service
+[Unit]
+Description=Bank's Repository Rails Application
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=deploy
+WorkingDirectory=/var/www/banks-hub
+Environment=RAILS_ENV=production
+ExecStart=/usr/local/bin/bundle exec puma -C config/puma.rb
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/banks-hub/puma.log
+StandardError=append:/var/log/banks-hub/puma.err.log
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+# deploy.sh JAVÍTVA (részlet)
+echo "[5/5] Reloading Puma service via systemd..."
+sudo systemctl restart banks-hub
+sudo systemctl status banks-hub --no-pager
+```
 
 ---
 
-#### 2.1. DOM-alapú Stored XSS a Közösségi Rajzvászon Jelenléti Sávjában (Canvas Presence)
-- **Érintett fájl:** [`engines/canvas/app/views/canvas/boards/show.html.erb:668-676`](file:///f:/Workplace/Google-Cloud/engines/canvas/app/views/canvas/boards/show.html.erb#L668-L676)
-- **Kategória:** Biztonság / Cross-Site Scripting (XSS)
-- **A probléma leírása:**
-  Az `updatePresenceUI` JavaScript függvény a WebSocketen érkező felhasználói adatokat közvetlenül a DOM `innerHTML` tulajdonságába ágyazza:
-  ```javascript
-  pill.innerHTML = `
-    <span class="user-pill-avatar" style="background: ${u.avatar_color || '#38bdf8'};">${u.avatar_initials || 'U'}</span>
-    <span style="font-weight: 600; color: var(--text-main);">${u.username}</span>
-    ...
-  `;
-  ```
-  A `Canvas::BoardChannel` a `current_user.effective_name`-et küldi át `username`-ként. Egy felhasználó olyan megjelenített nevet (`display_name`) állíthat be a profiljában (pl. `<img src=x onerror=alert(document.cookie)>`), amely a rajzvászon megnyitásakor azonnal lefut minden csatlakozott látogató és adminisztrátor böngészőjében.
-- **Javítási kód:**
-  ```javascript
-  // engines/canvas/app/views/canvas/boards/show.html.erb
-  function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  const safeUsername = escapeHtml(u.username);
-  const safeInitials = escapeHtml(u.avatar_initials || 'U');
-  const safeColor = escapeHtml(u.avatar_color || '#38bdf8');
-
-  pill.innerHTML = `
-    <span class="user-pill-avatar" style="background: ${safeColor};">${safeInitials}</span>
-    <span style="font-weight: 600; color: var(--text-main);">${safeUsername}</span>
-    ${u.can_draw ? '<span class="user-pill-draw-dot" title="Rajzoló"></span>' : '<span class="user-pill-view-dot" title="Néző"></span>'}
-  `;
-  ```
-
----
-
-#### 2.2. Típuseltérési Hiba (AssociationTypeMismatch) és Néma Hibaelnyelés az Admin Audit Naplózásban
-- **Érintett fájl:** [`engines/casino/app/controllers/casino/admin/tables_controller.rb:18-22, 54-58`](file:///f:/Workplace/Google-Cloud/engines/casino/app/controllers/casino/admin/tables_controller.rb#L18-L22)
-- **Kategória:** Adatintegritás / Auditálhatóság / Silent Exception
-- **A probléma leírása:**
-  Az asztal állapotának módosításakor (`toggle`) és a körök visszaállításakor (`reset_round`) az alábbi kód fut le:
+#### [KRITIKUS-3] `ApplicationController` Session helyreállítási rés (Re-authentication Bypass)
+- **Hivatkozás:** `app/controllers/application_controller.rb:138-164`
+- **A probléma leírása:**  
+  Az `ApplicationController#current_user` logikájában:
   ```ruby
-  ::AuditLog.log!(
-    action: "casino_table_state_toggled",
-    actor: current_user,
-    target: @table,     # <-- HIBA: @table nem User entitás!
-    resource: @table,
-    ...
-  ) rescue nil          # <-- HIBA: Némán elnyeli a kivételt!
+  elsif user_id.present?
+    user = User.find_by(id: user_id)
+    if user
+      new_token, new_session = ActiveSession.create_from_request!(user, request)
+      session[:session_token] = new_token
+      @current_active_session = new_session
   ```
-  Az `AuditLog` modellben `belongs_to :target_user, class_name: "User"` szerepel, amelyre idegen kulcs kényszer is mutat a `users` táblára. A `target: @table` átadásakor az ActiveRecord `AssociationTypeMismatch` hibát dob, amit a sor végi `rescue nil` elnyel. Emiatt az adminisztrátori kaszinó műveletekről **soha egyetlen bejegyzés sem jön létre az audit naplóban**.
-- **Javítási kód:**
-  ```ruby
-  # engines/casino/app/controllers/casino/admin/tables_controller.rb
-  ::AuditLog.log!(
-    action: "casino_table_state_toggled",
-    actor: current_user,
-    target: nil,          # target_user kizárólag User entitás lehet
-    resource: @table,     # Az érintett entitás átadása resource-ként
-    request: request,
-    metadata: { old_state: old_state, new_state: new_state, table_name: @table.name }
-  )
-  ```
+  Amennyiben a munkamenet sütiben szerepel a `session[:user_id]`, de a `session[:session_token]` hiányzik (pl. korábban törölték vagy érvénytelenítették), a rendszer **fiókállapot-ellenőrzés nélkül** azonnal legenerál egy új `ActiveSession`-t. Ha a felhasználót időközben felfüggesztették (`user.suspended?`) vagy zárolták (`user.locked?`), a rendszer automatikusan újra bejelentkezteti az unauthenticated kérések során.
+- **Kockázat:** Felfüggesztett vagy kitiltott felhasználók visszatérése, jogosulatlan automatikus session-újragenerálás.
+- **Javítási Javaslat:**  
+  Kötelezővé kell tenni a felhasználó aktív státuszának ellenőrzését a munkamenet pótlása előtt, illetve a token hiánya esetén törölni kell a sütit (`reset_session`):
 
----
-
-#### 2.3. Nem Biztonságos Állapotmódosító GET Végpontok (Logout és Sakk Csatlakozás)
-- **Érintett fájlok:**
-  - [`config/routes.rb:19`](file:///f:/Workplace/Google-Cloud/config/routes.rb#L19)
-  - [`engines/chess/config/routes.rb:13`](file:///f:/Workplace/Google-Cloud/engines/chess/config/routes.rb#L13)
-  - [`engines/chess/app/controllers/chess/matches_controller.rb:22-25`](file:///f:/Workplace/Google-Cloud/engines/chess/app/controllers/chess/matches_controller.rb#L22-L25)
-- **Kategória:** Biztonság / CSRF / REST konvenciók
-- **A probléma leírása:**
-  1. A `get "/logout", to: "sessions#destroy"` útvonal lehetővé teszi a felhasználók akaratlan kiléptetését egyszerű képi beágyazással (`<img src="/logout">`).
-  2. A `get :join` és a `MatchesController#show`-ban lévő `if params[:join] == "true"` blokk GET kérésre módosítja az adatbázist (átállítja a meccs státuszát aktívra és lefoglalja a színt). Ez sérti a HTTP idempotenciát, és keresőrobotok vagy böngésző-előretöltők (link prefetching) véletlenül elindíthatnak meccseket.
-- **Javítási kód:**
-  ```ruby
-  # config/routes.rb
-  # Töröljük a get "/logout" sort, kizárólag a DELETE marad:
-  delete "/logout", to: "sessions#destroy", as: :logout
-
-  # engines/chess/config/routes.rb
-  # Töröljük a get :join sort, csak POST engedélyezett:
-  resources :matches, only: [:index, :show, :create, :destroy] do
-    member do
-      post :join
-      post :cancel
+```ruby
+# app/controllers/application_controller.rb JAVÍTVA
+elsif user_id.present?
+  user = User.find_by(id: user_id)
+  if user && user.active? && !user.locked?
+    begin
+      new_token, new_session = ActiveSession.create_from_request!(user, request)
+      session[:session_token] = new_token
+      @current_active_session = new_session
+    rescue StandardError => e
+      Rails.logger.warn("[ApplicationController] ActiveSession automatikus pótlása sikertelen: #{e.message}")
     end
+  else
+    reset_session
+    user = nil
   end
-  ```
+  user
+end
+```
 
 ---
 
-#### 2.4. Memória Kimerülési és DoS Kockázat a Modul Biztonsági Mentésben (AppBackupService)
-- **Érintett fájl:** [`app/services/app_backup_service.rb:84-96`](file:///f:/Workplace/Google-Cloud/app/services/app_backup_service.rb#L84-L96)
-- **Kategória:** Teljesítmény / Skálázhatóság / Memóriaszivárgás
-- **A probléma leírása:**
-  A modulok adminisztrátori kikapcsolásakor automatikusan lefutó `AppBackupService` a `Casino::Bet.all.as_json`, `Casino::Transaction.all.as_json`, `Canvas::Stroke.all.as_json` hívásokkal a teljes adatbázistáblát egyszerre tölti be a Ruby folyamat memóriájába egyetlen hatalmas tömbként. Nagyobb forgalom után (pl. 500 ezer fogadás vagy vonalmozdulat) ez azonnali Out-Of-Memory (OOM) leállást idéz elő a GCP e2-micro VM-en.
-- **Javítási kód:**
+### 🟠 MAGAS / HIGH (Biztonsági és stabilitási kockázatok)
+
+#### [MAGAS-1] Hiányzó adatbázis-szintű kényszerek (Foreign Key Constraints) és árva rekordok kockázata
+- **Hivatkozás:** `db/schema.rb:234-237`
+- **A probléma leírása:**  
+  A `schema.rb`-ben a kaszinó kapcsolatok idegen kulcsai így szerepelnek:
   ```ruby
-  # app/services/app_backup_service.rb
-  # Használjunk kötegelt beolvasást vagy korlátozzuk az archívum méretét:
-  when "casino"
-    if defined?(Casino::Profile)
-      profiles = Casino::Profile.includes(:user).limit(1000).map { |p| p.as_json.merge("username" => p.user.username) }
-      recent_bets = defined?(Casino::Bet) ? Casino::Bet.order(id: :desc).limit(5000).as_json : []
-      recent_txs = defined?(Casino::Transaction) ? Casino::Transaction.order(id: :desc).limit(5000).as_json : []
-      payload[:data][:profiles] = profiles
-      payload[:data][:bets] = recent_bets
-      payload[:data][:transactions] = recent_txs
-    end
+  add_foreign_key "casino_bets", "casino_profiles"
+  add_foreign_key "casino_bets", "casino_tables"
+  add_foreign_key "casino_profiles", "users"
+  add_foreign_key "casino_transactions", "casino_profiles"
   ```
+  Ezeken a kulcsokon **nincs beállítva `on_delete: :cascade`** az adatbázis szintjén. Ha egy felhasználó, profil vagy asztal törlésre kerül közvetlen SQL-ből, vagy egy migráció során, az adatbázis `Cannot delete or update a parent row: a foreign key constraint fails` hibát dob, vagy törölt profilokhoz tartozó tranzakciók/tétek árván maradnak.
+- **Kockázat:** Adatbázis-integritási hibák, adminisztrátori felhasználótörlés meghiúsulása.
+- **Javítási Javaslat:**  
+  Készítsen egy új migrációt az idegen kulcsok frissítésére:
 
----
+```ruby
+# db/migrate/20260908000003_fix_casino_foreign_keys.rb
+class FixCasinoForeignKeys < ActiveRecord::Migration[7.1]
+  def change
+    remove_foreign_key :casino_bets, :casino_profiles if foreign_key_exists?(:casino_bets, :casino_profiles)
+    remove_foreign_key :casino_bets, :casino_tables if foreign_key_exists?(:casino_bets, :casino_tables)
+    remove_foreign_key :casino_transactions, :casino_profiles if foreign_key_exists?(:casino_transactions, :casino_profiles)
+    remove_foreign_key :casino_profiles, :users if foreign_key_exists?(:casino_profiles, :users)
 
-#### 2.5. Rate Limiting és Méretvalidáció Hiánya a Canvas WebSocket Vonalmentésben
-- **Érintett fájl:** [`engines/canvas/app/channels/canvas/board_channel.rb:67-90`](file:///f:/Workplace/Google-Cloud/engines/canvas/app/channels/canvas/board_channel.rb#L67-L90)
-- **Kategória:** Biztonság / DoS / Adatbázis túlterhelés
-- **A probléma leírása:**
-  A `BoardChannel#finish_stroke` és `stream_points` akciókon nincs kérésszám-korlátozás (rate limit), és a `data["points"]` tömb hosszára sem létezik felső korlát. Egy rosszindulatú kliens másodpercenként több ezer `finish_stroke` üzenetet küldhet, vagy egyetlen vonásban több százezer koordinátát továbbíthat, ami túlterheli a MySQL adatbázist és megtölti a lemezt.
-- **Javítási kód:**
-  ```ruby
-  # engines/canvas/app/channels/canvas/board_channel.rb
-  def finish_stroke(data)
-    return unless can_draw?(@board)
-    if rate_limited?
-      transmit({ type: "error", message: "Túl gyors rajzolási művelet!" })
-      return
-    end
-
-    points = data["points"]
-    return if points.blank? || !points.is_a?(Array) || points.size > 2000 # Max 2000 pont / vonal
-
-    stroke = @board.strokes.create(
-      user: current_user,
-      tool: %w[brush eraser].include?(data["tool"]) ? data["tool"] : "brush",
-      color: data["color"].to_s[0..20],
-      width: data["width"].to_i.clamp(1, 40),
-      points_data: points.to_json
-    )
-    ...
+    add_foreign_key :casino_profiles, :users, on_delete: :cascade
+    add_foreign_key :casino_bets, :casino_profiles, on_delete: :cascade
+    add_foreign_key :casino_bets, :casino_tables, on_delete: :cascade
+    add_foreign_key :casino_transactions, :casino_profiles, on_delete: :cascade
   end
-  ```
+end
+```
 
 ---
 
-#### 2.6. Hardcoded Alapértelmezett Adatbázis és Seed Jelszavak
-- **Érintett fájlok:**
-  - [`config/database.yml:6`](file:///f:/Workplace/Google-Cloud/config/database.yml#L6)
-  - [`db/seeds.rb:14`](file:///f:/Workplace/Google-Cloud/db/seeds.rb#L14)
-- **Kategória:** Biztonság / Titokkezelés
-- **A probléma leírása:**
-  1. A `database.yml`-ben a fallback jelszó: `"password123"`.
-  2. A `db/seeds.rb`-ben az alapértelmezett admin jelszó: `"AdminPass123!"`.
-  Ha az éles szerveren a környezeti változók nélkül fut le a seedelés vagy az adatbázis-kapcsolódás, a rendszer publikusan ismert alapértelmezett jelszavakkal üzemel.
-- **Javítási kód:**
-  ```ruby
-  # db/seeds.rb
-  initial_admin_pass = ENV["INITIAL_ADMIN_PASSWORD"].presence || SecureRandom.hex(12)
-  admin.password = initial_admin_pass
-  admin.save!
-  puts "  [+] Adminisztrátori fiók inicializálva! Jelszó: #{initial_admin_pass}"
-  ```
+#### [MAGAS-2] Content Security Policy (CSP): `:unsafe_inline` és túl tág CDN tartományok
+- **Hivatkozás:** `config/initializers/content_security_policy.rb:23-26`, `config/environments/production.rb:64`
+- **A probléma leírása:**  
+  A CSP konfiguráció engedélyezi az `:unsafe_inline` direktívát mind a scripteknél, mind a stílusoknál, valamint engedélyezi a nyilvános CDN-eket (`unpkg.com`, `cdnjs.cloudflare.com`, `jsdelivr.net`, `cdn.skypack.dev`).  
+  Bár az alkalmazás jelenleg szűri a felhasználói bemenetet, az `:unsafe_inline` és a nyílt CDN-ek jelenléte semlegesíti a CSP elsődleges védelmi funkcióját: amennyiben egy jövőbeli felületen XSS sebezhetőség keletkezik, a támadó bármilyen tetszőleges kódot futtathat vagy betölthet a megengedett CDN-ekről.
+- **Kockázat:** Gyengített XSS elleni védelem.
+- **Javítási Javaslat:**  
+  Használjon Rails Nonce generátort az inline scriptekhez (`<%= javascript_tag nonce: true %>`), és töltse le a külső vendor könyvtárakat helyi kiszolgálásra (`public/vendor/`):
 
----
-
-### 3. 🟡 KÖZEPES / MEDIUM ÉSZREVÉTELEK
-
----
-
-#### 3.1. Súlyos N+1 Lekérdezések a Sakk Adminisztrációban
-- **Érintett fájl:** [`engines/chess/app/controllers/chess/admin/matches_controller.rb:18`](file:///f:/Workplace/Google-Cloud/engines/chess/app/controllers/chess/admin/matches_controller.rb#L18)
-- **Kategória:** Teljesítmény / Adatbázis
-- **A probléma leírása:**
-  Az adminisztrátori mérkőzéslista lekérdezése `@matches = @matches.order(created_at: :desc).limit(100)` módon történik `includes(:white_player, :black_player)` nélkül. A nézetben minden egyes mérkőzésnél lefut a játékosok felhasználónevének lekérdezése, ami 100 meccs esetén **200 felesleges SQL lekérdezést** generál egyetlen kérés alatt.
-- **Javítási kód:**
-  ```ruby
-  # engines/chess/app/controllers/chess/admin/matches_controller.rb
-  @matches = Match.includes(:white_player, :black_player)
-  ```
-
----
-
-#### 3.2. Adatbázis Lekérdezés Közvetlenül a Fő Alkalmazás Layout Sablonjában
-- **Érintett fájl:** [`app/views/layouts/application.html.erb:70`](file:///f:/Workplace/Google-Cloud/app/views/layouts/application.html.erb#L70)
-- **Kategória:** Kódminőség / MVC architektúra
-- **A probléma leírása:**
-  A layout nézetben minden egyes HTTP kérésnél lefut egy közvetlen adatbázis-lekérdezés:
-  `AppDefinition.available_to_users.order(:name)`.
-  Ez megsérti az MVC elveket és felesleges adatbázis-terhelést ró a szerverre.
-- **Javítási kód:**
-  Az alkalmazások listáját a `ApplicationController`-ben kell előkészíteni vagy a `Rails.cache`-ben tárolni:
-  ```ruby
-  # app/controllers/application_controller.rb
-  def nav_apps
-    @nav_apps ||= Rails.cache.fetch("nav_apps_list", expires_in: 10.minutes) do
-      AppDefinition.available_to_users.order(:name).to_a
-    end
+```ruby
+# config/initializers/content_security_policy.rb JAVÍTVA
+Rails.application.configure do
+  config.content_security_policy do |policy|
+    policy.default_src :self
+    policy.font_src    :self, :data
+    policy.img_src     :self, :data
+    policy.object_src  :none
+    policy.script_src  :self
+    policy.style_src   :self, :unsafe_inline # Stílusokhoz elfogadható
+    policy.connect_src :self, :blob, "wss://bankrepo.hu", "ws://bankrepo.hu"
+    policy.frame_ancestors :self
+    policy.form_action :self
+    policy.base_uri :self
   end
-  ```
+
+  # Automatikus nonce generálás scriptekhez
+  config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
+  config.content_security_policy_nonce_directives = %w(script-src)
+end
+```
 
 ---
 
-#### 3.3. In-Memory Osztályváltozó Használata Kaszinó Játékos Jelenléthez (`@@presence`)
-- **Érintett fájl:** [`engines/casino/app/services/casino/table_manager.rb:7-38`](file:///f:/Workplace/Google-Cloud/engines/casino/app/services/casino/table_manager.rb#L7-L38)
-- **Kategória:** Architektúra / Skálázhatóság
-- **A probléma leírása:**
-  A `TableManager` a játékosok online jelenlétét a Ruby folyamat memóriájában (`@@presence = {}`) tárolja. Több Puma worker (cluster mode) vagy több szerver esetén a munkamenetek nem látják egymás jelenlétét, így a `has_online_players?` hibásan `false` értéket adhat, és leállíthatja az asztalt.
-- **Javítási kód:**
-  A jelenléti listát a `Rails.cache` (Redis) rétegben kell tárolni:
-  ```ruby
-  def self.register_presence(table_id, user_id)
-    key = "casino_table_presence:#{table_id}"
-    users = Rails.cache.read(key) || {}
-    users[user_id] = Time.current.to_i
-    Rails.cache.write(key, users, expires_in: 5.minutes)
+#### [MAGAS-3] Hiányzó adatbázis-indexek gyakran szűrt és rendezett oszlopokon
+- **Hivatkozás:** `db/schema.rb:45-58`, `db/schema.rb:101-109`, `db/schema.rb:111-127`
+- **A probléma leírása:**  
+  1. `casino_profiles`: A ranglista lekérdezés (`Profile.leaderboard`) a `chips DESC, total_won_rounds DESC` szerint rendez, azonban a táblán **csak a `user_id` oszlop van indexelve**. Ez növekvő felhasználói bázisnál full-table scant és lassú rendezést eredményez.
+  2. `casino_tables`: A scheduler 2 másodpercenként futtatja a `where("betting_closes_at <= ?", Time.current)` lekérdezést, de a `betting_closes_at` oszlopon nincs index.
+  3. `audit_logs`: A polimorf lekérdezésekhez (`where(resource_type: ..., resource_id: ...)`) hiányzik az összetett index.
+- **Kockázat:** Lassuló adatbázis-lekérdezések, megnövekedett I/O terhelés.
+- **Javítási Javaslat:**  
+  Adja hozzá a hiányzó indexeket egy új migrációban:
+
+```ruby
+# db/migrate/20260908000004_add_missing_indexes.rb
+class AddMissingIndexes < ActiveRecord::Migration[7.1]
+  def change
+    add_index :casino_profiles, [:chips, :total_won_rounds], name: "idx_casino_profiles_ranking"
+    add_index :casino_tables, :betting_closes_at
+    add_index :audit_logs, [:resource_type, :resource_id]
   end
+end
+```
+
+---
+
+#### [MAGAS-4] In-Memory ActionCable Async Adapter vs. Többfolyamatos Terhelés
+- **Hivatkozás:** `config/cable.yml:15-19`
+- **A probléma leírása:**  
+  A konfiguráció alapértelmezésben:
+  ```yaml
+  production:
+    adapter: <%= ENV.fetch("ACTION_CABLE_ADAPTER", "async") %>
   ```
+  Az `async` adapter kizárólag egyetlen Ruby folyamat memóriájában képes üzeneteket továbbítani. Amennyiben a Puma szerver több worker folyamattal fut, vagy a terhelés növekedésével több szerverpéldány indul el, **a különböző folyamatokhoz csatlakozott felhasználók nem fogják megkapni egymás üzeneteit** (a chat, a sakk lépések és a kaszinó pörgetések elakadnak a folyamathatárokon).
+- **Kockázat:** WebSocket üzenetszórás elakadása, inkonzisztens felhasználói felületek.
+- **Javítási Javaslat:**  
+  Éles környezetben állítsa be az `ACTION_CABLE_ADAPTER=redis` környezeti változót és a `REDIS_URL`-t, vagy dokumentálja kötelező feltételként a többfolyamatos üzemhez.
 
 ---
 
-#### 3.4. Hiányzó `db/schema.rb` és Lapozás Hiánya az Admin Felületen
-- **Érintett fájlok:** [`db/`](file:///f:/Workplace/Google-Cloud/db), [`app/controllers/admin/users_controller.rb:13`](file:///f:/Workplace/Google-Cloud/app/controllers/admin/users_controller.rb#L13)
-- **Kategória:** Adatbázis / Karbantarthatóság
-- **A probléma leírása:**
-  1. A projekt verziókövetéséből hiányzik a `db/schema.rb`, ami megnehezíti a tiszta adatbázis-állapot áttekintését és a tesztadatbázis inicializálását.
-  2. Az `Admin::UsersController#index` minden felhasználót egyszerre tölt be (`User.order(created_at: :desc)`), lapozás nélkül.
-- **Javítási kód:**
-  Futtatni kell a `bin/rails db:schema:dump` parancsot, és be kell vezetni egyszerű lapozást (pl. `limit(25).offset(...)` vagy Pagy gem).
+### 🟡 KÖZEPES / MEDIUM (Teljesítménybeli és architektúrális adósság)
+
+#### [KÖZEPES-1] Monolitikus nézetsablonok és inline JavaScript/CSS túlsúly
+- **Hivatkozás:**
+  - `engines/chess/app/views/chess/matches/show.html.erb` (2 674 sor)
+  - `engines/casino/app/views/casino/tables/show.html.erb` (1 380 sor)
+  - `app/views/shared/_global_chat.html.erb` (881 sor)
+  - `engines/canvas/app/views/canvas/boards/show.html.erb` (799 sor)
+- **A probléma leírása:**  
+  A nézetsablonok hatalmas mennyiségű beágyazott CSS stílust, HTML modálokat, beágyazott hangfájlokat és több száz soros kliensoldali JavaScript logikát tartalmaznak egyetlen fájlban.
+  - A böngésző nem tudja gyorsítótárazni (cache-elni) a JavaScript és CSS fájlokat külön erőforrásként, így minden oldalbetöltés feleslegesen nagy HTML payloadot mozgat.
+  - A kód nem tesztelhető JS egységtesztekkel (pl. Jest/Vitest), és nehezen olvasható/karbantartható.
+- **Javítási Javaslat:**  
+  Szervezze ki a stílusokat dedikált CSS fájlokba (`public/css/`), a JavaScript logikát pedig Stimulus kontrollerekbe vagy moduláris JS fájlokba (`public/js/`).
 
 ---
 
-#### 3.5. Túlkapó SQL-Injection Regex a Jelszavak Ellenőrzésére
-- **Érintett fájlok:**
-  - [`app/controllers/sessions_controller.rb:9, 21`](file:///f:/Workplace/Google-Cloud/app/controllers/sessions_controller.rb#L9)
-  - [`app/controllers/registrations_controller.rb:12, 24`](file:///f:/Workplace/Google-Cloud/app/controllers/registrations_controller.rb#L12)
-- **Kategória:** Biztonság / Felhasználói élmény
-- **A probléma leírása:**
-  A bejelentkezési és regisztrációs űrlap egyedi reguláris kifejezéssel ellenőrzi a jelszavakat (`SQL_INJECTION_PATTERN`). Mivel a Rails paraméterezett lekérdezései (`User.find_by("LOWER(username) = ? ...", ...)`) natívan és biztonságosan kezelik az összes bemenetet, ez a regex teljesen felesleges, viszont hibásan letiltja az olyan biztonságos jelszavakat, amelyekben kötőjelduplázás (`--`) vagy idézőjelek szerepelnek.
-- **Javítási kód:**
-  Távolítsuk el a jelszó mezők egyedi regex vizsgálatát; bízzuk a védelmet a Rails beépített paraméter-kötéseire.
+#### [KÖZEPES-2] Felesleges és inaktív konfigurációs kódok (Dead Code)
+- **Hivatkozás:** `config/initializers/rate_limiter.rb:1-98`, `config/initializers/json_quirks_mode.rb:1-13`
+- **A probléma leírása:**  
+  A `rate_limiter.rb` fájl definiál egy 98 soros `Security::RateLimiter` middleware osztályt, de a fájl végén lévő megjegyzés szerint nincs regisztrálva a middleware láncban, mert a `Rack::Attack` helyettesíti. A `json_quirks_mode.rb` initializer pedig pusztán egy üres kommentfájl.
+- **Javítási Javaslat:**  
+  Törölje a nem használt inicializáló fájlokat, hogy ne zavarja meg a jövőbeli fejlesztőket és kódellenőrző eszközöket.
 
 ---
 
-#### 3.6. Hiányzó `config.hosts` Védelem Élesben (DNS Rebinding Kockázat)
-- **Érintett fájl:** [`config/environments/production.rb:40`](file:///f:/Workplace/Google-Cloud/config/environments/production.rb#L40)
-- **Kategória:** Biztonság / Hálózati konfiguráció
-- **A probléma leírása:**
-  A `config.hosts.clear` direktíva kikapcsolja a Rails beépített Host Authorization middleware-jét, védtelenné téve a szervert a DNS Rebinding támadásokkal szemben.
-- **Javítási kód:**
+#### [KÖZEPES-3] Anti-Pattern: SQL Injection szűrés Regex feketelistával
+- **Hivatkozás:** `app/controllers/sessions_controller.rb:9,23-26`, `app/controllers/registrations_controller.rb:12,24-28`
+- **A probléma leírása:**  
+  A `SessionsController` és a `RegistrationsController` az alábbi reguláris kifejezéssel próbálja szűrni a bemenetet:
   ```ruby
-  # config/environments/production.rb
-  config.hosts = [
-    "bankrepo.hu",
-    "www.bankrepo.hu",
-    "127.0.0.1",
-    "localhost"
-  ]
+  SQL_INJECTION_PATTERN = /(--|\/\*|\*\/|;\s*$|'\s*or\s+|"\s*or\s+|'\s*and\s+|"\s*and\s+|union\s+select)/i
   ```
+  A feketelistás reguláris kifejezésekkel történő SQL injection védelem ismert tervezési hiba (CWE-184):
+  - Fals pozitív hibákat okozhat érvényes jelszavaknál vagy felhasználóneveknél.
+  - Felesleges, mivel a Rails ActiveRecord paraméterezett lekérdezései (`User.find_by("LOWER(username) = ? OR LOWER(email) = ?", login_input, login_input)`) eleve 100%-os biztonságot nyújtanak.
+- **Javítási Javaslat:**  
+  Távolítsa el az ad-hoc regex szűrést, és bízza a védelmet a meglévő ActiveRecord paraméterezésre és a modell szintű whitelist formátumvalidációra (`format: { with: /\A[a-zA-Z0-9_]+\z/ }`).
 
 ---
 
-### 4. 🟢 ALACSONY / LOW ÉSZREVÉTELEK
+#### [KÖZEPES-4] Kétirányú függőség a Core platform és az izolált Engine-ek között
+- **Hivatkozás:** `app/models/user.rb:30`, `app/services/app_backup_service.rb:79-114`
+- **A probléma leírása:**  
+  Bár az Engine-ek (`chess`, `casino`, `canvas`) elméletileg izoláltak (`isolate_namespace`), a központi `User` modell közvetlen `has_one :casino_profile` kapcsolatot tartalmaz, és az `AppBackupService` hardcoded `case @app.slug` ágakkal menti az engine-ek tábláit.
+- **Javítási Javaslat:**  
+  Alakítson ki egy regisztrációs hook rendszert (hasonlóan a `ProfileWidgetRegistry`-hez), ahol minden engine maga regisztrálja a modelljeit és a mentési eljárását az `AppBackupService`-ben.
 
 ---
 
-#### 4.1. Felesleges (Halott) Függőségek a Gemfile-ban
-- **Érintett fájl:** [`Gemfile:35, 38, 41`](file:///f:/Workplace/Google-Cloud/Gemfile#L35)
-- **Leírás:** A `Gemfile`-ban szerepel az `importmap-rails`, `turbo-rails` és `stimulus-rails` gem, miközben az alkalmazásban nincs `config/importmap.rb`, nincs `app/javascript/` mappa, és a JavaScript fájlok közvetlenül a `public/vendor/` könyvtárból töltődnek be.
-- **Javaslat:** Tisztítsuk meg a `Gemfile`-t a felesleges gemektől a gyorsabb bundle telepítés és kisebb memórialábnyom érdekében.
-
-#### 4.2. Hiányzó CI/CD Munkafolyamat (Automated Testing & Security Scanning)
-- **Érintett mappa:** `.github/workflows/` (nem létezik)
-- **Leírás:** Nincs beállítva GitHub Actions CI pipeline, amely minden módosításkor automatikusan lefuttatná a biztonsági statikus analízist (`brakeman`), a kódstílus-ellenőrzést (`rubocop`) és a teszteket (`rspec`).
-- **Javaslat:** Hozzunk létre egy `.github/workflows/ci.yml` konfigurációt.
-
-#### 4.3. `ServerMetricsService` Lemezterület Shell Hívás (`df -Pk /`)
-- **Érintett fájl:** [`app/services/server_metrics_service.rb:347`](file:///f:/Workplace/Google-Cloud/app/services/server_metrics_service.rb#L347)
-- **Leírás:** A lemezterület ellenőrzése `` `df -Pk / 2>/dev/null` `` subshell hívással történik. Bár nem tartalmaz injektálható paramétert, Ruby szinten a folyamat-elágaztatás (fork/exec) felesleges erőforrást emészt fel másodpercenkénti hívásoknál.
-- **Javaslat:** Használjunk `Sys::Filesystem` gemet vagy `/proc/mounts` közvetlen beolvasást.
-
-#### 4.4. Deployment Script Folyamatkezelés Modernizálása (Systemd vs nohup)
-- **Érintett fájl:** [`deploy.sh:81`](file:///f:/Workplace/Google-Cloud/deploy.sh#L81)
-- **Leírás:** A `deploy.sh` a Puma szervert `nohup bundle exec rails server ... &` parancssal indítja háttérben. Ha a folyamat váratlanul leáll, nincs automatikus újraindulás.
-- **Javaslat:** Állítsunk be egy dedikált Systemd egységfájlt (`bankrepo.service`) a Puma menedzselésére.
+#### [KÖZEPES-5] Nagyméretű Base64 képadatok közvetlen adatbázis-tárolása (`Canvas::Board#snapshot_data`)
+- **Hivatkozás:** `engines/canvas/app/models/canvas/board.rb:34-46`, `db/schema.rb:66`
+- **A probléma leírása:**  
+  A rajzvászon pillanatfelvételeit a rendszer Base64 formátumban (akár 3 MB adat) közvetlenül a MySQL tábla `snapshot_data: :longtext` oszlopába menti. Ez nagy adatbázis-rekordokat és memóriaterhelést eredményez.
+- **Javítási Javaslat:**  
+  Használjon `ActiveStorage`-ot vagy mentse a képeket közvetlenül a lemezre (`storage/canvas_snapshots/`), és az adatbázisban csak a fájl nevét vagy relatív elérési útját tárolja.
 
 ---
 
-## Objektív Készültségi Értékelés
+### 🟢 ALACSONY / LOW (Stilisztikai és refaktorálási javaslatok)
 
-| Kategória | Pontszám (1–10) | Szöveges Értékelés |
+#### [ALACSONY-1] Nem használt Gem függőségek a Gemfile-ban
+- **Hivatkozás:** `Gemfile:35,39,41`
+- **A probléma leírása:**  
+  A `Gemfile`-ban szerepel az `importmap-rails`, `turbo-rails` és `stimulus-rails`, miközben a `config/importmap.rb` fájl nem létezik, és az alkalmazás statikus vendor fájlokat használ.
+- **Javítás:** Távolítsa el a nem használt gemeket a memóriafoglalás és indítási idő optimalizálása érdekében.
+
+---
+
+#### [ALACSONY-2] Kivétel-elnyelés (`rescue nil`) Audit naplózás során
+- **Hivatkozás:** `engines/casino/app/controllers/casino/admin/users_controller.rb:30,46,62,81`
+- **A probléma leírása:**  
+  Az adminisztrátori műveleteknél az `AuditLog.log!(...) rescue nil` csendben elnyeli az adatbázis mentési hibákat anélkül, hogy legalább a szervernaplóba beírná.
+- **Javítás:** Cserélje le `rescue StandardError => e; Rails.logger.error(...)` hívásra.
+
+---
+
+#### [ALACSONY-3] Hiányzó Channel és Controller integrációs tesztek
+- **Hivatkozás:** `spec/` mappa
+- **A probléma leírása:**  
+  Bár az alapvető modellek teszteltek, hiányoznak a Channel specifikációk (`GlobalChatChannel`, `Casino::TableChannel`, `Canvas::BoardChannel`, `Chess::MatchChannel`) és a `ChatMessagesController`, `ProfilesController` tesztjei.
+- **Javítás:** RSpec tesztcsomag kiegészítése a hiányzó kontrollerekre és WebSocket csatornákra.
+
+---
+
+#### [ALACSONY-4] Kódduplikáció a JavaScript segédfüggvényekben
+- **Hivatkozás:** `_global_chat.html.erb`, `canvas/boards/show.html.erb`, `casino/tables/show.html.erb`
+- **A probléma leírása:**  
+  Az `escapeHtml(str)` és az időformázó függvények minden sablonban külön meg vannak írva.
+- **Javítás:** Helyezze át a közös segédfüggvényeket egy központi `public/js/utils.js` fájlba.
+
+---
+
+## 4. Objektív Rendszerértékelés (Readiness Score)
+
+| Szempont | Pontszám (1-10) | Értékelés |
 | :--- | :---: | :--- |
-| **1. Biztonság & Hitelesítés** | **6 / 10** | Erős alapok (bcrypt, Rack::Attack, CSP, session digest), de a hardcoded fallback titok és az ActionCable guest impersonation azonnali javítást igényel. |
-| **2. Kódminőség & Architektúra** | **7 / 10** | Tiszta moduláris Rails Engine felépítés, jól elkülönített funkciók, de a nézetekben túl sok inline JS és közvetlen DB lekérdezés található. |
-| **3. Adatbázis & Teljesítmény** | **6 / 10** | Megfelelő migrációs szerkezet és indexelés, de jelen vannak N+1 lekérdezések és memóriaveszélyes unbuffered lekérdezések a mentésben. |
-| **4. Megbízhatóság & Tesztek** | **3 / 10** | **Kritikus hiányosság.** A mindössze 3 darab modell teszt nem nyújt biztonsági garanciát élesítés előtt. |
-| **5. Üzemeltetés & Deployment** | **7 / 10** | Működőképes deploy szkript és Nginx biztonsági fejlécek, de hiányzik a Systemd integráció és a CI/CD pipeline. |
-| **ÖSSZESÍTETT ÉRETTSÉGI SZINT** | **5.8 / 10** | **Feltételesen alkalmas:** A 3 db kritikus és a 6 db magas kockázatú hiba elhárítása és a tesztek pótlása kötelező az éles indulás előtt. |
+| **Biztonság (Security)** | **8.5 / 10** | Erős autentikáció, SHA-256 session lenyomatok, Rack::Attack és CSP jelenlét. Kisebb javítás szükséges a session pótlásnál és a CSP szigorításánál. |
+| **Kódminőség & MVC (Code Quality)** | **7.0 / 10** | Tiszta modellek és concern-ök, de a monolitikus, több ezer soros ERB nézetsablonok rontják az összképet. |
+| **Adatbázis & Integritás (Database)** | **7.5 / 10** | Jól strukturált séma, de hiányzó kaszinó ranglista indexek és hiányzó `ON DELETE CASCADE` idegen kulcsok. |
+| **Megbízhatóság & Tranzakciók (Reliability)** | **8.0 / 10** | Pesszimista zárolások (`with_lock`) a pénzügyi műveleteknél, tranzakcióbiztos törlések. A háttérszál (`Scheduler`) javítandó. |
+| **Üzemeltetés & Infrastruktúra (DevOps)** | **6.5 / 10** | A GCP e2-micro VM monitorozása kiváló, de a `deploy.sh` nohup/kill folyamatvezérlése cserére szorul systemd-re. |
+| **ÖSSZESÍTETT ÉLES ÜZEMI KÉSZÜLTSÉG** | **7.5 / 10** | **Élesítésre alkalmas a 3 kritikus javítás elvégzése után.** |
 
 ---
 
-## Prioritási Teendők és Megvalósítási Ütemterv (Roadmap)
+## 5. Prioritási Teendők és Menetrend (Action Roadmap)
 
-### 1. Fázis: Azonnali Biztonsági Javítások (Hotfix - 24 órán belül)
-1. **[KRITIKUS]** A hardcoded `SECRET_KEY_BASE` törlése a `config/boot.rb` és `config/environments/production.rb` fájlokból.
-2. **[KRITIKUS]** A `Chess::MatchChannel` `effective_guest_id` metódus javítása (külső `params[:guest_id]` kizárása).
-3. **[MAGAS]** A Canvas `updatePresenceUI` és a kapcsolódó WebSocket nézetek HTML-escaping javítása az XSS elhárítására.
-4. **[MAGAS]** Az `engines/casino/app/controllers/casino/admin/tables_controller.rb` audit log hívásainak javítása (`target: nil, resource: @table`).
-5. **[MAGAS]** A `get "/logout"` és `get :join` állapotmódosító GET útvonalak megszüntetése.
+### 🚀 1. Fázis: Azonnali Teendők (Launch Blockers - 1-2 nap)
+1. **`Casino::Scheduler` felügyelete:** Elosztott zár (Leader Lock) bevezetése vagy Solid Queue / cron feladattá alakítás.
+2. **`deploy.sh` átállítása systemd szolgáltatásra:** Megbízható Puma service automatikus újraindítással és logrotate-tel.
+3. **`ApplicationController` session pótlás javítása:** Fiókállapot (`active?`, `!locked?`) ellenőrzése a fallback ágon.
+4. **Kaszinó idegen kulcsok frissítése:** Migráció futtatása `on_delete: :cascade` hozzáadására.
 
-### 2. Fázis: Stabilitás & Teljesítmény Optimalizáció (1 héten belül)
-1. **[MAGAS]** Az `AppBackupService` export logikájának átírása kötegelt (`find_each`) feldolgozásra.
-2. **[MAGAS]** Rate limit és méretkorlát bevezetése a Canvas `finish_stroke` csatornaműveletre.
-3. **[KÖZEPES]** Eager loading (`includes(:white_player, :black_player)`) bevezetése a sakk adminban az N+1 lekérdezések megszüntetésére.
-4. **[KÖZEPES]** A layoutból kivezetni a közvetlen adatbázis lekérdezést (`AppDefinition.available_to_users`).
-5. **[KÖZEPES]** `db:schema:dump` futtatása és a `db/schema.rb` commitolása.
+### 🔧 2. Fázis: Stabilitás és Teljesítmény (1. Hét)
+5. **Adatbázis indexek pótlása:** `casino_profiles` (ranglista), `casino_tables` (időzítő), `audit_logs` (polimorf).
+6. **Inaktív kódok takarítása:** `rate_limiter.rb` és felesleges Gemek eltávolítása.
+7. **Kivételkezelés javítása:** `rescue nil` cseréje strukturált naplózásra.
 
-### 3. Fázis: Tesztlefedettség & Üzemeltetés (Élesítés előtt)
-1. **[KRITIKUS]** Átfogó RSpec tesztcsomag kiépítése (Authentikáció, RBAC, Kaszinó egyenlegtranzakciók, Sakk időzítés).
-2. **[KÖZEPES]** Redis alapú tároló konfigurálása a kaszinó jelenléthez (`TableManager`) és az Action Cable-höz.
-3. **[ALACSONY]** GitHub Actions CI pipeline beállítása (`brakeman`, `rubocop`, `rspec`).
-4. **[ALACSONY]** A `deploy.sh` átállítása Systemd alapú Puma szolgáltatásmenedzsmentre.
-
+### 💎 3. Fázis: Architektúrális Refaktorálás (2-3. Hét)
+8. **Nézetsablonok modularizálása:** Több ezer soros inline JS és CSS kiszervezése Stimulus kontrollerekbe és külön asset fájlokba.
+9. **Tesztlefedettség bővítése:** ActionCable és hiányzó controller specifikációk megírása.

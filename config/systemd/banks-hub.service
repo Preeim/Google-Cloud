@@ -1,0 +1,50 @@
+# ==============================================================================
+# Bánk's Repository - Production Systemd Service Unit
+# ==============================================================================
+# Telepítés a Linux szerveren:
+# 1. sudo cp config/systemd/banks-hub.service /etc/systemd/system/banks-hub.service
+# 2. sudo systemctl daemon-reload
+# 3. sudo systemctl enable banks-hub
+# 4. sudo systemctl start banks-hub
+# ==============================================================================
+
+[Unit]
+Description=Bank's Repository Rails Application (Puma)
+After=network.target mysql.service redis-server.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+WorkingDirectory=/var/www/banks-hub
+
+# Környezeti beállítások
+Environment=RAILS_ENV=production
+Environment=NODE_ENV=production
+EnvironmentFile=-/var/www/banks-hub/.env
+EnvironmentFile=-/var/www/banks-hub/.env.production
+
+# Indítási parancs (Puma webkiszolgáló)
+ExecStart=/usr/local/bin/bundle exec puma -C config/puma.rb -e production
+
+# Újratöltés (Puma phased restart)
+ExecReload=/bin/kill -USR1 $MAINPID
+
+# Folyamat-újraindítási szabályok (OOM vagy hiba esetén)
+Restart=always
+RestartSec=5
+
+# Erőforrás-korlátok (GCP e2-micro védelem)
+LimitNOFILE=65535
+MemoryHigh=750M
+MemoryMax=850M
+
+# Naplózás (systemd journald + fájl)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=banks-hub
+
+[Install]
+WantedBy=multi-user.target
+

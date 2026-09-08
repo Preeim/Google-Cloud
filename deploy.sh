@@ -80,6 +80,27 @@ fi
 
 # 5. Restart server
 echo "[5/5] Restarting Rails server..."
+
+# Check if systemd service is installed and managed
+if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files | grep -q "banks-hub.service"; then
+    echo "Restarting via systemd service (banks-hub)..."
+    SUDO_CMD=""
+    [ "$EUID" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO_CMD="sudo"
+    $SUDO_CMD systemctl restart banks-hub
+    sleep 2
+    if $SUDO_CMD systemctl is-active --quiet banks-hub; then
+        echo "====================================================="
+        echo "   Deployment Complete! systemd service is active."
+        echo "====================================================="
+        exit 0
+    else
+        echo "⚠️ systemd restart failed, checking status:"
+        $SUDO_CMD systemctl status banks-hub --no-pager || true
+        exit 1
+    fi
+fi
+
+# Fallback: Process-level graceful restart
 PIDS=$(pgrep -f "puma.*3000" || pgrep -f "rails.*3000" || true)
 if [ -n "$PIDS" ]; then
     echo "Gracefully stopping Rails server processes: $PIDS"
@@ -133,3 +154,4 @@ else
     echo "====================================================="
     tail -n 100 log/server.log || true
 fi
+

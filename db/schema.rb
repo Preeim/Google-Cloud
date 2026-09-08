@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_09_08_000002) do
+ActiveRecord::Schema[7.1].define(version: 2026_09_08_000004) do
   create_table "active_sessions", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "session_token_digest", null: false
@@ -54,8 +54,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_08_000002) do
     t.index ["action"], name: "index_audit_logs_on_action"
     t.index ["actor_user_id"], name: "index_audit_logs_on_actor_user_id"
     t.index ["created_at"], name: "index_audit_logs_on_created_at"
+    t.index ["resource_type", "resource_id"], name: "idx_audit_logs_resource"
     t.index ["target_user_id"], name: "index_audit_logs_on_target_user_id"
   end
+
 
   create_table "canvas_boards", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", default: "Közösségi Rajzvászon", null: false
@@ -105,6 +107,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_08_000002) do
     t.integer "total_won_rounds", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["chips", "total_won_rounds"], name: "idx_casino_profiles_ranking"
     t.index ["user_id"], name: "index_casino_profiles_on_user_id", unique: true
   end
 
@@ -120,11 +123,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_08_000002) do
     t.datetime "betting_closes_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["betting_closes_at"], name: "index_casino_tables_on_betting_closes_at"
     t.index ["game_type", "state"], name: "index_casino_tables_on_game_type_and_state"
     t.index ["game_type"], name: "index_casino_tables_on_game_type"
     t.index ["slug"], name: "index_casino_tables_on_slug", unique: true
     t.index ["state"], name: "index_casino_tables_on_state"
   end
+
 
   create_table "casino_transactions", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "casino_profile_id", null: false
@@ -231,10 +236,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_09_08_000002) do
   add_foreign_key "audit_logs", "users", column: "target_user_id", on_delete: :nullify
   add_foreign_key "canvas_strokes", "canvas_boards", column: "board_id", on_delete: :cascade
   add_foreign_key "canvas_strokes", "users", on_delete: :nullify
-  add_foreign_key "casino_bets", "casino_profiles"
-  add_foreign_key "casino_bets", "casino_tables"
-  add_foreign_key "casino_profiles", "users"
-  add_foreign_key "casino_transactions", "casino_profiles"
+  add_foreign_key "casino_bets", "casino_profiles", on_delete: :cascade
+  add_foreign_key "casino_bets", "casino_tables", on_delete: :cascade
+  add_foreign_key "casino_profiles", "users", on_delete: :cascade
+  add_foreign_key "casino_transactions", "casino_profiles", on_delete: :cascade
+
   add_foreign_key "chat_messages", "users", on_delete: :cascade
   add_foreign_key "chess_matches", "users", column: "black_user_id", on_delete: :nullify
   add_foreign_key "chess_matches", "users", column: "white_user_id", on_delete: :nullify

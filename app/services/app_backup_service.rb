@@ -8,6 +8,15 @@
 
 class AppBackupService
   BACKUP_DIR = Rails.root.join("storage", "backups")
+  @handlers = {}
+
+  def self.register_handler(slug, &block)
+    @handlers[slug.to_s] = block
+  end
+
+  def self.handlers
+    @handlers
+  end
 
   def self.export!(app_definition, actor: nil)
     new(app_definition, actor: actor).export!
@@ -75,7 +84,18 @@ class AppBackupService
       data: {}
     }
 
-    # Modul-specifikus adatbázis táblák mentése (memóriatakarékos, kötegelt lekérdezéssel)
+    # Ellenőrizzük a regisztrált handler-t vagy az alapértelmezett export logikát
+    handler = self.class.handlers[@app.slug.to_s]
+    if handler
+      handler.call(payload, self)
+    else
+      export_fallback_data(payload)
+    end
+
+    payload
+  end
+
+  def export_fallback_data(payload)
     case @app.slug
     when "chess"
       if defined?(Chess::Match)
@@ -111,8 +131,7 @@ class AppBackupService
     else
       payload[:metadata][:records_count] = 0
     end
-
-    payload
   end
 end
+
 

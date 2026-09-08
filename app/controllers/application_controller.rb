@@ -113,23 +113,36 @@ class ApplicationController < ActionController::Base
         end
 
         if active_session && active_session.user_id == user_id
-          # Munkamenet frissítése (sliding expiration)
-          begin
-            active_session.touch_activity!
-          rescue StandardError => e
-            Rails.logger.warn("[ApplicationController] Hiba az aktivitás frissítésekor: #{e.message}")
-          end
-
-          @current_active_session = active_session
           user = active_session.user
-          if user && (user.last_seen_at.nil? || user.last_seen_at < 2.minutes.ago)
+
+          # Ellenőrizzük a felhasználó fiókállapotát (aktív-e és nincs-e zárolva)
+          if user && user.active? && !user.locked?
+            # Munkamenet frissítése (sliding expiration)
             begin
-              user.touch_last_seen!
+              active_session.touch_activity!
             rescue StandardError => e
-              Rails.logger.warn("[ApplicationController] Hiba a last_seen frissítésekor: #{e.message}")
+              Rails.logger.warn("[ApplicationController] Hiba az aktivitás frissítésekor: #{e.message}")
             end
+
+            @current_active_session = active_session
+            if user.last_seen_at.nil? || user.last_seen_at < 2.minutes.ago
+              begin
+                user.touch_last_seen!
+              rescue StandardError => e
+                Rails.logger.warn("[ApplicationController] Hiba a last_seen frissítésekor: #{e.message}")
+              end
+            end
+            user
+          else
+            # Felfüggesztett vagy zárolt fiók esetén töröljük a munkamenetet
+            begin
+              active_session.destroy
+            rescue StandardError
+              nil
+            end
+            reset_session
+            nil
           end
-          user
         else
           # Ha a token érvénytelen vagy távolról törölték, töröljük a cookie-t
           reset_session
@@ -143,7 +156,8 @@ class ApplicationController < ActionController::Base
           nil
         end
 
-        if user
+        # Csak aktív és nem zárolt felhasználónak engedélyezzük az új munkamenet pótlását
+        if user && user.active? && !user.locked?
           begin
             new_token, new_session = ActiveSession.create_from_request!(user, request)
             session[:session_token] = new_token
@@ -158,11 +172,15 @@ class ApplicationController < ActionController::Base
               Rails.logger.warn("[ApplicationController] Hiba a last_seen frissítésekor: #{e.message}")
             end
           end
+          user
+        else
+          reset_session
+          nil
         end
-        user
       end
     end
   end
+
 
   def current_active_session
     @current_active_session

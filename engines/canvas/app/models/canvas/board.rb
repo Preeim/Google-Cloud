@@ -30,9 +30,22 @@ module Canvas
       end
     end
 
+    MAX_SNAPSHOT_SIZE_BYTES = 5_000_000 # 5 MB
+
     # Pillanatfelvétel (PNG Data URL) mentése és a korábbi stroke-ok opcionális tömörítése
     def save_snapshot!(data_url)
       return if data_url.blank?
+
+      # Méretkorlát és Data URI formátumellenőrzés
+      if data_url.bytesize > MAX_SNAPSHOT_SIZE_BYTES
+        Rails.logger.warn("[Canvas::Board] Snapshot mérete meghaladja a megengedett 5 MB-ot (#{data_url.bytesize} bájt).")
+        return false
+      end
+
+      unless data_url.start_with?("data:image/")
+        Rails.logger.warn("[Canvas::Board] Érvénytelen képformátum data URL.")
+        return false
+      end
 
       transaction do
         update!(snapshot_data: data_url)
@@ -43,7 +56,9 @@ module Canvas
           update_column(:strokes_count, strokes.count)
         end
       end
+      true
     end
+
 
     # Zárolási állapot váltása
     def toggle_freeze!

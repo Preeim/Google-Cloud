@@ -16,17 +16,16 @@ Rails.application.configure do
     # Képek és avatarok (plusz chessboard.js bábuk CDN)
     policy.img_src     :self, :data, "https://chessboardjs.com"
 
-    # Flash és más objektumok tiltása
+    # Flash és egyéb plugin objektumok tiltása
     policy.object_src  :none
 
-    # Scriptek (megbízható CDN-ek és saját forrás)
-    policy.script_src  :self, :unsafe_inline, "https://cdnjs.cloudflare.com", "https://code.jquery.com", "https://unpkg.com", "https://cdn.skypack.dev", "https://cdn.jsdelivr.net"
+    # Scriptek (saját forrás, megbízható CDN-ek és nonce-védett inline scriptek)
+    policy.script_src  :self, :unsafe_inline, "https://cdnjs.cloudflare.com", "https://code.jquery.com", "https://unpkg.com", "https://cdn.jsdelivr.net"
 
-    # Stílusok (megbízható stílustárak és saját forrás)
+    # Stílusok (saját forrás és CSS komponensek)
     policy.style_src   :self, :unsafe_inline, "https://unpkg.com"
 
     # Hálózati kapcsolatok: Fetch, XHR és Action Cable WebSocket csatornák
-    # Megszüntetve a tág 'wss:' és 'ws:' helyettesítő karaktereket a szigorú domain-specifikus engedélyezésért
     policy.connect_src :self, :blob,
                        "wss://bankrepo.hu", "ws://bankrepo.hu",
                        "wss://www.bankrepo.hu", "ws://www.bankrepo.hu",
@@ -42,4 +41,9 @@ Rails.application.configure do
     # Alap URI
     policy.base_uri :self
   end
+
+  # Automatikus nonce generálás a scriptekhez
+  config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
+  config.content_security_policy_nonce_directives = %w(script-src)
 end
+

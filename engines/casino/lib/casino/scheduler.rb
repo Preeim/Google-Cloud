@@ -2,6 +2,8 @@
 
 module Casino
   class Scheduler
+    LOCK_KEY = "casino:scheduler:leader_lock"
+    LOCK_TTL = 6 # seconds
     @thread = nil
     @running = false
 
@@ -10,14 +12,17 @@ module Casino
 
       @running = true
       @thread = Thread.new do
-        Rails.logger.info "[Casino::Scheduler] Background auto-resolution worker started."
+        Rails.logger.info "[Casino::Scheduler] Background auto-resolution worker started on PID #{Process.pid}."
         while @running
           begin
-            ActiveRecord::Base.connection_pool.with_connection do
-              tick!
+            # Check if this worker process can acquire or renew the leader lock
+            if acquire_leader_lock!
+              ActiveRecord::Base.connection_pool.with_connection do
+                tick!
+              end
             end
           rescue StandardError => e
-            Rails.logger.error "[Casino::Scheduler] Error in tick: #{e.message}"
+            Rails.logger.error "[Casino::Scheduler] Error in tick loop: #{e.message}"
           end
           sleep 2
         end
@@ -26,12 +31,39 @@ module Casino
 
     def self.stop!
       @running = false
+      release_leader_lock!
       @thread&.kill
       @thread = nil
     end
 
     def self.running?
       @running && @thread&.alive?
+    end
+
+    def self.acquire_leader_lock!
+      current_leader = Rails.cache.read(LOCK_KEY)
+      my_id = "#{Socket.gethostname rescue 'host'}-#{Process.pid}"
+
+      if current_leader.blank? || current_leader == my_id
+        # Write or extend lock
+        Rails.cache.write(LOCK_KEY, my_id, expires_in: LOCK_TTL.seconds)
+        true
+      else
+        # Another worker is actively leading
+        false
+      end
+    rescue StandardError => e
+      Rails.logger.warn "[Casino::Scheduler] Lock acquisition warning: #{e.message}"
+      # Fallback to single-run tick if cache is unavailable in memory
+      true
+    end
+
+    def self.release_leader_lock!
+      my_id = "#{Socket.gethostname rescue 'host'}-#{Process.pid}"
+      current_leader = Rails.cache.read(LOCK_KEY)
+      Rails.cache.delete(LOCK_KEY) if current_leader == my_id
+    rescue StandardError
+      nil
     end
 
     def self.tick!
