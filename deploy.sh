@@ -48,9 +48,11 @@ fi
 # Run database migrations
 RAILS_ENV=production bundle exec rails db:prepare
 
-# Precompile static assets (fallback tolerant)
-echo "Precompiling static assets..."
-RAILS_ENV=production bundle exec rails assets:precompile 2>/dev/null || true
+# Precompile static assets if asset pipeline gem is present
+if bundle exec rake -T 2>/dev/null | grep -q "assets:precompile"; then
+    echo "Precompiling static assets..."
+    RAILS_ENV=production bundle exec rails assets:precompile
+fi
 
 # 5. Restart server
 echo "[5/5] Restarting Rails server..."

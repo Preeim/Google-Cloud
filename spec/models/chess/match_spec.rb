@@ -50,3 +50,4 @@ RSpec.describe Chess::Match, type: :model do
     end
   end
 end
+

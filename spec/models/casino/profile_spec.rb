@@ -41,3 +41,4 @@ RSpec.describe Casino::Profile, type: :model do
     end
   end
 end
+

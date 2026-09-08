@@ -42,3 +42,4 @@ module User::Presentable
     end
   end
 end
+
