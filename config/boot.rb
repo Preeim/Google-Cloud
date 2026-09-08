@@ -3,9 +3,31 @@ ENV["BUNDLE_GEMFILE"] ||= File.expand_path("../Gemfile", __dir__)
 require "bundler/setup" # Set up gems listed in the Gemfile.
 require "bootsnap/setup" if File.exist?("Gemfile.lock") # Speed up boot-time, if cached.
 
+# Automatikus környezeti változó betöltés .env / .env.production fájlokból
+[".env", ".env.production", ".env.local"].each do |env_file|
+  env_path = File.expand_path("../#{env_file}", __dir__)
+  next unless File.exist?(env_path)
+
+  begin
+    File.readlines(env_path, chomp: true).each do |line|
+      line = line.strip
+      next if line.empty? || line.start_with?("#")
+      if line =~ /\A([A-Za-z_][A-Za-z0-9_]*)=(.*)\z/
+        key = $1
+        val = $2.strip
+        val = val[1..-2] if (val.start_with?('"') && val.end_with?('"')) || (val.start_with?("'") && val.end_with?("'"))
+        ENV[key] ||= val
+      end
+    end
+  rescue StandardError
+    # ignore read errors
+  end
+end
+
 # Biztosítjuk a SECRET_KEY_BASE meglétét fejlesztői környezetben (tiszta Ruby, ActiveSupport nélkül)
 secret_file = File.expand_path("../.secret_key_base", __dir__)
 current_secret = ENV["SECRET_KEY_BASE"].to_s.strip
+
 
 if current_secret.empty?
   if File.exist?(secret_file)

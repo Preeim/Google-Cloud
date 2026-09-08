@@ -5,17 +5,27 @@ echo "====================================================="
 echo "   Starting Deployment on Google Cloud VM"
 echo "====================================================="
 
-# Load environment variables if .env exists
-if [ -f ".env" ]; then
-    echo "Loading environment variables from .env..."
-    set -a
-    source .env
-    set +a
-fi
+# Load environment variables if .env or .env.production exists
+for env_file in ".env" ".env.production" ".env.local"; do
+    if [ -f "$env_file" ]; then
+        echo "Loading environment variables from $env_file..."
+        set -a
+        source "$env_file"
+        set +a
+    fi
+done
 
-# Validate database password
+# Validate database credentials
 if [ -z "$DATABASE_PASSWORD" ] && [ -n "$DB_PASSWORD" ]; then
     export DATABASE_PASSWORD="$DB_PASSWORD"
+fi
+
+if [ -z "$DATABASE_PASSWORD" ]; then
+    echo "-----------------------------------------------------"
+    echo "⚠️  DATABASE_PASSWORD nincs beállítva a környezetben!"
+    echo "   Ha a MySQL jelszót kér, hozd létre a .env fájlt:"
+    echo "   echo 'DATABASE_PASSWORD=jelszavad' > .env"
+    echo "-----------------------------------------------------"
 fi
 
 # 1. Nginx Hardening (Server header & version leak mitigation)
