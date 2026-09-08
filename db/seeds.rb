@@ -9,13 +9,17 @@
 puts "--- Bánk's Repository: Adatbázis magok betöltése ---"
 
 # 1. Platform Rendszergazda (Admin) létrehozása / frissítése
+initial_admin_pw = ENV["INITIAL_ADMIN_PASSWORD"].presence || (Rails.env.production? ? SecureRandom.hex(16) : "AdminPass123!")
 admin = User.find_or_initialize_by(username: "bank")
 admin.email = "bank@bankrepo.hu"
-admin.password = "AdminPass123!" # Telepítés után a felületen azonnal megváltoztatandó!
+admin.password = initial_admin_pw if admin.new_record? || admin.password_digest.blank?
 admin.role = "admin"
 admin.status = "active"
 admin.save!
 puts "  [+] Adminisztrátori fiók kész: #{admin.username} (#{admin.email}) [Szerepkör: #{admin.role}]"
+if ENV["INITIAL_ADMIN_PASSWORD"].blank? && Rails.env.production?
+  puts "  [!] FIGYELEM (Production): Generált Admin jelszó: #{initial_admin_pw}"
+end
 
 # 2. Első Beépülő Modul: Sakk Alkalmazás (Chess Engine) regisztrálása
 chess_app = AppDefinition.find_or_initialize_by(slug: "chess")
@@ -86,13 +90,15 @@ if defined?(Canvas::Board)
 end
 
 # 5. Teszt / Vendég fiók létrehozása a fejlesztéshez
-demo_user = User.find_or_initialize_by(username: "demo_user")
-demo_user.email = "demo@bankrepo.hu"
-demo_user.password = "DemoPass123!"
-demo_user.role = "user"
-demo_user.status = "active"
-demo_user.save!
-puts "  [+] Teszt fiók kész: #{demo_user.username} (#{demo_user.email})"
+if Rails.env.development? || Rails.env.test? || ENV["SEED_DEMO_USER"] == "true"
+  demo_user = User.find_or_initialize_by(username: "demo_user")
+  demo_user.email = "demo@bankrepo.hu"
+  demo_user.password = "DemoPass123!" if demo_user.new_record? || demo_user.password_digest.blank?
+  demo_user.role = "user"
+  demo_user.status = "active"
+  demo_user.save!
+  puts "  [+] Teszt fiók kész: #{demo_user.username} (#{demo_user.email})"
+end
 
 puts "--- Magok sikeresen betöltve! ---"
 

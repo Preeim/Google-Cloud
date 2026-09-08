@@ -17,8 +17,8 @@ class SessionsController < ApplicationController
     raw_login = params[:login].to_s.strip
     raw_password = params[:password].to_s
 
-    # SQL Injection szűrés: gyanús injekciós tokenek azonnali elutasítása adatbázis lekérdezés nélkül
-    if raw_login.match?(SQL_INJECTION_PATTERN) || raw_password.match?(SQL_INJECTION_PATTERN)
+    # SQL Injection szűrés: gyanús injekciós tokenek azonnali elutasítása a bejelentkezési azonosítóban
+    if raw_login.match?(SQL_INJECTION_PATTERN)
       flash.now[:alert] = "Érvénytelen bejelentkezési adatok! Ellenőrizd a felhasználónevet/e-mail címet és a jelszót."
       render :new, status: :unprocessable_entity and return
     end

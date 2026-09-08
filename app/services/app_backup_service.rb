@@ -48,6 +48,17 @@ class AppBackupService
 
   private
 
+  MAX_BACKUP_RECORDS_PER_TABLE = 10_000
+
+  def safe_export_records(scope, limit: MAX_BACKUP_RECORDS_PER_TABLE)
+    return [] unless scope
+    records = []
+    scope.order(id: :desc).limit(limit).find_each(batch_size: 500) do |rec|
+      records << (block_given? ? yield(rec) : rec.as_json)
+    end
+    records
+  end
+
   def build_payload(timestamp)
     payload = {
       metadata: {
@@ -56,18 +67,19 @@ class AppBackupService
         mount_path: @app.mount_path,
         state_before_backup: @app.state,
         backup_created_at: Time.current.iso8601,
-        created_by: @actor ? { id: @actor.id, username: @actor.username, email: @actor.email } : "System"
+        created_by: @actor ? { id: @actor.id, username: @actor.username, email: @actor.email } : "System",
+        max_records_per_table: MAX_BACKUP_RECORDS_PER_TABLE
       },
       app_definition: @app.as_json,
       permissions: @app.user_app_permissions.as_json,
       data: {}
     }
 
-    # Modul-specifikus adatbázis táblák mentése
+    # Modul-specifikus adatbázis táblák mentése (memóriatakarékos, kötegelt lekérdezéssel)
     case @app.slug
     when "chess"
       if defined?(Chess::Match)
-        matches = Chess::Match.includes(:white_player, :black_player).all.map do |m|
+        matches = safe_export_records(Chess::Match.includes(:white_player, :black_player)) do |m|
           m.as_json.merge(
             "white_player" => m.white_player_name,
             "black_player" => m.black_player_name
@@ -78,11 +90,11 @@ class AppBackupService
       end
     when "casino"
       if defined?(Casino::Profile)
-        profiles = Casino::Profile.includes(:user).all.map do |p|
-          p.as_json.merge("username" => p.user.username)
+        profiles = safe_export_records(Casino::Profile.includes(:user)) do |p|
+          p.as_json.merge("username" => p.user&.username)
         end
-        bets = defined?(Casino::Bet) ? Casino::Bet.all.as_json : []
-        transactions = defined?(Casino::Transaction) ? Casino::Transaction.all.as_json : []
+        bets = defined?(Casino::Bet) ? safe_export_records(Casino::Bet) : []
+        transactions = defined?(Casino::Transaction) ? safe_export_records(Casino::Transaction) : []
         payload[:data][:profiles] = profiles
         payload[:data][:bets] = bets
         payload[:data][:transactions] = transactions
@@ -90,8 +102,8 @@ class AppBackupService
       end
     when "canvas"
       if defined?(Canvas::Board)
-        boards = Canvas::Board.all.as_json
-        strokes = defined?(Canvas::Stroke) ? Canvas::Stroke.all.as_json : []
+        boards = safe_export_records(Canvas::Board)
+        strokes = defined?(Canvas::Stroke) ? safe_export_records(Canvas::Stroke) : []
         payload[:data][:boards] = boards
         payload[:data][:strokes] = strokes
         payload[:metadata][:records_count] = boards.size + strokes.size

@@ -4,7 +4,7 @@ module Chess
       before_action :set_match, only: [:show, :abort, :destroy]
 
       def index
-        @matches = Match.all
+        @matches = Match.includes(:white_player, :black_player).all
 
         if params[:status].present? && %w[pending active completed aborted].include?(params[:status])
           @matches = @matches.where(status: params[:status])

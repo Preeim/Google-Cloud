@@ -344,7 +344,11 @@ class ServerMetricsService
 
     # 4. Lemezterület (Disk Usage)
     def parse_disk_metrics
-      df_output = `df -Pk / 2>/dev/null`.strip.split("\n")
+      require "open3" unless defined?(Open3)
+      stdout, status = Open3.capture2("df", "-Pk", "/")
+      return fallback_disk_metrics unless status.success?
+
+      df_output = stdout.strip.split("\n")
       if df_output.size >= 2
         parts = df_output[1].split(/\s+/)
         total_kb = parts[1].to_i
@@ -360,10 +364,14 @@ class ServerMetricsService
           mount_point: parts[5] || "/"
         }
       else
-        { total_gb: 30.0, used_gb: 11.5, free_gb: 18.5, used_percent: 38, mount_point: "/" }
+        fallback_disk_metrics
       end
     rescue StandardError => e
       Rails.logger.warn("[ServerMetricsService] Tárhely parse hiba: #{e.message}")
+      fallback_disk_metrics
+    end
+
+    def fallback_disk_metrics
       { total_gb: 30.0, used_gb: 11.5, free_gb: 18.5, used_percent: 38, mount_point: "/" }
     end
 

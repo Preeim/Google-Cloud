@@ -57,7 +57,7 @@
                   <%= button_to "Visszavonás", cancel_match_path(match.uuid), method: :post, class: "btn-cancel", data: { turbo_confirm: "Biztosan visszavonod a kihívást?" } %>
                   <%= link_to "Szobám", match_path(match.uuid), class: "btn-view" %>
                 <% else %>
-                  <%= link_to "Csatlakozás", match_path(match.uuid, join: true), class: "btn-join" %>
+                  <%= button_to "Csatlakozás", join_match_path(match.uuid), method: :post, class: "btn-join" %>
                   <%= link_to "Néző", match_path(match.uuid), class: "btn-spectate" %>
                 <% end %>
               </div>

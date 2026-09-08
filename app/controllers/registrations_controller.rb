@@ -20,8 +20,8 @@ class RegistrationsController < ApplicationController
     redirect_to root_path if logged_in?
 
     u_params = user_params
-    # SQL Injection szűrés: gyanús injekciós tokenek azonnali elutasítása
-    if [u_params[:username], u_params[:email], u_params[:password], u_params[:password_confirmation]].any? { |val| val.to_s.match?(SQL_INJECTION_PATTERN) }
+    # SQL Injection szűrés: gyanús injekciós tokenek azonnali elutasítása a felhasználónévben és emailben
+    if [u_params[:username], u_params[:email]].any? { |val| val.to_s.match?(SQL_INJECTION_PATTERN) }
       flash.now[:alert] = "A megadott adatok érvénytelen karaktereket tartalmaznak."
       @user = User.new(u_params.except(:password, :password_confirmation))
       render :new, status: :unprocessable_entity and return

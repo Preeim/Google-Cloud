@@ -197,7 +197,7 @@
           <strong>Nyitott kihívás!</strong> Csatlakozz a mérkőzéshez mint 
           <span class="badge-role"><%= white_open ? "Világos" : "Sötét" %></span> játékos!
         </div>
-        <%= link_to "Csatlakozás Játékosként", match_path(@match.uuid, join: true), class: "btn btn-primary btn-sm" %>
+        <%= button_to "Csatlakozás Játékosként", join_match_path(@match.uuid), method: :post, class: "btn btn-primary btn-sm" %>
       </div>
     <% elsif @match.pending? && is_creator %>
       <div class="pending-creator-banner">
@@ -205,7 +205,7 @@
           <strong>Várakozás az ellenfélre...</strong> Oszd meg ezt a linket a barátoddal:
         </div>
         <div class="share-link-group">
-          <input type="text" id="share-link-input" readonly value="<%= match_url(@match.uuid, join: true) %>" class="share-input" onclick="this.select();" title="Kattints a kijelöléshez">
+          <input type="text" id="share-link-input" readonly value="<%= match_url(@match.uuid) %>" class="share-input" onclick="this.select();" title="Kattints a kijelöléshez">
           <button type="button" id="btn-copy-link" class="btn btn-primary btn-sm">Link Másolása</button>
         </div>
         <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
@@ -2131,7 +2131,7 @@
   // Ensure share link input uses current browser origin
   var shareInput = document.getElementById("share-link-input");
   if (shareInput) {
-    shareInput.value = window.location.origin + "<%= match_path(@match.uuid, join: true) %>";
+    shareInput.value = window.location.origin + "<%= match_path(@match.uuid) %>";
   }
 
   // PGN Modal Kezelők
@@ -2461,13 +2461,11 @@
     });
   }
 
-  // ActionCable Kapcsolat Vendég azonosító átadásával
-  var guestId = container.dataset.guestId || '';
+  // ActionCable Kapcsolat
   var consumer = window.ActionCable ? window.ActionCable.createConsumer() : ActionCable.createConsumer();
   window.matchSubscription = consumer.subscriptions.create({ 
     channel: "Chess::MatchChannel", 
-    match_id: matchId,
-    guest_id: guestId 
+    match_id: matchId 
   }, {
     received: function(data) {
       if (data.action === "move" || data.action === "takeback_accepted") {

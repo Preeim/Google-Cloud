@@ -36,18 +36,27 @@ module Canvas
       broadcast_presence if @board
     end
 
+    ALLOWED_TOOLS = %w[brush eraser pencil line rectangle circle text].freeze
+    COLOR_REGEX = /\A#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\z/
+    MAX_POINTS_PER_STROKE = 2_000
+    MAX_STREAM_POINTS_BATCH = 100
+
     # Élő vonal kezdése
     def start_stroke(data)
       return unless can_draw?(@board)
+
+      tool = ALLOWED_TOOLS.include?(data["tool"].to_s) ? data["tool"].to_s : "brush"
+      color = data["color"].to_s =~ COLOR_REGEX ? data["color"].to_s : "#38bdf8"
+      width = data["width"].to_i.clamp(1, 100)
 
       Canvas::BoardChannel.broadcast_to(@board, {
         type: "stroke_start",
         temp_id: data["temp_id"],
         user_id: current_user&.id,
         username: current_user ? current_user.effective_name : "Vendég",
-        tool: data["tool"] || "brush",
-        color: data["color"] || "#38bdf8",
-        width: data["width"] || 4,
+        tool: tool,
+        color: color,
+        width: width,
         start_point: data["point"]
       })
     end
@@ -55,26 +64,35 @@ module Canvas
     # Élő koordináta-köteg közvetítése rajzolás közben (15-30ms batch)
     def stream_points(data)
       return unless can_draw?(@board)
+      return if rate_limited?(min_interval: 0.015) # max ~66 fps per client
+
+      points = data["points"]
+      return unless points.is_a?(Array) && points.size <= MAX_STREAM_POINTS_BATCH
 
       Canvas::BoardChannel.broadcast_to(@board, {
         type: "stroke_stream",
         temp_id: data["temp_id"],
-        points: data["points"]
+        points: points
       })
     end
 
     # Vonal lezárása és véglegesítése adatbázisban
     def finish_stroke(data)
       return unless can_draw?(@board)
+      return if rate_limited?(min_interval: 0.15) # Cooldown between saved strokes
 
       points = data["points"]
-      return if points.blank? || !points.is_a?(Array)
+      return if points.blank? || !points.is_a?(Array) || points.size > MAX_POINTS_PER_STROKE
+
+      tool = ALLOWED_TOOLS.include?(data["tool"].to_s) ? data["tool"].to_s : "brush"
+      color = data["color"].to_s =~ COLOR_REGEX ? data["color"].to_s : "#38bdf8"
+      width = data["width"].to_i.clamp(1, 100)
 
       stroke = @board.strokes.create(
         user: current_user,
-        tool: data["tool"] || "brush",
-        color: data["color"] || "#38bdf8",
-        width: data["width"] || 4,
+        tool: tool,
+        color: color,
+        width: width,
         points_data: points.to_json
       )
 
@@ -170,6 +188,15 @@ module Canvas
       cutoff = 5.minutes.ago.to_i
       active = list.select { |_k, v| v[:last_seen] && v[:last_seen] > cutoff }.values
       active
+    end
+
+    def rate_limited?(min_interval: 0.1)
+      now = Time.now.to_f
+      if @last_action_at && (now - @last_action_at < min_interval)
+        return true
+      end
+      @last_action_at = now
+      false
     end
 
     def broadcast_presence

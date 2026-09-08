@@ -75,5 +75,21 @@
       <% end %>
     </tbody>
   </table>
+
+  <% if @total_pages.to_i > 1 %>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-top: 1px solid var(--border-color); font-size: 0.88rem;">
+      <div style="color: var(--text-muted);">
+        Oldal: <strong><%= @page %></strong> / <strong><%= @total_pages %></strong> (Összesen: <%= @total_users_count %> felhasználó)
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <% if @page > 1 %>
+          <%= link_to "← Előző", admin_users_path(page: @page - 1, search: params[:search]), class: "btn btn-secondary btn-sm" %>
+        <% end %>
+        <% if @page < @total_pages %>
+          <%= link_to "Következő →", admin_users_path(page: @page + 1, search: params[:search]), class: "btn btn-secondary btn-sm" %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
 </div>
 

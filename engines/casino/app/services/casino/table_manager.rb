@@ -3,38 +3,50 @@ module Casino
     BETTING_DURATION_SECONDS = 20
     PLAYER_TURN_DURATION_SECONDS = 30
 
-    # Szálbiztos online játékos nyilvántartás asztalonként
-    @@presence = {}
-    @@presence_mutex = Mutex.new
+    PRESENCE_CACHE_KEY_PREFIX = "casino_table_presence_".freeze
+    PRESENCE_EXPIRY = 30.minutes
+
+    def self.presence_cache_key(table_id)
+      "#{PRESENCE_CACHE_KEY_PREFIX}#{table_id}"
+    end
 
     def self.register_presence(table_id, user_id)
       return unless table_id && user_id
-      @@presence_mutex.synchronize do
-        @@presence[table_id] ||= Hash.new(0)
-        @@presence[table_id][user_id] += 1
-      end
+      key = presence_cache_key(table_id)
+      presence = Rails.cache.read(key) || {}
+      presence[user_id.to_s] = (presence[user_id.to_s].to_i) + 1
+      Rails.cache.write(key, presence, expires_in: PRESENCE_EXPIRY)
     end
 
     def self.unregister_presence(table_id, user_id)
       return unless table_id && user_id
-      @@presence_mutex.synchronize do
-        return unless @@presence[table_id]
-        @@presence[table_id][user_id] -= 1
-        @@presence[table_id].delete(user_id) if @@presence[table_id][user_id] <= 0
-        @@presence.delete(table_id) if @@presence[table_id].empty?
+      key = presence_cache_key(table_id)
+      presence = Rails.cache.read(key) || {}
+      if presence[user_id.to_s]
+        count = presence[user_id.to_s].to_i - 1
+        if count <= 0
+          presence.delete(user_id.to_s)
+        else
+          presence[user_id.to_s] = count
+        end
+      end
+      if presence.empty?
+        Rails.cache.delete(key)
+      else
+        Rails.cache.write(key, presence, expires_in: PRESENCE_EXPIRY)
       end
     end
 
     def self.has_online_players?(table_id)
-      @@presence_mutex.synchronize do
-        @@presence[table_id].present? && @@presence[table_id].any? { |_uid, count| count > 0 }
-      end
+      return false unless table_id
+      presence = Rails.cache.read(presence_cache_key(table_id)) || {}
+      presence.any? { |_uid, count| count.to_i > 0 }
     end
 
     def self.online_players_count(table_id)
-      @@presence_mutex.synchronize do
-        @@presence[table_id] ? @@presence[table_id].keys.size : 0
-      end
+      return 0 unless table_id
+      presence = Rails.cache.read(presence_cache_key(table_id)) || {}
+      presence.count { |_uid, count| count.to_i > 0 }
     end
 
     # Csak akkor indítunk visszaszámlálást, ha már van aktív tét az asztalon

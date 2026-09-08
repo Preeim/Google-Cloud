@@ -44,5 +44,18 @@ class AppDefinition < ApplicationRecord
     else "badge-disabled"
     end
   end
+
+  after_commit :clear_navigation_cache
+
+  def self.clear_nav_cache!
+    Rails.cache.delete("nav_apps_admin")
+    Rails.cache.delete("nav_apps_user")
+  end
+
+  private
+
+  def clear_navigation_cache
+    self.class.clear_nav_cache!
+  end
 end
 

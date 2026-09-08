@@ -44,10 +44,18 @@ module ApplicationHelper
     end
   end
 
-  # Elérhető alkalmazások lekérdezése navigációhoz
+  # Elérhető alkalmazások lekérdezése navigációhoz (gyorsítótárazva)
   def nav_apps
     if defined?(AppDefinition)
-      (respond_to?(:admin?) && admin? rescue false) ? AppDefinition.order(:name) : AppDefinition.available_to_users.order(:name)
+      is_adm = (respond_to?(:admin?) && admin?) rescue false
+      cache_key = "nav_apps_#{is_adm ? 'admin' : 'user'}"
+      Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
+        if is_adm
+          AppDefinition.order(:name).to_a
+        else
+          AppDefinition.available_to_users.order(:name).to_a
+        end
+      end
     else
       []
     end

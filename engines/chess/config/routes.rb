@@ -10,7 +10,6 @@ Chess::Engine.routes.draw do
   resources :matches, only: [:index, :show, :create, :destroy] do
     member do
       post :join
-      get :join
       post :cancel
     end
   end

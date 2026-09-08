@@ -656,6 +656,13 @@
     }
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
   function updatePresenceUI(users) {
     const presenceList = document.getElementById("presence-list");
     const activeCount = document.getElementById("active-count");
@@ -667,9 +674,14 @@
     users.forEach(u => {
       const pill = document.createElement("div");
       pill.className = "user-pill";
+
+      const safeUsername = escapeHtml(u.username || "Vendég");
+      const safeInitials = escapeHtml(u.avatar_initials || "V");
+      const safeColor = (u.avatar_color && /^#(?:[0-9a-fA-F]{3}){1,2}$/.test(u.avatar_color)) ? u.avatar_color : "#38bdf8";
+
       pill.innerHTML = `
-        <span class="user-pill-avatar" style="background: ${u.avatar_color || '#38bdf8'};">${u.avatar_initials || 'U'}</span>
-        <span style="font-weight: 600; color: var(--text-main);">${u.username}</span>
+        <span class="user-pill-avatar" style="background: ${safeColor};">${safeInitials}</span>
+        <span style="font-weight: 600; color: var(--text-main);">${safeUsername}</span>
         ${u.can_draw ? '<span class="user-pill-draw-dot" title="Rajzoló"></span>' : '<span class="user-pill-view-dot" title="Néző"></span>'}
       `;
       presenceList.appendChild(pill);

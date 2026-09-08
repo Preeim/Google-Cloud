@@ -12,14 +12,18 @@ module Casino
         new_state = old_state == "maintenance" ? "idle" : "maintenance"
         @table.update!(state: new_state)
 
-        ::AuditLog.log!(
-          action: "casino_table_state_toggled",
-          actor: current_user,
-          target: @table,
-          resource: @table,
-          request: request,
-          metadata: { old_state: old_state, new_state: new_state, table_name: @table.name }
-        ) rescue nil
+        begin
+          ::AuditLog.log!(
+            action: "casino_table_state_toggled",
+            actor: current_user,
+            target: nil,
+            resource: @table,
+            request: request,
+            metadata: { old_state: old_state, new_state: new_state, table_name: @table.name }
+          )
+        rescue StandardError => e
+          Rails.logger.error("[Casino::Admin::TablesController] AuditLog mentési hiba (toggle): #{e.message}")
+        end
 
         Casino::TableChannel.broadcast_to(@table, {
           type: "table_state_changed",
@@ -48,14 +52,18 @@ module Casino
           @table.update!(state: "idle", betting_closes_at: nil, state_data: {}.to_json)
         end
 
-        ::AuditLog.log!(
-          action: "casino_table_round_reset",
-          actor: current_user,
-          target: @table,
-          resource: @table,
-          request: request,
-          metadata: { table_name: @table.name, round_number: @table.round_number, refunded_bets: refunded_count }
-        ) rescue nil
+        begin
+          ::AuditLog.log!(
+            action: "casino_table_round_reset",
+            actor: current_user,
+            target: nil,
+            resource: @table,
+            request: request,
+            metadata: { table_name: @table.name, round_number: @table.round_number, refunded_bets: refunded_count }
+          )
+        rescue StandardError => e
+          Rails.logger.error("[Casino::Admin::TablesController] AuditLog mentési hiba (reset_round): #{e.message}")
+        end
 
         Casino::TableChannel.broadcast_to(@table, {
           type: "round_canceled",

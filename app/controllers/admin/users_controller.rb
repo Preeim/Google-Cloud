@@ -9,12 +9,18 @@ module Admin
   class UsersController < BaseController
     before_action :set_user, only: [:edit, :update, :unlock, :destroy]
 
+    PAGE_SIZE = 50
+
     def index
+      @page = [params[:page].to_i, 1].max
       @users = User.order(created_at: :desc)
       if params[:search].present?
         query = "%#{params[:search].to_s.strip.downcase}%"
         @users = @users.where("LOWER(username) LIKE ? OR LOWER(email) LIKE ?", query, query)
       end
+      @total_users_count = @users.count
+      @total_pages = (@total_users_count / PAGE_SIZE.to_f).ceil
+      @users = @users.offset((@page - 1) * PAGE_SIZE).limit(PAGE_SIZE)
     end
 
     def edit

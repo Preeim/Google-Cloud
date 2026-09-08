@@ -16,7 +16,7 @@ Rails.application.configure do
   effective_secret = (ENV["SECRET_KEY_BASE"].to_s.strip unless ENV["SECRET_KEY_BASE"].to_s.strip.empty?) ||
                      (secret_file_val unless secret_file_val.to_s.empty?)
   if effective_secret.blank?
-    effective_secret = "a4b2c8e1f0d3e5a7b9c6d4e2f1a0b8c7d5e3f2a1b9c0d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7"
+    raise "KRITIKUS BIZTONSÁGI HIBA: A SECRET_KEY_BASE környezeti változó nincs konfigurálva éles környezetben!"
   end
   config.secret_key_base = effective_secret
 
@@ -36,8 +36,14 @@ Rails.application.configure do
   config.active_support.report_deprecations = false
   config.active_record.dump_schema_after_migration = false
 
-  # Nginx fordított proxy kezeli az SSL-t (Let's Encrypt) és a domaineket
-  config.hosts.clear
+  # Szigorú Host Authorization (DNS Rebinding védelem)
+  config.hosts = [
+    "bankrepo.hu",
+    "www.bankrepo.hu",
+    "127.0.0.1",
+    "localhost",
+    /\A.*\.bankrepo\.hu\z/
+  ]
 
   # Szigorú SSL/TLS és HSTS kényszerítés (Strict-Transport-Security)
   config.force_ssl = true

@@ -5,6 +5,14 @@ echo "====================================================="
 echo "   Starting Deployment on Google Cloud VM"
 echo "====================================================="
 
+# Load environment variables if .env exists
+if [ -f ".env" ]; then
+    echo "Loading environment variables from .env..."
+    set -a
+    source .env
+    set +a
+fi
+
 # 1. Nginx Hardening (Server header & version leak mitigation)
 if [ -d "/etc/nginx" ] && command -v nginx >/dev/null 2>&1; then
     echo "[1/5] Hardening Nginx server tokens and headers..."

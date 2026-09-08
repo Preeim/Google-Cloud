@@ -17,14 +17,7 @@ module Chess
       # 1. Bejelentkezett felhasználó státuszának és rekordjának szinkronizálása
       sync_logged_in_user_state!
 
-      # 2. Meghívó link feldolgozása: csak explicit csatlakozási szándék esetén (params[:join] vagy join akció)
-      if @match.pending? && !@match.creator?(current_user, session[:guest_id])
-        if params[:join] == "true" || params[:join] == "1"
-          join_pending_match!
-        end
-      end
-
-      # 3. Időtúllépés automatikus vizsgálata aktív játszma esetén
+      # 2. Időtúllépés automatikus vizsgálata aktív játszma esetén
       if @match.active?
         @match.check_timeout!
       end
