@@ -1,0 +1,83 @@
+﻿<%# ==============================================================================
+    Admin – Adatbázis Böngésző: Tábla-lista (index.html.erb)
+    Megjeleníti az összes MySQL táblát statisztikákkal: rekordszám, méret, dátum.
+    Kártyás rácselrendezés, érzékeny táblák jelölésével.
+============================================================================== %>
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 24px;">
+  <div>
+    <h1 style="font-size: clamp(1.3rem, 4vw, 1.6rem); font-weight: 700; color: var(--text-main);">🗄️ Adatbázis Böngésző</h1>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">MySQL táblák áttekintése és rekord-szintű böngészés</p>
+  </div>
+</div>
+
+<%# Összesítő statisztikai sáv %>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px;">
+  <div class="card" style="margin-bottom: 0; text-align: center;">
+    <div style="color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; font-weight: 700;">Táblák száma</div>
+    <div style="font-size: 2rem; font-weight: 800; color: var(--text-main); margin-top: 6px;"><%= @tables.size %></div>
+  </div>
+  <div class="card" style="margin-bottom: 0; text-align: center;">
+    <div style="color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; font-weight: 700;">Összes rekord (~)</div>
+    <div style="font-size: 2rem; font-weight: 800; color: var(--accent-blue); margin-top: 6px;"><%= number_with_delimiter(@total_records) %></div>
+  </div>
+  <div class="card" style="margin-bottom: 0; text-align: center;">
+    <div style="color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; font-weight: 700;">DB méret összesen</div>
+    <div style="font-size: 2rem; font-weight: 800; color: var(--admin-accent); margin-top: 6px;"><%= number_with_precision(@total_size_mb, precision: 2) %> MB</div>
+  </div>
+</div>
+
+<%# Táblák kártyás rácsban %>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px;">
+  <% @tables.each do |table| %>
+    <div class="card" style="margin-bottom: 0; transition: transform 0.15s, box-shadow 0.15s;"
+         onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)';"
+         onmouseout="this.style.transform='none'; this.style.boxShadow='';">
+
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+          <span style="font-size: 1.1rem;">🗃️</span>
+          <code style="font-size: 0.9rem; font-weight: 700; color: var(--text-main); word-break: break-all;"><%= table[:name] %></code>
+        </div>
+        <% if table[:sensitive] %>
+          <span title="Érzékeny tábla" style="font-size: 1.1rem; flex-shrink: 0;">⚠️</span>
+        <% end %>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+        <div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Rekordok (~)</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);"><%= number_with_delimiter(table[:row_count]) %></div>
+        </div>
+        <div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Méret</div>
+          <div style="font-size: 1.1rem; font-weight: 700; color: var(--text-main);"><%= table[:size_mb] > 0 ? "#{number_with_precision(table[:size_mb], precision: 3)} MB" : "< 0.001 MB" %></div>
+        </div>
+      </div>
+
+      <% if table[:updated_at] %>
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px;">
+          Utolsó módosítás: <%= table[:updated_at].strftime("%Y.%m.%d %H:%M") rescue "–" %>
+        </div>
+      <% end %>
+
+      <div style="display: flex; gap: 8px;">
+        <%= link_to "Böngészés →", admin_database_path(table[:name]),
+            class: "btn btn-secondary",
+            style: "font-size: 0.82rem; padding: 5px 12px; flex: 1; text-align: center;" %>
+        <%= link_to "↓ CSV", export_admin_database_path(table[:name], format: :csv),
+            class: "btn btn-secondary",
+            style: "font-size: 0.82rem; padding: 5px 10px;" %>
+        <%= link_to "↓ JSON", export_admin_database_path(table[:name], format: :json),
+            class: "btn btn-secondary",
+            style: "font-size: 0.82rem; padding: 5px 10px;" %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<% if @tables.empty? %>
+  <div class="card" style="text-align: center; padding: 48px; color: var(--text-muted);">
+    Nem találhatók táblák az adatbázisban.
+  </div>
+<% end %>

@@ -53,6 +53,16 @@ Rails.application.routes.draw do
       get :data, on: :collection
     end
     get "system", to: "server_metrics#index", as: :system_metrics
+
+    # Adatbázis Böngésző
+    resources :database, only: [:index, :show], param: :table do
+      get :export, on: :member
+    end
+
+    # SQL Konzol
+    resource :sql_console, only: [:show] do
+      post :execute, on: :member
+    end
   end
 
   # Kényelmi és közvetlen átirányítások a monitorozó felületre (/admin/system, /admin/server_metrics)

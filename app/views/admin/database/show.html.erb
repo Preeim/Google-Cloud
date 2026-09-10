@@ -1,0 +1,149 @@
+﻿<%# ==============================================================================
+    Admin – Adatbázis Böngésző: Rekord-nézet (show.html.erb)
+    Megjeleníti az adott tábla rekordjait szűréssel, lapozással és rendezéssel.
+    Sor kattintásra: slideout panel nyílik a rekord részleteivel.
+    Export: CSV és JSON gombokkal.
+============================================================================== %>
+
+<div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;">
+  <%= link_to "← Összes tábla", admin_database_index_path, style: "color: var(--text-muted); text-decoration: none; font-size: 0.88rem;" %>
+  <span style="color: var(--border-subtle);">›</span>
+  <h1 style="font-size: 1.3rem; font-weight: 700; color: var(--text-main); margin: 0;">
+    <code><%= @table_name %></code>
+    <% if @sensitive %>
+      <span title="Érzékeny tábla – figyelj a módosításokra!" style="font-size: 1rem;">⚠️</span>
+    <% end %>
+  </h1>
+  <span class="tag tag-user" style="font-size: 0.78rem;"><%= number_with_delimiter(@total_count) %> sor</span>
+</div>
+
+<%# Szűrő és export toolbar %>
+<div class="card" style="margin-bottom: 18px; padding: 14px 18px;">
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;">
+    <%# Keresés %>
+    <%= form_with url: admin_database_path(@table_name), method: :get, local: true,
+        style: "display: flex; gap: 8px; flex: 1; min-width: 240px;" do |f| %>
+      <%= f.text_field :search, value: @search,
+          placeholder: "Keresés bármely oszlopban...",
+          class: "form-control",
+          style: "flex: 1; padding: 7px 12px; font-size: 0.88rem;" %>
+      <%= f.hidden_field :sort, value: @sort_col %>
+      <%= f.hidden_field :dir, value: @sort_dir %>
+      <%= f.submit "Keresés", class: "btn btn-secondary" %>
+      <% if @search.present? %>
+        <%= link_to "✕", admin_database_path(@table_name), class: "btn btn-secondary" %>
+      <% end %>
+    <% end %>
+
+    <%# Export gombok %>
+    <div style="display: flex; gap: 8px;">
+      <%= link_to "↓ CSV", export_admin_database_path(@table_name, format: :csv, search: @search),
+          class: "btn btn-secondary",
+          style: "font-size: 0.82rem;" %>
+      <%= link_to "↓ JSON", export_admin_database_path(@table_name, format: :json, search: @search),
+          class: "btn btn-secondary",
+          style: "font-size: 0.82rem;" %>
+    </div>
+  </div>
+</div>
+
+<%# Rekord-táblázat %>
+<div class="card" style="padding: 0; overflow-x: auto;">
+  <table style="margin-top: 0; min-width: 600px;">
+    <thead>
+      <tr>
+        <% @columns.each do |col| %>
+          <th>
+            <%= link_to admin_database_path(@table_name,
+                  sort: col,
+                  dir: (@sort_col == col && @sort_dir == "ASC") ? "DESC" : "ASC",
+                  search: @search,
+                  page: 1),
+                style: "color: inherit; text-decoration: none; display: flex; align-items: center; gap: 4px;" do %>
+              <%= col %>
+              <% if @sort_col == col %>
+                <span style="font-size: 0.7rem;"><%= @sort_dir == "ASC" ? "▲" : "▼" %></span>
+              <% end %>
+            <% end %>
+          </th>
+        <% end %>
+        <th style="text-align: right;">Műveletek</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if @records.rows.empty? %>
+        <tr>
+          <td colspan="<%= @columns.size + 1 %>" style="text-align: center; color: var(--text-muted); padding: 32px;">
+            <%= @search.present? ? "Nincs találat a keresésre: \"#{@search}\"" : "A tábla üres." %>
+          </td>
+        </tr>
+      <% else %>
+        <% @records.each do |row| %>
+          <% row_data = @columns.zip(row.values).to_h %>
+          <tr style="cursor: pointer;"
+              onclick="openRecordSlideout(<%= row_data.to_json.html_safe %>, '<%= @table_name %>')">
+            <% row.values.each_with_index do |val, i| %>
+              <td data-label="<%= @columns[i] %>"
+                  style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <% if val.nil? %>
+                  <span style="color: var(--text-muted); font-style: italic; font-size: 0.82rem;">NULL</span>
+                <% elsif val.to_s.length > 60 %>
+                  <span title="<%= val.to_s.first(200) %>"><%= val.to_s.first(57) %>...</span>
+                <% else %>
+                  <%= val %>
+                <% end %>
+              </td>
+            <% end %>
+            <td style="text-align: right;">
+              <button class="btn btn-secondary"
+                      style="font-size: 0.78rem; padding: 3px 8px;"
+                      onclick="event.stopPropagation(); openRecordSlideout(<%= row_data.to_json.html_safe %>, '<%= @table_name %>')">
+                Részletek
+              </button>
+            </td>
+          </tr>
+        <% end %>
+      <% end %>
+    </tbody>
+  </table>
+
+  <%# Lapozó %>
+  <% if @total_pages > 1 %>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; border-top: 1px solid var(--border-subtle); font-size: 0.88rem;">
+      <div style="color: var(--text-muted);">
+        Oldal: <strong><%= @page %></strong> / <strong><%= @total_pages %></strong>
+        &nbsp;·&nbsp; Összes sor: <strong><%= number_with_delimiter(@total_count) %></strong>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <% if @page > 1 %>
+          <%= link_to "← Előző", admin_database_path(@table_name, page: @page - 1, search: @search, sort: @sort_col, dir: @sort_dir),
+              class: "btn btn-secondary btn-sm" %>
+        <% end %>
+        <% if @page < @total_pages %>
+          <%= link_to "Következő →", admin_database_path(@table_name, page: @page + 1, search: @search, sort: @sort_col, dir: @sort_dir),
+              class: "btn btn-secondary btn-sm" %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<script>
+// Slideout megnyitása egy adatbázis-rekordhoz
+function openRecordSlideout(rowData, tableName) {
+  const title = `${tableName} – Rekord részletek`;
+
+  let bodyHtml = '<dl style="display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; align-items: start;">';
+  for (const [key, val] of Object.entries(rowData)) {
+    const displayVal = val === null
+      ? '<span style="color:var(--text-muted); font-style:italic;">NULL</span>'
+      : `<code style="word-break:break-all; font-size:0.85rem;">${String(val).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code>`;
+    bodyHtml += `
+      <dt style="color:var(--text-muted); font-size:0.78rem; text-transform:uppercase; font-weight:600; padding-top:2px;">${key}</dt>
+      <dd style="margin:0;">${displayVal}</dd>`;
+  }
+  bodyHtml += '</dl>';
+
+  AdminSlideout.open(title, bodyHtml);
+}
+</script>

@@ -70,6 +70,174 @@
     .tag-locked { background: var(--danger-subtle); color: #f87171; border: 1px solid var(--danger-border); }
     .tag-user { background: rgba(255, 255, 255, 0.05); color: var(--text-muted); border: 1px solid var(--border-subtle); }
 
+    /* =============================================
+       SLIDEOUT PANEL
+    ============================================= */
+    .admin-slideout-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 900;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .admin-slideout-backdrop.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .admin-slideout {
+      position: fixed;
+      top: 0; right: 0;
+      width: 520px;
+      max-width: 100vw;
+      height: 100%;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-subtle);
+      z-index: 901;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+    }
+    .admin-slideout.active {
+      transform: translateX(0);
+    }
+    .admin-slideout-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+    }
+    .admin-slideout-header h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0;
+    }
+    .admin-slideout-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.4rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      line-height: 1;
+      transition: color 0.15s, background 0.15s;
+    }
+    .admin-slideout-close:hover {
+      color: var(--text-main);
+      background: var(--bg-elevated);
+    }
+    .admin-slideout-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .admin-slideout-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+
+    /* =============================================
+       CONFIRMATION MODAL
+    ============================================= */
+    .admin-confirm-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 950;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .admin-confirm-backdrop.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .admin-confirm-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 32px 28px 24px;
+      max-width: 420px;
+      width: calc(100% - 40px);
+      text-align: center;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      transform: scale(0.94);
+      transition: transform 0.2s ease;
+    }
+    .admin-confirm-backdrop.active .admin-confirm-box {
+      transform: scale(1);
+    }
+    .admin-confirm-icon {
+      font-size: 2.4rem;
+      margin-bottom: 14px;
+    }
+    .admin-confirm-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin: 0 0 10px;
+    }
+    .admin-confirm-body {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin: 0 0 22px;
+    }
+    .admin-confirm-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    /* =============================================
+       SESSION TIMEOUT TOAST
+    ============================================= */
+    .admin-timeout-toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: #78350f;
+      border: 1px solid #f59e0b;
+      color: #fde68a;
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      font-weight: 500;
+      z-index: 800;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      max-width: 340px;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .admin-timeout-toast.visible {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: all;
+    }
+    .admin-timeout-toast a {
+      color: #fbbf24;
+      font-weight: 700;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
     /* Mobil Reszponzivitás & Kártyás Táblázatok */
     @media (max-width: 768px) {
       header.admin-header {
@@ -103,6 +271,9 @@
       }
       .btn {
         padding: 8px 12px;
+      }
+      .admin-slideout {
+        width: 100vw;
       }
 
       /* Stacked Cards for Tables with Two-column auto-wrap */
@@ -179,6 +350,8 @@
         <a href="/bank-admin/users" class="<%= 'active' if request.path.start_with?('/bank-admin/users') %>">👥 Felhasználók</a>
         <a href="/bank-admin/apps" class="<%= 'active' if request.path.start_with?('/bank-admin/apps') %>">🧩 Modulok</a>
         <a href="/bank-admin/audit_logs" class="<%= 'active' if request.path.start_with?('/bank-admin/audit_logs') %>">📜 Audit Napló</a>
+        <a href="/bank-admin/database" class="<%= 'active' if request.path.start_with?('/bank-admin/database') %>">🗄️ Adatbázis</a>
+        <a href="/bank-admin/sql_console" class="<%= 'active' if request.path.start_with?('/bank-admin/sql_console') %>">⌨️ SQL Konzol</a>
       </div>
     </div>
   </nav>
@@ -198,6 +371,162 @@
 
   <%# Globális Chat Lebegő Rendszer %>
   <%= render "shared/global_chat" %>
+
+  <%# ============================================================
+      SLIDEOUT PANEL – globális component, JS-ből tölthető
+  ============================================================ %>
+  <div id="admin-slideout-backdrop" class="admin-slideout-backdrop" onclick="AdminSlideout.close()"></div>
+  <div id="admin-slideout" class="admin-slideout" role="dialog" aria-modal="true">
+    <div class="admin-slideout-header">
+      <h3 id="admin-slideout-title">Részletek</h3>
+      <button class="admin-slideout-close" onclick="AdminSlideout.close()" aria-label="Bezárás">✕</button>
+    </div>
+    <div class="admin-slideout-body" id="admin-slideout-body">
+      <!-- Tartalom JS-ből töltődik -->
+    </div>
+    <div class="admin-slideout-footer" id="admin-slideout-footer"></div>
+  </div>
+
+  <%# ============================================================
+      CONFIRMATION MODAL – globális component
+  ============================================================ %>
+  <div id="admin-confirm-backdrop" class="admin-confirm-backdrop" role="alertdialog" aria-modal="true">
+    <div class="admin-confirm-box">
+      <div class="admin-confirm-icon" id="admin-confirm-icon">⚠️</div>
+      <h3 class="admin-confirm-title" id="admin-confirm-title">Biztosan folytatod?</h3>
+      <p class="admin-confirm-body" id="admin-confirm-body">Ez a művelet visszafordíthatatlan lehet.</p>
+      <div class="admin-confirm-actions">
+        <button class="btn btn-secondary" onclick="AdminConfirm.cancel()">Mégse</button>
+        <button class="btn btn-danger" id="admin-confirm-ok" onclick="AdminConfirm.confirm()">Megerősítés</button>
+      </div>
+    </div>
+  </div>
+
+  <%# ============================================================
+      SESSION TIMEOUT TOAST
+  ============================================================ %>
+  <div id="admin-timeout-toast" class="admin-timeout-toast" role="status">
+    ⚠️ Az admin munkamenet <strong id="admin-timeout-countdown">2:00</strong> múlva lejár.
+    <a onclick="AdminSession.extend()">Meghosszabbítás</a>
+  </div>
+
+  <script>
+  // ==============================================================================
+  // AdminSlideout – jobb oldali kihúzható panel
+  // ==============================================================================
+  const AdminSlideout = {
+    open(title, bodyHtml, footerHtml = '') {
+      document.getElementById('admin-slideout-title').textContent = title;
+      document.getElementById('admin-slideout-body').innerHTML = bodyHtml;
+      document.getElementById('admin-slideout-footer').innerHTML = footerHtml;
+      document.getElementById('admin-slideout').classList.add('active');
+      document.getElementById('admin-slideout-backdrop').classList.add('active');
+      document.body.style.overflow = 'hidden';
+    },
+    close() {
+      document.getElementById('admin-slideout').classList.remove('active');
+      document.getElementById('admin-slideout-backdrop').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  };
+
+  // ESC billentyűre bezárás
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      AdminSlideout.close();
+      AdminConfirm.cancel();
+    }
+  });
+
+  // ==============================================================================
+  // AdminConfirm – megerősítő modal
+  // ==============================================================================
+  const AdminConfirm = {
+    _resolve: null,
+
+    show({ title, body, icon = '⚠️', confirmLabel = 'Megerősítés', dangerLevel = 'danger' }) {
+      document.getElementById('admin-confirm-icon').textContent = icon;
+      document.getElementById('admin-confirm-title').textContent = title;
+      document.getElementById('admin-confirm-body').textContent = body;
+      const btn = document.getElementById('admin-confirm-ok');
+      btn.textContent = confirmLabel;
+      btn.className = `btn btn-${dangerLevel}`;
+      document.getElementById('admin-confirm-backdrop').classList.add('active');
+
+      return new Promise((resolve) => { this._resolve = resolve; });
+    },
+
+    confirm() {
+      document.getElementById('admin-confirm-backdrop').classList.remove('active');
+      if (this._resolve) { this._resolve(true); this._resolve = null; }
+    },
+
+    cancel() {
+      document.getElementById('admin-confirm-backdrop').classList.remove('active');
+      if (this._resolve) { this._resolve(false); this._resolve = null; }
+    }
+  };
+
+  // ==============================================================================
+  // AdminSession – 30 perces timeout + 2 perces figyelmeztetés
+  // ==============================================================================
+  const AdminSession = (() => {
+    const TIMEOUT_MS   = 30 * 60 * 1000; // 30 perc
+    const WARNING_MS   =  2 * 60 * 1000; //  2 perc figyelmeztetés előre
+    const PING_URL     = '<%= root_path %>';
+    const LOGIN_URL    = '<%= login_path %>';
+
+    let lastActivity   = Date.now();
+    let warningTimer   = null;
+    let logoutTimer    = null;
+    let countdownTimer = null;
+
+    const toast        = document.getElementById('admin-timeout-toast');
+    const countdownEl  = document.getElementById('admin-timeout-countdown');
+
+    function resetTimers() {
+      lastActivity = Date.now();
+      clearTimeout(warningTimer);
+      clearTimeout(logoutTimer);
+      clearInterval(countdownTimer);
+      toast.classList.remove('visible');
+
+      warningTimer = setTimeout(showWarning, TIMEOUT_MS - WARNING_MS);
+      logoutTimer  = setTimeout(() => { window.location.href = LOGIN_URL + '?timeout=1'; }, TIMEOUT_MS);
+    }
+
+    function showWarning() {
+      let remaining = WARNING_MS / 1000;
+      toast.classList.add('visible');
+      countdownEl.textContent = formatTime(remaining);
+      countdownTimer = setInterval(() => {
+        remaining--;
+        countdownEl.textContent = formatTime(remaining);
+        if (remaining <= 0) clearInterval(countdownTimer);
+      }, 1000);
+    }
+
+    function formatTime(secs) {
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function extend() {
+      fetch(PING_URL, { method: 'GET', credentials: 'same-origin' }).catch(() => {});
+      resetTimers();
+    }
+
+    // Aktivitás figyelés
+    ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(evt => {
+      document.addEventListener(evt, () => {
+        if (Date.now() - lastActivity > 5000) resetTimers();
+      }, { passive: true });
+    });
+
+    resetTimers();
+    return { extend };
+  })();
+  </script>
 </body>
 </html>
-

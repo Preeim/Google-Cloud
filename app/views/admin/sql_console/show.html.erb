@@ -1,0 +1,249 @@
+﻿<%# ==============================================================================
+    Admin – SQL Konzol (show.html.erb)
+    Nyers SQL lekérdezések futtatása a bankrepo MySQL adatbázison.
+    
+    Funkciók:
+      - Textarea editor (Tab indentálás, Ctrl+Enter shortcut)
+      - Eredmény panel: SELECT → táblázat, DML → rows affected, hiba → piros pre
+      - DDL kulcsszavak (DROP/TRUNCATE/ALTER/RENAME) → confirmation modal
+      - Query history (jobb oldal, utolsó 10 lekérdezés)
+      - Execution time badge
+      - AuditLog minden futtatáshoz (backend)
+============================================================================== %>
+
+<div style="margin-bottom: 20px;">
+  <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-main);">⌨️ SQL Konzol</h1>
+  <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">
+    Nyers SQL futtatása · Csak DML (SELECT/INSERT/UPDATE/DELETE) · DDL megerősítéssel
+  </p>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 260px; gap: 20px; align-items: start;">
+  
+  <%# Bal: Editor + Eredmény %>
+  <div>
+    <%# SQL Editor %>
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 18px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-elevated);">
+        <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">MySQL · bankrepo</span>
+        <span style="font-size: 0.78rem; color: var(--text-muted);">Ctrl + ↵ futtatás</span>
+      </div>
+      <div style="position: relative;">
+        <textarea id="sql-editor"
+                  style="width: 100%; min-height: 180px; background: var(--bg-canvas); color: var(--text-main); border: none; outline: none; padding: 16px; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem; line-height: 1.6; resize: vertical; box-sizing: border-box; display: block;"
+                  placeholder="-- Írj SQL lekérdezést...&#10;-- Pl.: SELECT * FROM users ORDER BY created_at DESC;&#10;-- Ctrl+Enter = Futtatás"
+                  spellcheck="false"><%= @last_query %></textarea>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-top: 1px solid var(--border-subtle); gap: 10px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="sql-execute-btn" class="btn btn-secondary"
+                  style="background: var(--accent-subtle); border-color: var(--accent-border); color: var(--accent);"
+                  onclick="SqlConsole.execute()">
+            ▶ Futtatás
+          </button>
+          <button class="btn btn-secondary" style="font-size: 0.82rem;"
+                  onclick="document.getElementById('sql-editor').value = '';">
+            Törlés
+          </button>
+        </div>
+        <div id="sql-timing" style="font-size: 0.8rem; color: var(--text-muted);"></div>
+      </div>
+    </div>
+
+    <%# Eredmény panel %>
+    <div id="sql-result-panel" class="card" style="padding: 0; overflow: hidden; display: none;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-elevated);">
+        <span id="sql-result-label" style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted);">Eredmény</span>
+        <span id="sql-result-badge" class="tag"></span>
+      </div>
+      <div id="sql-result-body" style="overflow-x: auto; padding: 0; max-height: 420px; overflow-y: auto;"></div>
+    </div>
+  </div>
+
+  <%# Jobb: Query History %>
+  <div>
+    <div class="card" style="padding: 14px;">
+      <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px;">
+        🕐 Előzmények
+      </div>
+      <% if @query_history.empty? %>
+        <p style="font-size: 0.82rem; color: var(--text-muted); text-align: center; padding: 16px 0;">
+          Még nincs futtatott lekérdezés.
+        </p>
+      <% else %>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <% @query_history.each_with_index do |q, i| %>
+            <button onclick="SqlConsole.loadQuery(<%= q.to_json %>)"
+                    style="background: var(--bg-elevated); border: 1px solid var(--border-subtle); color: var(--text-muted); padding: 6px 10px; border-radius: var(--radius-sm); text-align: left; cursor: pointer; font-size: 0.78rem; font-family: monospace; word-break: break-all; line-height: 1.4; transition: background 0.15s, color 0.15s;"
+                    onmouseover="this.style.background='var(--bg-canvas)'; this.style.color='var(--text-main)'"
+                    onmouseout="this.style.background='var(--bg-elevated)'; this.style.color='var(--text-muted)'">
+              <%= q.truncate(80) %>
+            </button>
+          <% end %>
+        </div>
+        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-subtle);">
+          <%= link_to "Előzmények törlése",
+              admin_sql_console_path,
+              method: :delete,
+              style: "font-size: 0.78rem; color: var(--danger); text-decoration: none;" %>
+        </div>
+      <% end %>
+    </div>
+
+    <%# SQL Súgó %>
+    <div class="card" style="padding: 14px; margin-top: 12px;">
+      <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px;">
+        💡 Súgó
+      </div>
+      <ul style="font-size: 0.78rem; color: var(--text-muted); padding-left: 16px; line-height: 1.8; margin: 0;">
+        <li><kbd>Ctrl</kbd>+<kbd>↵</kbd> = Futtatás</li>
+        <li><kbd>Tab</kbd> = 2 szóköz indent</li>
+        <li>SELECT: max 500 sor</li>
+        <li>DROP/TRUNCATE/ALTER: megerősítés kell</li>
+        <li>Minden futtatás naplózva</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+const SqlConsole = {
+  executeUrl: '<%= execute_admin_sql_console_path %>',
+  csrfToken: document.querySelector('meta[name="csrf-token"]')?.content,
+
+  async execute(confirmed = false) {
+    const sql = document.getElementById('sql-editor').value.trim();
+    if (!sql) return;
+
+    const btn = document.getElementById('sql-execute-btn');
+    btn.textContent = '⏳ Futtatás...';
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(this.executeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': this.csrfToken,
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ sql, confirmed })
+      });
+      const data = await res.json();
+
+      if (data.requires_confirmation) {
+        const ok = await AdminConfirm.show({
+          icon: '🚨',
+          title: `Veszélyes művelet: ${data.ddl_keyword}`,
+          body: data.message,
+          confirmLabel: 'Igen, folytatom',
+          dangerLevel: 'danger'
+        });
+        if (ok) await this.execute(true);
+        return;
+      }
+
+      this.renderResult(data);
+    } catch (e) {
+      this.renderError('Hálózati hiba: ' + e.message);
+    } finally {
+      btn.textContent = '▶ Futtatás';
+      btn.disabled = false;
+    }
+  },
+
+  renderResult(data) {
+    const panel = document.getElementById('sql-result-panel');
+    const body  = document.getElementById('sql-result-body');
+    const label = document.getElementById('sql-result-label');
+    const badge = document.getElementById('sql-result-badge');
+    const timing = document.getElementById('sql-timing');
+
+    panel.style.display = 'block';
+    timing.textContent = data.execution_time_ms != null ? `⚡ ${data.execution_time_ms}ms` : '';
+
+    if (!data.success) {
+      label.textContent = 'Hiba';
+      badge.textContent = 'ERROR';
+      badge.className = 'tag tag-locked';
+      body.innerHTML = `<pre style="color:#fca5a5; padding:16px; margin:0; font-size:0.84rem; white-space:pre-wrap; word-break:break-word;">${escHtml(data.error)}</pre>`;
+      return;
+    }
+
+    if (data.query_type === 'SELECT' || (data.columns && data.columns.length > 0)) {
+      label.textContent = `${data.row_count} sor`;
+      badge.className = 'tag tag-active';
+      badge.textContent = data.query_type;
+
+      if (data.limited_to) {
+        body.innerHTML = `<div style="background:#78350f; color:#fde68a; padding:8px 16px; font-size:0.8rem; border-bottom:1px solid var(--border-subtle);">⚠️ Eredmény limitálva: max ${data.limited_to} sor. Adj LIMIT záradékot pontosabb eredményhez.</div>`;
+      } else {
+        body.innerHTML = '';
+      }
+
+      if (data.rows.length === 0) {
+        body.innerHTML += '<div style="text-align:center; color:var(--text-muted); padding:32px;">Üres eredményhalmaz.</div>';
+      } else {
+        let table = '<table style="margin-top:0; font-size:0.84rem;"><thead><tr>';
+        data.columns.forEach(col => { table += `<th>${escHtml(col)}</th>`; });
+        table += '</tr></thead><tbody>';
+        data.rows.forEach(row => {
+          table += '<tr>';
+          row.forEach(cell => {
+            if (cell === null) table += '<td><span style="color:var(--text-muted); font-style:italic;">NULL</span></td>';
+            else table += `<td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escHtml(String(cell))}">${escHtml(String(cell))}</td>`;
+          });
+          table += '</tr>';
+        });
+        table += '</tbody></table>';
+        body.innerHTML += table;
+      }
+    } else {
+      // DML: rows affected
+      label.textContent = `${data.rows_affected ?? 0} sor érintve`;
+      badge.className = 'tag tag-active';
+      badge.textContent = data.query_type;
+      const msg = data.message || `✓ Sikeres végrehajtás · ${data.rows_affected ?? 0} sor módosítva`;
+      body.innerHTML = `<div style="padding:24px; text-align:center; color:#34d399; font-weight:600;">${escHtml(msg)}</div>`;
+    }
+  },
+
+  renderError(msg) {
+    const panel = document.getElementById('sql-result-panel');
+    const body  = document.getElementById('sql-result-body');
+    const label = document.getElementById('sql-result-label');
+    const badge = document.getElementById('sql-result-badge');
+    panel.style.display = 'block';
+    label.textContent = 'Hiba';
+    badge.textContent = 'ERROR';
+    badge.className = 'tag tag-locked';
+    body.innerHTML = `<pre style="color:#fca5a5; padding:16px; margin:0; font-size:0.84rem;">${escHtml(msg)}</pre>`;
+  },
+
+  loadQuery(q) {
+    document.getElementById('sql-editor').value = q;
+    document.getElementById('sql-editor').focus();
+  }
+};
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Tab → 2 szóköz
+document.getElementById('sql-editor').addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const el = e.target;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    el.value = el.value.substring(0, start) + '  ' + el.value.substring(end);
+    el.selectionStart = el.selectionEnd = start + 2;
+  }
+  // Ctrl+Enter = Execute
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    SqlConsole.execute();
+  }
+});
+</script>
