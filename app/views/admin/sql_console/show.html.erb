@@ -1,4 +1,4 @@
-﻿<%# ==============================================================================
+<%# ==============================================================================
     Admin – SQL Konzol (show.html.erb)
     Nyers SQL lekérdezések futtatása a bankrepo MySQL adatbázison.
     
@@ -83,8 +83,7 @@
         </div>
         <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-subtle);">
           <%= link_to "Előzmények törlése",
-              admin_sql_console_path,
-              method: :delete,
+              admin_sql_console_path(clear_history: 1),
               style: "font-size: 0.78rem; color: var(--danger); text-decoration: none;" %>
         </div>
       <% end %>

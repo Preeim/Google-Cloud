@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # Bánk's Repository - Admin SQL Konzol (Admin::SqlConsoleController)
 # ==============================================================================
 # Nyers SQL lekérdezések futtatása az adminisztrációs felületen.
@@ -21,7 +21,13 @@ module Admin
     DDL_KEYWORDS = %w[DROP TRUNCATE ALTER RENAME].freeze
 
     # GET /bank-admin/sql_console
+    # GET /bank-admin/sql_console?clear_history=1
     def show
+      if params[:clear_history].present?
+        session.delete(:admin_sql_history)
+        redirect_to admin_sql_console_path, notice: "Előzmények törölve."
+        return
+      end
       @query_history = session[:admin_sql_history] || []
       @last_query = params[:q].to_s
     end
