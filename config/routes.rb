@@ -55,13 +55,13 @@ Rails.application.routes.draw do
     get "system", to: "server_metrics#index", as: :system_metrics
 
     # Adatbázis Böngésző
-    resources :database, only: [:index, :show], param: :table do
+    resources :database, only: [:index, :show], param: :table, controller: "database" do
       get :export, on: :member
     end
 
     # SQL Konzol
-    resource :sql_console, only: [:show] do
-      post :execute, on: :member
+    resource :sql_console, only: [:show], controller: "sql_console" do
+      post :execute
     end
   end
 
