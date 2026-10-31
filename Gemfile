@@ -12,31 +12,15 @@ gem "mysql2", "~> 0.5"
 # Use the Puma web server
 gem "puma", ">= 5.0"
 
-# Use Active Model has_secure_password for user authentication
-gem "bcrypt", "~> 3.1.7"
-
-# Use stable connection_pool compatible with Ruby 3.3.0
+# Stability pins for Ruby 3.3.0 environment
 gem "connection_pool", "~> 2.4.1"
-
-# Use Redis for Action Cable pubsub in production
-gem "redis", "~> 5.0"
-
-# Pin JSON gem for Rails 7.1 MessageEncryptor / CookieStore compatibility
 gem "json", "< 2.8.0"
 
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
-# Rate limiting, IP throttling and spam protection
-gem "rack-attack", "~> 6.7"
-
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ]
-  gem "rspec-rails", "~> 6.1"
-  gem "factory_bot_rails"
-  gem "faker"
-  gem "rubocop-rails", require: false
-  gem "brakeman", require: false
 end
 
 group :development do
