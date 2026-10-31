@@ -3,138 +3,140 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= page_title %> | Bánk's Repository</title>
+  <title><%= page_title %></title>
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
-  <script src="/vendor/actioncable/actioncable.js"></script>
-  <script src="/js/utils.js"></script>
-  <%= render "shared/design_system" %>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <style>
-    /* Flash Értesítések */
-    .flash-container { max-width: 1300px; margin: 16px auto 0; padding: 0 20px; width: 100%; }
-    .flash-notice { background: var(--success-subtle); border: 1px solid var(--success-border); color: #34d399; padding: 10px 16px; border-radius: var(--radius-md); margin-bottom: 12px; font-size: 0.9rem; }
-    .flash-alert { background: var(--danger-subtle); border: 1px solid var(--danger-border); color: #fca5a5; padding: 10px 16px; border-radius: var(--radius-md); margin-bottom: 12px; font-size: 0.9rem; }
+    :root {
+      --bg: #090d16;
+      --bg-card: rgba(18, 24, 38, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.16);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-glow: rgba(59, 130, 246, 0.25);
+      --accent: #06b6d4;
+    }
 
-    /* Fő Alkalmazás Keret (Sidebar + Stage) */
-    .app-container { display: flex; flex: 1; max-width: 1300px; margin: 20px auto; width: 100%; padding: 0 20px; gap: 24px; }
-    
-    /* Oldalsáv (Sidebar) - Border-first, természetes árnyalatok */
-    aside { width: 240px; flex-shrink: 0; }
-    .sidebar-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; }
-    .sidebar-title { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin: 6px 8px 10px; font-weight: 700; }
-    .nav-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
-    .nav-item a { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: var(--radius-md); color: var(--text-muted); text-decoration: none; font-weight: 500; font-size: 0.9rem; transition: all var(--transition-fast); border: 1px solid transparent; }
-    .nav-item a:hover { background: var(--bg-elevated); color: var(--text-main); border-color: var(--border-subtle); }
-    .nav-item.active a { background: var(--bg-elevated); color: var(--accent); border-color: var(--accent-border); font-weight: 600; }
-    .nav-item .badge { margin-left: auto; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-    /* Központi Színpad */
-    main { flex: 1; min-width: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 40%);
+    }
 
-    /* Mobil Reszponzív Töréspontok */
-    @media (max-width: 768px) {
-      .app-container {
-        flex-direction: column;
-        padding: 0 14px;
-        margin: 14px auto;
-        gap: 16px;
-      }
-      aside {
-        display: none; /* A navigáció a navbar menübe költözik */
-      }
-      .flash-container {
-        padding: 0 14px;
-        margin: 12px auto 0;
-      }
+    /* Ambient noise/grid overlay */
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+
+    .logo {
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo-badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34d399;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    main {
+      flex: 1;
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    footer {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
     }
   </style>
 </head>
 <body>
-  <%# ======================================================================== %>
-  <%# 1. Globális Egységes Felső Navigációs Sáv (Navbar) %>
-  <%# ======================================================================== %>
-  <%= render "shared/navbar" %>
+  <header>
+    <a href="/" class="logo">
+      <span class="logo-badge"></span>
+      bankrepo.hu
+    </a>
+    <div class="status-pill">
+      <span>●</span> Szerver Aktív
+    </div>
+  </header>
 
-  <%# Flash Értesítések %>
-  <div class="flash-container">
-    <% if notice %>
-      <div class="flash-notice"><%= notice %></div>
-    <% end %>
-    <% if alert %>
-      <div class="flash-alert"><%= alert %></div>
-    <% end %>
-  </div>
+  <main>
+    <%= yield %>
+  </main>
 
-  <%# Fő Elrendezés: Oldalsáv + Színpad %>
-  <div class="app-container">
-    <aside>
-      <% current_apps = (respond_to?(:nav_apps) ? nav_apps : nil) || ((admin? rescue false) ? AppDefinition.order(:name) : AppDefinition.available_to_users.order(:name) rescue []) %>
-      <div class="sidebar-card">
-        <div class="sidebar-title">Alkalmazások & Eszközök</div>
-        <ul class="nav-list">
-          <li class="nav-item <%= 'active' if request.path == '/' %>">
-            <a href="/">
-              <span>🏠 Irányítópult</span>
-            </a>
-          </li>
-          <% if logged_in? %>
-            <li class="nav-item <%= 'active' if request.path.start_with?('/profile') %>">
-              <a href="<%= app_my_profile_path %>">
-                <span>👤 Profilom</span>
-              </a>
-            </li>
-          <% end %>
-          <% current_apps.each do |app| %>
-            <% 
-              app_icon = case app.slug
-                         when "chess" then "♟️"
-                         when "casino" then "🎰"
-                         when "canvas" then "🎨"
-                         when "test" then "🛠️"
-                         else "📦"
-                         end
-            %>
-            <li class="nav-item <%= 'active' if request.path.start_with?(app.mount_path) %>">
-              <a href="<%= app.mount_path %>">
-                <span><%= app_icon %> <%= app.name %></span>
-                <% if app.state_active? %>
-                  <span class="badge badge-live">Live</span>
-                <% elsif (admin? rescue false) %>
-                  <span class="badge badge-soon" style="color: var(--warning); border: 1px solid var(--warning);"><%= app.state.capitalize %></span>
-                <% end %>
-              </a>
-            </li>
-          <% end %>
-          <li class="nav-item <%= 'active' if request.path == '/test' %>">
-            <a href="/test">
-              <span>🛠️ Teszt Konzol</span>
-              <span class="badge badge-live">Socket</span>
-            </a>
-          </li>
-          <% if admin? %>
-            <div style="border-top: 1px solid var(--border-subtle); margin: 8px 0;"></div>
-            <div class="sidebar-title" style="color: var(--admin-accent);">Rendszergazda</div>
-            <li class="nav-item">
-              <a href="/bank-admin" style="color: var(--admin-accent);">
-                <span>🛡️ Admin Központ</span>
-                <span class="badge badge-admin">Admin</span>
-              </a>
-            </li>
-          <% end %>
-        </ul>
-      </div>
-    </aside>
-
-    <main>
-      <%= yield %>
-    </main>
-  </div>
-
-  <%# Globális Lábléc (Footer) %>
-  <%= render "shared/footer" %>
-
-  <%# Globális Chat Lebegő Rendszer %>
-  <%= render "shared/global_chat" %>
+  <footer>
+    &copy; <%= Time.current.year %> bankrepo.hu &bull; Minden jog fenntartva
+  </footer>
 </body>
 </html>

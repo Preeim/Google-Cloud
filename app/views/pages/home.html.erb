@@ -1,0 +1,118 @@
+<div class="hero-container">
+  <div class="badge-tag">
+    <span>✨</span> Tiszta Lap &bull; Új Kezdet
+  </div>
+
+  <h1 class="hero-title">
+    Üdvözöllek az új <span class="gradient-text">weboldaladon</span>!
+  </h1>
+
+  <p class="hero-subtitle">
+    A korábbi rendszer és modulok sikeresen le lettek tisztítva. A Google Cloud infrastruktúra, az SSL tanúsítvány és az adatbázis készen áll az új projekted felépítésére.
+  </p>
+
+  <div class="features-grid">
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">Gyors &amp; Modern Alap</div>
+      <div class="card-desc">Ruby on Rails 7.1 fut a háttérben Puma és Nginx fordított proxy mögött.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-icon">🔒</div>
+      <div class="card-title">Biztonságos Kapcsolat</div>
+      <div class="card-desc">Automatikus HTTPS Let's Encrypt tanúsítvánnyal és szigorú HTTP fejlécekkel.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-icon">🚀</div>
+      <div class="card-title">Azonnali Telepítés</div>
+      <div class="card-desc">Egyetlen parancsos automatikus frissítés és deployálás közvetlenül GitHubról.</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .hero-container {
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .badge-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    color: #60a5fa;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+    letter-spacing: 0.02em;
+  }
+
+  .hero-title {
+    font-size: clamp(2.2rem, 5vw, 3.6rem);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    margin-bottom: 20px;
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #60a5fa 0%, #22d3ee 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+    color: var(--text-muted);
+    max-width: 650px;
+    margin: 0 auto 48px;
+    line-height: 1.6;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    text-align: left;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    backdrop-filter: blur(16px);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-hover);
+  }
+
+  .card-icon {
+    font-size: 1.8rem;
+    margin-bottom: 14px;
+  }
+
+  .card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .card-desc {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+</style>
