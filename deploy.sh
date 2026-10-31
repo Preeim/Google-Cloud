@@ -2,7 +2,8 @@
 set -e
 
 echo "====================================================="
-echo "   Starting Deployment on Google Cloud VM"
+echo "   Google Cloud VM - Clean Slate Deployment"
+echo "   Domain: bankrepo.hu"
 echo "====================================================="
 
 # Load environment variables if .env or .env.production exists
@@ -20,17 +21,9 @@ if [ -z "$DATABASE_PASSWORD" ] && [ -n "$DB_PASSWORD" ]; then
     export DATABASE_PASSWORD="$DB_PASSWORD"
 fi
 
-if [ -z "$DATABASE_PASSWORD" ]; then
-    echo "-----------------------------------------------------"
-    echo "⚠️  DATABASE_PASSWORD nincs beállítva a környezetben!"
-    echo "   Ha a MySQL jelszót kér, hozd létre a .env fájlt:"
-    echo "   echo 'DATABASE_PASSWORD=jelszavad' > .env"
-    echo "-----------------------------------------------------"
-fi
-
-# 1. Nginx Hardening (Server header & version leak mitigation)
+# 1. Nginx Hardening (Server tokens & security headers)
 if [ -d "/etc/nginx" ] && command -v nginx >/dev/null 2>&1; then
-    echo "[1/5] Hardening Nginx server tokens and headers..."
+    echo "[1/6] Ensuring Nginx security configuration..."
     SUDO_CMD=""
     [ "$EUID" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO_CMD="sudo"
     $SUDO_CMD bash -c 'cat > /etc/nginx/conf.d/security_hardening.conf << "EOF"
@@ -43,21 +36,30 @@ EOF' 2>/dev/null || true
     fi
 fi
 
-
-# 2. Pull latest changes
-echo "[2/5] Pulling latest code from GitHub..."
+# 2. Pull latest clean code and wipe untracked legacy files
+echo "[2/6] Pulling clean code from GitHub (wiping old legacy files)..."
 git fetch origin main
 git reset --hard origin/main
+git clean -fd
 
 # 3. Install bundle dependencies
-echo "[3/5] Checking Gem dependencies..."
+echo "[3/6] Installing bundle dependencies..."
 bundle install
 
-# 4. Migrate database (creates if not exists, then runs migrations)
-echo "[4/5] Preparing database & migrations..."
+# 4. Clean cache and legacy assets
+echo "[4/6] Purging old cache and precompiled assets..."
+mkdir -p log tmp/pids tmp/cache tmp/sockets
+rm -f tmp/pids/server.pid
+if bundle exec rake -T 2>/dev/null | grep -q "assets:clobber"; then
+    RAILS_ENV=production bundle exec rails assets:clobber || true
+fi
+RAILS_ENV=production bundle exec rails tmp:clear || true
+
+# 5. Database preparation
+echo "[5/6] Preparing database & migrations..."
 chmod +x bin/* || true
 
-# Ensure SECRET_KEY_BASE is available for production commands
+# Ensure SECRET_KEY_BASE is available for production
 if [ -z "$SECRET_KEY_BASE" ]; then
     if [ -f ".secret_key_base" ]; then
         export SECRET_KEY_BASE=$(cat .secret_key_base | tr -d '\r\n')
@@ -69,33 +71,49 @@ if [ -z "$SECRET_KEY_BASE" ]; then
     fi
 fi
 
-# Run database migrations
+# If RESET_DB=1 or argument is --reset-db, perform full drop & create
+if [ "$1" == "--reset-db" ] || [ "$RESET_DB" == "1" ]; then
+    echo "⚠️ Full database reset requested: dropping and recreating database..."
+    RAILS_ENV=production bundle exec rails db:drop db:create || true
+fi
+
+# Prepare database schema
 RAILS_ENV=production bundle exec rails db:prepare
 
-# Precompile static assets if asset pipeline gem is present
+# Precompile static assets if asset pipeline is present
 if bundle exec rake -T 2>/dev/null | grep -q "assets:precompile"; then
     echo "Precompiling static assets..."
     RAILS_ENV=production bundle exec rails assets:precompile
 fi
 
-# 5. Restart server
-echo "[5/5] Restarting Rails server..."
+# 6. Restart server cleanly
+echo "[6/6] Restarting Rails application server..."
 
-# Check if systemd service is installed and managed
-if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files | grep -q "banks-hub.service"; then
-    echo "Restarting via systemd service (banks-hub)..."
+# Check if systemd service is active (banks-hub or puma)
+SERVICE_NAME=""
+if command -v systemctl >/dev/null 2>&1; then
+    if systemctl list-unit-files | grep -q "banks-hub.service"; then
+        SERVICE_NAME="banks-hub"
+    elif systemctl list-unit-files | grep -q "puma.service"; then
+        SERVICE_NAME="puma"
+    fi
+fi
+
+if [ -n "$SERVICE_NAME" ]; then
+    echo "Restarting via systemd ($SERVICE_NAME)..."
     SUDO_CMD=""
     [ "$EUID" -ne 0 ] && command -v sudo >/dev/null 2>&1 && SUDO_CMD="sudo"
-    $SUDO_CMD systemctl restart banks-hub
+    $SUDO_CMD systemctl restart "$SERVICE_NAME"
     sleep 2
-    if $SUDO_CMD systemctl is-active --quiet banks-hub; then
+    if $SUDO_CMD systemctl is-active --quiet "$SERVICE_NAME"; then
         echo "====================================================="
-        echo "   Deployment Complete! systemd service is active."
+        echo "   Deployment Complete! $SERVICE_NAME is running."
+        echo "   Live at: https://bankrepo.hu"
         echo "====================================================="
         exit 0
     else
-        echo "⚠️ systemd restart failed, checking status:"
-        $SUDO_CMD systemctl status banks-hub --no-pager || true
+        echo "⚠️ systemd restart failed, checking logs:"
+        $SUDO_CMD systemctl status "$SERVICE_NAME" --no-pager || true
         exit 1
     fi
 fi
@@ -103,34 +121,21 @@ fi
 # Fallback: Process-level graceful restart
 PIDS=$(pgrep -f "puma.*3000" || pgrep -f "rails.*3000" || true)
 if [ -n "$PIDS" ]; then
-    echo "Gracefully stopping Rails server processes: $PIDS"
+    echo "Stopping existing server processes ($PIDS)..."
     echo "$PIDS" | xargs -r kill -15 2>/dev/null || true
-    for i in {1..8}; do
-        REMAINING=$(pgrep -f "puma.*3000" || pgrep -f "rails.*3000" || true)
-        if [ -z "$REMAINING" ]; then
-            break
-        fi
-        sleep 1
-    done
+    sleep 2
     STILL_ALIVE=$(pgrep -f "puma.*3000" || pgrep -f "rails.*3000" || true)
     if [ -n "$STILL_ALIVE" ]; then
-        echo "Processes still running ($STILL_ALIVE), forcing termination (SIGKILL)..."
         echo "$STILL_ALIVE" | xargs -r kill -9 2>/dev/null || true
     fi
-    sleep 1
 fi
 
-# Ensure log and pids directory exist and remove stale server.pid
-mkdir -p log tmp/pids
-rm -f tmp/pids/server.pid
-
-echo "Starting Rails in background (logs -> log/server.log)..."
+echo "Starting Rails in background..."
 RAILS_ENV=production nohup bundle exec rails server -e production -b 0.0.0.0 -p 3000 > log/server.log 2>&1 &
 
 SERVER_UP=false
 for i in {1..15}; do
     if pgrep -f "puma.*3000" > /dev/null || pgrep -f "rails.*3000" > /dev/null; then
-        # Perform HTTP check if curl is available
         if command -v curl >/dev/null 2>&1; then
             if curl -s -k http://127.0.0.1:3000/ > /dev/null 2>&1; then
                 SERVER_UP=true
@@ -147,6 +152,7 @@ done
 if [ "$SERVER_UP" = true ]; then
     echo "====================================================="
     echo "   Deployment Complete! Live site is up and running."
+    echo "   Live at: https://bankrepo.hu"
     echo "====================================================="
 else
     echo "====================================================="
@@ -154,4 +160,3 @@ else
     echo "====================================================="
     tail -n 100 log/server.log || true
 fi
-
