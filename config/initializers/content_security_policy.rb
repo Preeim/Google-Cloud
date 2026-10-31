@@ -1,49 +1,19 @@
-# ==============================================================================
-# Bánk's Repository - Content Security Policy (CSP) Konfiguráció
-# ==============================================================================
-# Ez a fájl határozza meg a böngészők által betölthető erőforrások (scriptek,
-# stílusok, képek, WebSocket kapcsolatok) biztonsági szabályait.
-# ==============================================================================
+# frozen_string_literal: true
 
 Rails.application.configure do
   config.content_security_policy do |policy|
-    # Alapértelmezés: saját forrás
-    policy.default_src :self
-
-    # Betűtípusok és ikonok
-    policy.font_src    :self, :data
-
-    # Képek és avatarok (plusz chessboard.js bábuk CDN)
-    policy.img_src     :self, :data, "https://chessboardjs.com"
-
-    # Flash és egyéb plugin objektumok tiltása
+    policy.default_src :self, :https
+    policy.font_src    :self, :https, :data
+    policy.img_src     :self, :https, :data
     policy.object_src  :none
-
-    # Scriptek (saját forrás, megbízható CDN-ek és nonce-védett inline scriptek)
-    policy.script_src  :self, :unsafe_inline, "https://cdnjs.cloudflare.com", "https://code.jquery.com", "https://unpkg.com", "https://cdn.jsdelivr.net"
-
-    # Stílusok (saját forrás és CSS komponensek)
-    policy.style_src   :self, :unsafe_inline, "https://unpkg.com"
-
-    # Hálózati kapcsolatok: Fetch, XHR és Action Cable WebSocket csatornák
-    policy.connect_src :self, :blob,
-                       "wss://bankrepo.hu", "ws://bankrepo.hu",
-                       "wss://www.bankrepo.hu", "ws://www.bankrepo.hu",
-                       "https://bankrepo.hu", "http://bankrepo.hu",
-                       "ws://localhost:3000", "ws://127.0.0.1:3000"
-
-    # Clickjacking védelem
+    policy.script_src  :self, :https, :unsafe_inline
+    policy.style_src   :self, :https, :unsafe_inline
+    policy.connect_src :self, :https, "wss://bankrepo.hu", "ws://bankrepo.hu", "wss://www.bankrepo.hu"
     policy.frame_ancestors :self
-
-    # Űrlap célállomás
     policy.form_action :self
-
-    # Alap URI
     policy.base_uri :self
   end
 
-  # Automatikus nonce generálás a scriptekhez
   config.content_security_policy_nonce_generator = ->(request) { request.session.id.to_s }
   config.content_security_policy_nonce_directives = %w(script-src)
 end
-
